@@ -310,7 +310,7 @@ fn procargs(pid: i32) -> std::io::Result<()> {
     std::fs::read(format!("/proc/{pid}/environ")).map(|_| ())
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
 fn procargs(_pid: i32) -> std::io::Result<()> {
     Err(std::io::Error::other("not probed on this OS"))
 }

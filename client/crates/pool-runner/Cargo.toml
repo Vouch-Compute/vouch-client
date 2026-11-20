@@ -23,9 +23,10 @@ dev-trust = ["pool-proto/dev-trust"]
 # is chosen at run time: CUDA when a GPU is usable, the CPU otherwise. Not buildable on the Windows GNU toolchain
 # (nvcc needs MSVC); Windows GPUs use the DirectML pack instead (`accel.rs`).
 cuda = ["candle", "candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
-# Candle on Apple GPUs through Metal (macOS). Uses only Apple's system Metal framework (in the signed, sealed system
-# volume): no third-party library is shipped or loaded, so there is nothing to pin. Chosen at run time like `cuda`:
-# Metal when a device is usable inside the sandbox and FORCE_CPU_ENV is not set, the CPU otherwise.
+# Candle on Apple GPUs through Metal (macOS, Apple silicon only: Intel Macs run on the CPU). Uses only Apple's
+# system Metal framework (in the signed, sealed system volume): no third-party library is shipped or loaded, so there is
+# nothing to pin. Chosen at run time like `cuda`: Metal when a device is usable inside the sandbox and FORCE_CPU_ENV
+# is not set, the CPU otherwise.
 metal = ["candle", "candle-core/metal", "candle-nn/metal", "candle-transformers/metal"]
 # Shared test fixtures (fake the server, signed bundles, tiny models), used by pool-core's tests.
 testkit = ["dep:tempfile", "pool-proto/testkit", "dev-trust"]

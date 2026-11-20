@@ -152,7 +152,7 @@ fn candle_metal_vs_cpu() {
         60.0 / tg,
         tc / tg
     );
-    eprintln!("transcripts identical: {}", text(&oc) == text(&og));
     eprintln!("CPU text:  {}", text(&oc).chars().take(160).collect::<String>());
     eprintln!("Metal text: {}", text(&og).chars().take(160).collect::<String>());
+    assert_eq!(text(&oc), text(&og), "Metal and CPU transcripts differ");
 }

@@ -38,7 +38,8 @@ pub const PINNED: &[(&str, &str)] = &[
     ("DirectML.dll", "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"),
     ("onnxruntime.dll", "95366724919f4e95ecc60010912ed538ad9804b6683fbd0aad389749102834b9"),
 ];
-/// No pinned GPU pack on this OS: Linux GPUs use the `cuda` feature (candle), and macOS has no GPU path yet.
+/// No pinned GPU pack on this OS: Linux GPUs use the `cuda` feature (candle), and Apple silicon Macs use the `metal`
+/// feature (candle on the system Metal framework, nothing to pin). Intel Macs have no GPU path and use the CPU.
 #[cfg(not(windows))]
 pub const PINNED: &[(&str, &str)] = &[];
 
@@ -101,8 +102,12 @@ pub fn metal_device() -> candle_core::Result<candle_core::Device> {
     Ok(d)
 }
 
+/// Apple silicon only: on Intel Macs (x86_64) Metal jobs are not supported and the job runs on the CPU.
 #[cfg(all(feature = "candle", feature = "metal", target_os = "macos"))]
 fn metal_device_visible() -> bool {
+    if !cfg!(target_arch = "aarch64") {
+        return false;
+    }
     #[link(name = "Metal", kind = "framework")]
     extern "C" {
         fn MTLCreateSystemDefaultDevice() -> *mut std::ffi::c_void;

@@ -62,7 +62,6 @@ struct Fixture {
     _model: tempfile::TempDir,
     _sock_dir: tempfile::TempDir,
     _unix: UnixListener,
-    secret: PathBuf,
     model: PathBuf,
     args: Vec<String>,
 }
@@ -75,6 +74,7 @@ fn fixture() -> Fixture {
             drop(s);
         }
     });
+    std::fs::create_dir_all(home().join(".cache")).unwrap();
     let area = tempfile::Builder::new().prefix("pool-macos-probe").tempdir_in(home().join(".cache")).unwrap();
     let secret = area.path().join("api-token.txt");
     std::fs::write(&secret, b"user secret").unwrap();
@@ -108,7 +108,7 @@ fn fixture() -> Fixture {
     }
     args.push("--spawn".into());
     let model_path = model.path().to_path_buf();
-    Fixture { _area: area, _model: model, _sock_dir: sock_dir, _unix: unix, secret, model: model_path, args }
+    Fixture { _area: area, _model: model, _sock_dir: sock_dir, _unix: unix, model: model_path, args }
 }
 
 fn run(args: &[String], model: &std::path::Path, sandboxed: bool) -> (ProbeReport, SandboxLevel) {
@@ -126,8 +126,6 @@ fn run(args: &[String], model: &std::path::Path, sandboxed: bool) -> (ProbeRepor
 
 #[test]
 fn macos_sandbox_blocks_user_data_network_processes_and_services() {
-    // The test's own environment carries a "secret": a sandboxed job must not be able to read it via sysctl.
-    std::env::set_var("POOL_TEST_PARENT_SECRET", "s3cr3t");
     let fx = fixture();
 
     // Control run: every probe works outside the sandbox.
@@ -178,10 +176,9 @@ fn macos_sandbox_blocks_user_data_network_processes_and_services() {
     let mut rep = rep;
     rep.procargs.clear();
     assert!(rep.all_blocked(), "{rep:#?}");
-    let _ = &fx.secret;
 }
 
-/// **Known gap (MAC-REPORT.md, rated high):** `sandbox-exec` does not mediate `KERN_PROCARGS2`. A sandboxed job can
+/// **Known gap (docs/MAC-REPORT.md, rated high):** `sandbox-exec` does not mediate `KERN_PROCARGS2`. A sandboxed job can
 /// read the arguments and environment variables of every process of the same user (only other users' processes
 /// are refused), whatever the profile says: denying `sysctl-read` by name or `process-info*` changes nothing. The
 /// job cannot send them anywhere over the network, but a compromised runner could hide them in a job result.
@@ -190,7 +187,6 @@ fn macos_sandbox_blocks_user_data_network_processes_and_services() {
 /// assertion around.
 #[test]
 fn known_gap_same_user_process_environment_is_readable() {
-    std::env::set_var("POOL_TEST_PARENT_SECRET", "s3cr3t");
     let fx = fixture();
     let me = std::process::id().to_string();
     let args: Vec<String> = vec!["probe".into(), "--model-dir".into(), fx.model.to_string_lossy().into(), "--procargs".into(), me];
@@ -199,7 +195,7 @@ fn known_gap_same_user_process_environment_is_readable() {
     assert!(
         rep.procargs[0].ok,
         "KERN_PROCARGS2 of a same-user process is now blocked inside the sandbox: the known gap is closed, update this test \
-         and MAC-REPORT.md: {rep:#?}"
+         and docs/MAC-REPORT.md: {rep:#?}"
     );
 }
 
