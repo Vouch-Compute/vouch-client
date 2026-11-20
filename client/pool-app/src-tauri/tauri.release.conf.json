@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "identifier": "com.vouchcompute.app",
+  "bundle": {
+    "publisher": "Vouch Compute",
+    "copyright": "Vouch Compute"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "set-by-the-release-workflow-from-the-offline-key",
+      "endpoints": ["https://vouchcompute.com/updates/{{target}}/{{arch}}/{{current_version}}.json"],
+      "dangerousInsecureTransportProtocol": false
+    }
+  }
+}

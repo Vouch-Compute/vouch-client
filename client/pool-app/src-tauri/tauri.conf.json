@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Vouch Compute",
+  "version": "0.1.0",
+  "identifier": "com.vouchcompute.app.dev",
+  "mainBinaryName": "VouchCompute",
+  "build": {
+    "frontendDist": "../ui",
+    "beforeBuildCommand": "node scripts/sidecars.mjs --release",
+    "beforeDevCommand": "node scripts/sidecars.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Vouch Compute",
+        "width": 1040,
+        "height": 720,
+        "minWidth": 380,
+        "minHeight": 560,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "freezePrototype": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "dmg", "app", "appimage", "deb"],
+    "publisher": "Vouch Compute (dev build, unsigned)",
+    "category": "Utility",
+    "shortDescription": "Share your computer's idle time for verified AI work and get paid.",
+    "longDescription": "Vouch Compute runs small AI jobs (speech-to-text and text embeddings) in a sandbox when your computer is idle. Work is verified by the server and paid in USDC.",
+    "copyright": "Dev build. Not for distribution.",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "externalBin": ["binaries/pool-core", "binaries/pool-runner"],
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico"
+      },
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true }
+    },
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "hardenedRuntime": true,
+      "entitlements": "macos/VouchCompute.entitlements"
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"],
+        "files": {
+          "/etc/apparmor.d/vouchcompute-runner": "../packaging/linux/apparmor/vouchcompute-runner"
+        }
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENERjg1NjMwOTZFRUQzNEMKUldSTTArNldNRmI0emF2azJaTThuYVRGTGlENVk1T2xSREZMYVBUaUFGOVlNRTd1R21BQ3pjamgK",
+      "endpoints": ["http://127.0.0.1:3000/updates/vouchcompute-dev/{{target}}/{{arch}}/{{current_version}}.json"],
+      "dangerousInsecureTransportProtocol": true,
+      "requireSignedVersion": true,
+      "windows": { "installMode": "passive" }
+    }
+  }
+}

@@ -1,0 +1,87 @@
+# client workspace: pool-core (agent), pool-runner (sandboxed per-job), pool-proto (shared protocol + signed objects),
+# pool-app (Tauri 2 shell, brand "Vouch Compute"). Wire format: proto/node.proto (node protocol) and the signed objects in
+# pool-proto. On Windows the workspace builds with the GNU toolchain (see the README).
+[workspace]
+resolver = "3"  # MSRV-aware: picks deps compatible with rust-version
+members = [
+  "crates/pool-proto",
+  "crates/pool-core",
+  "crates/pool-runner",
+  "crates/pool-sandbox",
+  "pool-app/src-tauri",
+]
+# `cargo test` at the root builds the agent crates only. The Tauri shell is built explicitly:
+#   cargo build -p pool-app      (or `cargo tauri build` from pool-app/src-tauri)
+default-members = [
+  "crates/pool-proto",
+  "crates/pool-core",
+  "crates/pool-runner",
+  "crates/pool-sandbox",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.92"
+license = "UNLICENSED"
+publish = false
+
+[workspace.dependencies]
+pool-proto = { path = "crates/pool-proto" }
+pool-runner = { path = "crates/pool-runner", default-features = false }
+pool-core = { path = "crates/pool-core" }
+pool-sandbox = { path = "crates/pool-sandbox" }
+
+# protocol + crypto
+prost = "0.13"
+prost-build = "0.13"
+protoc-bin-vendored = "3"
+ciborium = "0.2"
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8", "std"] }
+sha2 = "0.10"
+rand_core = { version = "0.6", features = ["getrandom"] }
+base64 = "0.22"
+hex = "0.4"
+thiserror = "2"
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+# async + network (TLS: rustls with the ring provider; aws-lc-rs needs NASM/cmake, ring builds with mingw gcc)
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "time", "sync", "process", "fs", "signal"] }
+tokio-tungstenite = { version = "0.26", default-features = false, features = ["handshake"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "logging", "tls12"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "logging", "std"] }
+webpki-roots = "0.26"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+directories = "6"
+
+# runner
+claxon = "0.4"
+candle-core = "0.9"
+candle-nn = "0.9"
+candle-transformers = "0.9"
+windows = { version = "0.61", features = [
+  "Win32_Foundation", "Win32_Security", "Win32_Security_Isolation", "Win32_Security_Authorization",
+  "Win32_Security_Cryptography", "Win32_System_Threading", "Win32_System_JobObjects", "Win32_System_Pipes",
+  "Win32_Storage_FileSystem", "Win32_System_SystemInformation", "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_Shell", "Win32_System_Power", "Win32_System_Memory", "Win32_System_Diagnostics_Debug",
+  "Win32_System_ErrorReporting", "Win32_System_IO", "Win32_System_Console", "Win32_System_TpmBaseServices",
+] }
+
+# Dev builds: line tables only (the GNU toolchain otherwise embeds ~200 MB of DWARF in each binary, and
+# Windows Defender rescans the runner image on every sandboxed launch).
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"

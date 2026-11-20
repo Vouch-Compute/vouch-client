@@ -1,0 +1,8 @@
+# Pinned toolchain for client/ (Tauri 2.12 needs rustc >= 1.90).
+# On Windows this repo builds with the GNU host toolchain (no MSVC Build Tools on the dev box):
+# scripts/dev.ps1 sets RUSTUP_TOOLCHAIN=1.98.1-x86_64-pc-windows-gnu, which overrides this file.
+# CI (macOS/Linux/Windows-msvc) uses this channel as-is.
+[toolchain]
+channel = "1.98.1"
+components = ["clippy", "rustfmt"]
+profile = "minimal"

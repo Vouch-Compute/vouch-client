@@ -1,0 +1,67 @@
+[package]
+name = "pool-core"
+description = "Vouch Compute contributor agent: device identity, job-server session, offer/lease state machine, sandboxed job execution, benchmark agent, governor (idle/thermal/power/schedule), registry cache, local control IPC for the app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = ["dev-trust", "nvml"]
+# Dev/test builds: trust roots and zero TLS exporter (ws://localhost) are allowed. Production release
+# builds use --no-default-features --features nvml.
+dev-trust = ["pool-proto/dev-trust", "pool-sandbox/dev-trust"]
+# Release-signing configuration (also POOL_RELEASE=1): refuses to compile together with dev-trust (pool-proto).
+release = ["pool-proto/release"]
+# NVIDIA GPU temperature/power via NVML (loaded dynamically; absent library = no GPU readings).
+nvml = ["dep:nvml-wrapper"]
+
+[dependencies]
+pool-proto.workspace = true
+ciborium.workspace = true
+pool-runner = { workspace = true }
+pool-sandbox.workspace = true
+tokio.workspace = true
+tokio-tungstenite.workspace = true
+futures-util.workspace = true
+tokio-rustls.workspace = true
+rustls.workspace = true
+webpki-roots.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+directories.workspace = true
+hex.workspace = true
+rand_core.workspace = true
+base64.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+url = "2"
+sha2 = { workspace = true, features = ["oid"] }
+p256.workspace = true
+# tpm2 v2 attestation: TPMT_SIGNATURE checks for RSA and ECC AIKs, the activation HMAC
+rsa = "0.9"
+sha1 = { version = "0.10", features = ["oid"] }
+hmac = "0.12"
+nvml-wrapper = { version = "0.11", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+# TPM2_MakeCredential (the server's side of the activation) in the attestation tests
+aes = "0.8"
+pool-proto = { workspace = true, features = ["testkit", "dev-trust"] }
+pool-runner = { workspace = true, features = ["testkit", "candle"] }
+axum = { version = "0.8", features = ["ws"] }
+prost.workspace = true
+tempfile = "3"
+# property tests (governor limits, clock offset)
+proptest = "1"

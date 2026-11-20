@@ -1,0 +1,20 @@
+# build output
+target/
+client/target/
+client/dist-*/
+node_modules/
+# generated at build time (sidecars, downloaded and pin-checked GPU pack, Tauri schemas)
+client/pool-app/src-tauri/binaries/
+client/pool-app/src-tauri/backends/
+client/pool-app/src-tauri/gen/
+# signing keys never live in the repo (dev keys: generate your own, see README)
+client/dev-keys/
+*.key
+*.pem
+.env
+.env.*
+# os / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

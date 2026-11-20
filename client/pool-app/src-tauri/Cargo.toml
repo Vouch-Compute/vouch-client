@@ -1,0 +1,32 @@
+[package]
+name = "pool-app"
+description = "Vouch Compute contributor app: Tauri 2 shell (onboarding, controls, status). Holds no keys and runs no jobs: it talks to pool-core over local IPC."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+sha2.workspace = true
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-updater = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+directories.workspace = true
+sha2.workspace = true
+# update policy (update_policy.rs): read the signed trusted comment, compare versions as semver
+minisign-verify = "0.2"
+base64.workspace = true
+semver = "1"
+
+[dev-dependencies]
+# Sign test updates with custom trusted comments, and property tests of the update policy
+minisign = "0.7"
+proptest = "1"

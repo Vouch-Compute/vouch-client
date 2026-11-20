@@ -1,0 +1,62 @@
+# Coverage-guided fuzzing (cargo-fuzz / libFuzzer). Not a workspace member: it needs a nightly toolchain and
+# runs on Linux (client/ci/fuzz-in-docker.sh). The same properties run on stable as proptest suites
+# (crates/pool-proto/tests/fuzz_decoding.rs, pool-app update_policy tests).
+[package]
+name = "pool-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+prost = "0.13"
+ciborium = "0.2"
+base64 = "0.22"
+minisign-verify = "0.2"
+semver = "1"
+p256 = "0.13"
+pool-proto = { path = "../crates/pool-proto", features = ["testkit"] }
+
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "frame"
+path = "fuzz_targets/frame.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "cbor_cose"
+path = "fuzz_targets/cbor_cose.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "manifest"
+path = "fuzz_targets/manifest.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "tamper"
+path = "fuzz_targets/tamper.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "update_sig"
+path = "fuzz_targets/update_sig.rs"
+test = false
+doc = false
+bench = false

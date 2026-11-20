@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Main app (hardened runtime, not sandboxed: it launches the agent). The job runner helper is signed
+     separately with App Sandbox entitlements and no network/file entitlements: see
+     the release signing setup. -->
+<plist version="1.0">
+<dict>
+</dict>
+</plist>

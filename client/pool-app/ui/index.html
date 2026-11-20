@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Vouch Compute</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="app" id="app">
+      <header class="topbar">
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M38.64 14.23A22 22 0 1 0 46.8 46.93" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.5 27L29.5 42L55.5 9" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg class="brand-wordmark" xmlns="http://www.w3.org/2000/svg" focusable="false" viewBox="0 0 396 64" role="img" aria-label="Vouch Compute"><title>Vouch Compute</title><g transform="translate(2 0)"><g transform="translate(0 0)" fill="none" stroke="currentColor" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round"><path transform="translate(3.3 0)" d="M0 11.3L13 44.7L26 11.3"/><path transform="translate(36.5 0)" d="M10.7 23.3A10.700000000000001 10.700000000000001 0 1 1 10.7 44.7A10.700000000000001 10.700000000000001 0 1 1 10.7 23.3Z"/><path transform="translate(69.1 0)" d="M0 23.3V34A9.700000000000001 9.700000000000001 0 0 0 19.400000000000002 34M19.400000000000002 23.3V44.7"/><path transform="translate(98.7 0)" d="M17.86 26.05A10.700000000000001 10.700000000000001 0 1 0 17.86 41.95"/><path transform="translate(129.3 0)" d="M0 11.3V44.7M0 34A9.700000000000001 9.700000000000001 0 0 1 19.400000000000002 34V44.7"/></g><g transform="translate(165 0)" fill="none" stroke="currentColor" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><path transform="translate(2.3 0)" d="M30 15.27A17.700000000000003 17.700000000000003 0 1 0 30 40.73"/><path transform="translate(42.7 0)" d="M11.7 22.3A11.700000000000001 11.700000000000001 0 1 1 11.7 45.7A11.700000000000001 11.700000000000001 0 1 1 11.7 22.3Z"/><path transform="translate(76.1 0)" d="M0 22.3V45.7M0 30.150000000000002A7.8500000000000005 7.8500000000000005 0 0 1 15.700000000000001 30.150000000000002V45.7M15.700000000000001 30.150000000000002A7.8500000000000005 7.8500000000000005 0 0 1 31.400000000000002 30.150000000000002V45.7"/><path transform="translate(117.5 0)" d="M0 22.3V57.7M11.7 22.3A11.700000000000001 11.700000000000001 0 1 1 11.7 45.7A11.700000000000001 11.700000000000001 0 1 1 11.7 22.3Z"/><path transform="translate(150.9 0)" d="M0 22.3V34A10.700000000000001 10.700000000000001 0 0 0 21.400000000000002 34M21.400000000000002 22.3V45.7"/><path transform="translate(181.3 0)" d="M4 14.3V40.7Q4 45.7 9 45.7H11M0 22.3H11"/><path transform="translate(201.3 0)" d="M0 34H23.400000000000002A11.700000000000001 11.700000000000001 0 1 0 19.83 42.42"/></g></g></svg>
+
+          <span class="badge badge-dev" id="dev-badge" title="Development build: dev keys, dev update channel, test network. Not a release.">DEV BUILD</span>
+        </div>
+        <nav class="tabs" id="tabs" aria-label="Main" hidden>
+          <button type="button" data-view="status">Status</button>
+          <button type="button" data-view="controls">Controls</button>
+          <button type="button" data-view="earnings">Earnings</button>
+          <button type="button" data-view="device">Device</button>
+        </nav>
+        <button type="button" class="icon-btn" id="theme-toggle" aria-label="Switch colour theme" title="Theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" /></svg>
+        </button>
+      </header>
+      <main id="main" tabindex="-1"></main>
+      <div class="sr-only" aria-live="polite" id="live"></div>
+    </div>
+    <noscript>Vouch Compute needs JavaScript enabled in its window.</noscript>
+  </body>
+</html>

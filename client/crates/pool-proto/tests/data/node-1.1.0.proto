@@ -1,0 +1,275 @@
+// TEST FIXTURE: node.proto 1.1.0 (the 1.2.0 file minus its additive changes), used only by pool-proto's
+// cross-version tests (a 1.1.0 peer against a 1.2.0 peer). Not a contract file.
+// Node protocol v1: transport messages between contributor/trusted nodes and the server's job server.
+// Version 1.2.0 (2026-11-19, additive: optional Heartbeat telemetry, AccountNotice).
+// 1.1.0 (2026-11-18). No wire change in 1.1.0: benchmark stop = BenchmarkResponse{accept=false, reason=DECLINE_REASON_USER_ACTIVE} after an accept.
+//
+// Wire: WebSocket over TLS 1.3 to wss://<the server>/node/v1/connect, subprotocol "pool.node.v1".
+// Every binary frame carries exactly one ServerMessage (server -> node) or NodeMessage (node -> server).
+// Text frames are a protocol error.
+//
+// Signed objects are NOT protobuf: fields typed `bytes` and named *_sig / *_envelope / workload carry
+// COSE_Sign1 structures over deterministic CBOR, defined in proto/signed-objects.cddl.
+// Protobuf is transport only and is never signed or hashed.
+//
+// Time: int64 milliseconds since the Unix epoch (UTC). IDs: lowercase canonical UUID strings.
+// Node-observable IDs (job_id, lease_id, benchmark_id, session_id) are UUIDv4 (random, no embedded time).
+
+syntax = "proto3";
+
+package pool.node.v1;
+
+// ------------------------------------------------------------------ envelopes
+
+message ServerMessage {
+  uint64 seq = 1;  // monotonically increasing per session, starting at 1
+  oneof body {
+    Challenge challenge = 10;
+    Welcome welcome = 11;
+    Offer offer = 12;
+    LeaseGrant lease_grant = 13;
+    LeaseRevoked lease_revoked = 14;
+    ResultReceipt result_receipt = 15;
+    BenchmarkOffer benchmark_offer = 16;
+    BenchmarkReceipt benchmark_receipt = 17;
+    ModelHint model_hint = 18;
+    ServerError error = 19;
+    Goodbye goodbye = 20;
+  }
+}
+
+message NodeMessage {
+  uint64 seq = 1;  // monotonically increasing per session, starting at 1
+  oneof body {
+    Hello hello = 10;
+    Accept accept = 11;
+    Decline decline = 12;
+    Result result = 13;
+    Abandon abandon = 14;
+    Heartbeat heartbeat = 15;
+    BenchmarkResponse benchmark_response = 16;
+    BenchmarkResult benchmark_result = 17;
+  }
+}
+
+// ------------------------------------------------------------------ session
+
+// First server frame after the WebSocket upgrade. The node must answer with Hello within 10 s.
+message Challenge {
+  bytes nonce = 1;               // 32 random bytes, single use, valid 30 s
+  int64 server_time_ms = 2;
+  string protocol_version = 3;   // "pool.node.v1"
+}
+
+message CachedModel {
+  string model_id = 1;
+  bytes model_hash = 2;          // 32-byte SHA-256 of the signed manifest payload
+}
+
+// Device proof of possession. hello_sig = COSE_Sign1(HelloClaims) with the attested device key (ES256),
+// binding the server nonce AND the TLS exporter of this connection, so a captured Hello cannot be replayed
+// or relayed over another TLS session. The `trusted` class is never claimed by the node: the server decides it
+// from its allow-list of device keys.
+message Hello {
+  string protocol_version = 1;   // "pool.node.v1"
+  string device_id = 2;          // UUID issued by the server at enrollment
+  string device_key_id = 3;      // fingerprint of the attested key (changes on rotation)
+  string agent_version = 4;
+  string os = 5;                 // "windows" | "macos" | "linux"
+  string arch = 6;               // "x86_64" | "aarch64"
+  repeated CachedModel cached_models = 7;
+  bytes hello_sig = 8;           // COSE_Sign1 over HelloClaims (signed-objects.cddl)
+}
+
+message Welcome {
+  string session_id = 1;
+  int64 session_expires_ms = 2;  // node reconnects (new Challenge/Hello) before this
+  uint32 heartbeat_interval_s = 3;
+  int64 server_time_ms = 4;
+}
+
+// ------------------------------------------------------------------ work
+
+// An offer reveals NOTHING that lets a node read or classify the input before accepting:
+// exactly {job_id, model_id, model_hash, est_units, deadline}. No input URL, no input hash, no job kind,
+// no channel, no data class. (Every dispatch leg, including each
+// hedge leg, has its own random job_id.) The node answers with Accept or Decline within 5 s.
+message Offer {
+  string job_id = 1;
+  string model_id = 2;
+  bytes model_hash = 3;
+  uint64 est_units = 4;          // estimate in the model's unit (audio: whole seconds; text: tokens)
+  int64 deadline_ms = 5;         // lease deadline if accepted
+}
+
+message Accept {
+  string job_id = 1;
+}
+
+enum DeclineReason {
+  DECLINE_REASON_UNSPECIFIED = 0;
+  DECLINE_REASON_BUSY = 1;
+  DECLINE_REASON_MODEL_NOT_CACHED = 2;
+  DECLINE_REASON_THERMAL = 3;
+  DECLINE_REASON_USER_ACTIVE = 4;
+  DECLINE_REASON_ON_BATTERY = 5;
+  DECLINE_REASON_OTHER = 6;
+}
+
+message Decline {
+  string job_id = 1;
+  DeclineReason reason = 2;      // informational
+}
+
+// Sent only after Accept. Input and output URLs are lease-bound, device-bound (each request must carry a
+// Pool-Lease-Proof header signed by the device key) and expire at lease_deadline_ms, never later.
+// The input URL is single-use. lease_envelope is signed by The server's dispatch key; the node verifies it
+// against the pinned key set before fetching input, and verifies the fetched bytes against
+// LeaseEnvelope.input_sha256 and input_format before running (runner rejects any non-canonical format).
+message LeaseGrant {
+  string job_id = 1;
+  string lease_id = 2;
+  bytes lease_envelope = 3;      // COSE_Sign1 over LeaseEnvelope (signed-objects.cddl)
+  string input_url = 4;          // https://<the server>/node/v1/inputs/{lease_id}?t=<single-use token>
+  string output_url = 5;         // https://<the server>/node/v1/outputs/{lease_id}?t=<token> (PUT, once)
+  int64 lease_deadline_ms = 6;
+}
+
+enum RevokeReason {
+  REVOKE_REASON_UNSPECIFIED = 0;
+  REVOKE_REASON_EXPIRED = 1;
+  REVOKE_REASON_CANCELLED = 2;    // buyer cancel or any server reason; never more specific
+}
+
+message LeaseRevoked {
+  string job_id = 1;
+  string lease_id = 2;
+  RevokeReason reason = 3;
+}
+
+// result_sig = COSE_Sign1(ResultClaims) with the device key, covering
+// {job_id, lease_id, model_hash, input_sha256, output_sha256, t_start, t_end}. The output itself was
+// PUT to output_url before this message. The server hashes the stored object itself; output_sha256 alone is
+// never trusted. Device-reported units (optional, inside ResultClaims) are diagnostic and never billed.
+message Result {
+  string job_id = 1;
+  string lease_id = 2;
+  bytes result_sig = 3;
+}
+
+enum ReceiptStatus {
+  RECEIPT_STATUS_UNSPECIFIED = 0;
+  RECEIPT_STATUS_RECEIVED = 1;          // stored; verification happens later and is NOT reported here
+  RECEIPT_STATUS_REJECTED_MALFORMED = 2; // bad signature/encoding/missing output; node may not retry
+  RECEIPT_STATUS_LATE = 3;              // after lease deadline; not paid
+}
+
+// Never carries a verification verdict or job kind.
+message ResultReceipt {
+  string job_id = 1;
+  string lease_id = 2;
+  ReceiptStatus status = 3;
+}
+
+enum AbandonReason {
+  ABANDON_REASON_UNSPECIFIED = 0;
+  ABANDON_REASON_PREEMPTED = 1;          // user input / game / GPU contention (5 s p95 SLA)
+  ABANDON_REASON_THERMAL = 2;
+  ABANDON_REASON_ERROR = 3;
+  ABANDON_REASON_INPUT_REJECTED = 4;     // hash or format mismatch with LeaseEnvelope
+  ABANDON_REASON_ENVELOPE_INVALID = 5;   // lease envelope signature/key/device mismatch
+}
+
+// Unfinished work is not paid; the server re-leases the chunk.
+message Abandon {
+  string job_id = 1;
+  string lease_id = 2;
+  AbandonReason reason = 3;
+}
+
+// 1.2.0: what the node's local governor is doing. Self-reported, informational only.
+
+// Scheduling hints only (load, accepting_work, cached_models). Never a billing or verification input.
+// 1.2.0 telemetry fields (6-9) are optional, self-reported and informational only: the server stores them for the
+// admin fleet view and never uses them for scheduling, pay or verification. A 1.1.0 node omits them.
+message Heartbeat {
+  float load = 1;                // 0..1 runner utilisation
+  bool temp_ok = 2;
+  bool on_ac = 3;
+  bool accepting_work = 4;       // false while paused by the user/governor
+  repeated CachedModel cached_models = 5;
+}
+
+// ------------------------------------------------------------------ benchmarks (the server V-014; the server only transports)
+
+// workload = COSE_Sign1(BenchmarkWorkload) signed by the server's benchmark key. Benchmarks are never paid.
+message BenchmarkOffer {
+  string benchmark_id = 1;
+  bytes workload = 2;
+  string bundle_url = 3;         // signed bundle, verified against BenchmarkWorkload.bundle_sha256
+  uint32 est_duration_s = 4;     // >= 1200 (20 min sustained)
+}
+
+message BenchmarkResponse {
+  string benchmark_id = 1;
+  bool accept = 2;
+  DeclineReason reason = 3;      // when accept == false
+}
+
+// result_sig = COSE_Sign1(BenchmarkResult) with the device key; the server forwards bytes to the server unchanged.
+message BenchmarkResult {
+  string benchmark_id = 1;
+  bytes result_sig = 2;
+}
+
+message BenchmarkReceipt {
+  string benchmark_id = 1;
+  ReceiptStatus status = 2;
+}
+
+// Prefetch hint. The manifest at manifest_url is a server-signed ModelManifest; nodes verify it against the
+// pinned the server registry key before downloading any file, and verify every file hash before load.
+message ModelHint {
+  string model_id = 1;
+  string version = 2;
+  string manifest_url = 3;
+}
+
+// ------------------------------------------------------------------ account notices (1.2.0)
+
+
+// Sent when the server calls the server's hooks/account-notice, and on connect when one applies. Carries no reason text,
+// no verification detail and no ids. It never changes how the node treats offers (a paused device simply
+// receives no offers). A 1.1.0 node must ignore this unknown ServerMessage variant and keep the session.
+
+// ------------------------------------------------------------------ errors and shutdown
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_PROTOCOL = 1;          // malformed frame / unexpected message for state
+  ERROR_CODE_AUTH_FAILED = 2;       // Hello rejected (bad sig, unknown/revoked key, stale nonce)
+  ERROR_CODE_VERSION_UNSUPPORTED = 3;
+  ERROR_CODE_UNKNOWN_JOB = 4;
+  ERROR_CODE_RATE_LIMITED = 5;
+  ERROR_CODE_INTERNAL = 6;
+}
+
+message ServerError {
+  ErrorCode code = 1;
+  string message = 2;            // human-readable, no internal detail
+}
+
+enum GoodbyeReason {
+  GOODBYE_REASON_UNSPECIFIED = 0;
+  GOODBYE_REASON_SERVER_SHUTDOWN = 1;
+  GOODBYE_REASON_SESSION_EXPIRED = 2;
+  GOODBYE_REASON_REVOKED = 3;            // device paused or revoked by the server
+  GOODBYE_REASON_PROTOCOL_ERROR = 4;
+  GOODBYE_REASON_DUPLICATE_SESSION = 5;  // same device connected elsewhere; newest session wins
+  GOODBYE_REASON_UPDATE_REQUIRED = 6;
+}
+
+message Goodbye {
+  GoodbyeReason reason = 1;
+  uint32 reconnect_after_s = 2;  // 0 = do not reconnect automatically
+}

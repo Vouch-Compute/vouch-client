@@ -1,0 +1,9 @@
+# Keep LF everywhere: build scripts parse Rust sources (pool-app/scripts/gpu-pack.mjs reads the pins in accel.rs),
+# and Windows runners check out with core.autocrlf=true by default.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
+*.der binary
+*.bin binary
+*.dll binary

@@ -1,0 +1,58 @@
+[package]
+name = "pool-runner"
+description = "Sandboxed per-job runner: verifies the signed model bundle, accepts canonical input only, no network, no user files, memory-only I/O over pipes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+# dev-trust is on in dev builds (POOL_DEV_TRUST_ROOTS honoured); release builds: --no-default-features --features candle
+default = ["candle", "dev-trust"]
+# Pure-Rust CPU runtime (always builds, also with the GNU toolchain): BERT-family embeddings and Whisper
+# transcription from safetensors bundles.
+candle = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:claxon"]
+# ONNX Runtime embeddings (manifest runtime "onnxruntime"). `load-dynamic`: onnxruntime.dll/.so/.dylib comes
+# from a signed backend pack at runtime; no prebuilt static library is needed at build time.
+onnx = ["dep:ort", "dep:claxon"]
+# whisper.cpp transcription via whisper-rs (manifest runtime "whisper.cpp"); needs cmake + a C++ compiler.
+whisper = ["dep:whisper-rs", "dep:claxon"]
+dev-trust = ["pool-proto/dev-trust"]
+# Candle on NVIDIA GPUs through CUDA (Linux; built in an nvidia/cuda devel image, needs nvcc). The device
+# is chosen at run time: CUDA when a GPU is usable, the CPU otherwise. Not buildable on the Windows GNU toolchain
+# (nvcc needs MSVC); Windows GPUs use the DirectML pack instead (`accel.rs`).
+cuda = ["candle", "candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
+# Shared test fixtures (fake the server, signed bundles, tiny models), used by pool-core's tests.
+testkit = ["dep:tempfile", "pool-proto/testkit", "dev-trust"]
+
+[dependencies]
+pool-proto.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+unicode-normalization = "0.1"
+hex.workspace = true
+candle-core = { workspace = true, optional = true }
+candle-nn = { workspace = true, optional = true }
+candle-transformers = { workspace = true, optional = true }
+claxon = { workspace = true, optional = true }
+ort = { version = "=2.0.0-rc.10", default-features = false, features = ["load-dynamic", "ndarray"], optional = true }
+whisper-rs = { version = "0.15", optional = true }
+tempfile = { version = "3", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+libc = "0.2"
+landlock = "0.4"
+seccompiler = "0.5"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+pool-sandbox = { workspace = true, features = ["dev-trust"] }
+# self dev-dependency: integration tests see the `testkit` fixtures
+pool-runner = { path = ".", features = ["testkit"] }
+pool-proto = { workspace = true, features = ["testkit", "dev-trust"] }
+tempfile = "3"

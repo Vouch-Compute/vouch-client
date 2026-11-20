@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "resources": {
+      "backends/ort-directml/vcruntime140.dll": "backends/ort-directml/vcruntime140.dll",
+      "backends/ort-directml/vcruntime140_1.dll": "backends/ort-directml/vcruntime140_1.dll",
+      "backends/ort-directml/msvcp140.dll": "backends/ort-directml/msvcp140.dll",
+      "backends/ort-directml/DirectML.dll": "backends/ort-directml/DirectML.dll",
+      "backends/ort-directml/onnxruntime.dll": "backends/ort-directml/onnxruntime.dll"
+    }
+  }
+}
