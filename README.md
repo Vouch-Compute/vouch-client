@@ -1,92 +1,160 @@
-# Vouch Compute desktop app
+<p align="center">
+  <img src=".github/assets/logo-light.svg#gh-light-mode-only" height="64" alt="Vouch Compute">
+  <img src=".github/assets/logo-dark.svg#gh-dark-mode-only" height="64" alt="Vouch Compute">
+</p>
 
-Vouch Compute lets you share your computer's idle time for small AI jobs (speech-to-text and text embeddings) and
-get paid in USDC for the work. This repository is the desktop app for Windows, macOS and Linux.
+<h3 align="center">Earn USDC by lending your idle PC to verified AI jobs</h3>
+
+<p align="center">
+  <a href="https://github.com/MetehanAydemir/vouch-client/actions/workflows/client.yml"><img src="https://github.com/MetehanAydemir/vouch-client/actions/workflows/client.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.vouchcompute.com"><img src="https://img.shields.io/badge/website-vouchcompute.com-2b55c9" alt="Website"></a>
+  <a href="https://www.vouchcompute.com/download"><img src="https://img.shields.io/badge/download-first%20release%20soon-0e7353" alt="Download"></a>
+  <img src="https://img.shields.io/badge/macOS-coming%20soon-55607a" alt="macOS coming soon">
+  <img src="https://img.shields.io/badge/license-not%20yet%20released-55607a" alt="License: not yet released">
+</p>
+
+Vouch Compute is a desktop app that runs small AI jobs (speech-to-text and text embeddings) on your computer while
+you're away, and pays you in USDC for every job that passes verification. It runs only when the machine is idle,
+inside a locked-down sandbox, and it shows earnings as honest estimates, never as promises.
+
+<p align="center">
+  <img src=".github/assets/dashboard-light.png#gh-light-mode-only" width="860" alt="The contributor dashboard on vouchcompute.com">
+  <img src=".github/assets/dashboard-dark.png#gh-dark-mode-only" width="860" alt="The contributor dashboard on vouchcompute.com">
+  <br><sub>The contributor dashboard at vouchcompute.com/app, which the app pairs with (development build, sample data).</sub>
+</p>
+
+## Table of contents
+
+- [Download](#-download)
+- [Features](#-features)
+- [What the sandbox protects](#-what-the-sandbox-protects)
+- [System requirements](#-system-requirements)
+- [Build from source](#-build-from-source)
+- [Important links](#-important-links)
+- [Contributing](#-contributing)
+- [Security](#-security)
+- [License](#-license)
+
+## 📦 Download
+
+Installers are published only on **[vouchcompute.com/download](https://www.vouchcompute.com/download)**. The first
+signed release is in preparation: Windows and Linux first, macOS (Apple Silicon) soon after. Until it is out, the
+download page shows placeholders, and any "Vouch Compute" installer found elsewhere is not ours.
+
+Release files will be signed, and the download page will list each file's SHA-256 checksum, so you can check that the
+file you downloaded is the one we published. The app installs only updates signed with the project's release keys, and
+never an older version.
+
+## ✨ Features
 
 - **Runs only when you're away.** Jobs start when the computer is idle and stop as soon as you come back. You set
   limits for CPU, GPU, temperature and battery.
-- **Sandboxed.** Every job runs in a separate, locked-down process with no network access and no access to your
-  files.
-- **Verified work.** The server checks and meters every job. You are paid for verified work only, and earnings are
-  always shown as estimates.
-- **Signed updates.** The app installs only updates signed with the project's release keys, and never an older
-  version.
+- **Paid for verified work only.** The server meters and checks every job, and pays in USDC for work that passes.
+  Earnings are shown as estimated ranges, never as guaranteed income.
+- **No token, no points, no mining.** Just small AI jobs and stablecoin payouts.
+- **Signed, tamper-evident updates.** Release builds trust only release keys, and refuse to downgrade.
 
-## How it is built
+## 🛡️ What the sandbox protects
 
-| Path | What |
+Every job runs in a separate, locked-down worker process:
+
+- **No network access.** A job can't reach the internet or your local network.
+- **No access to your files.** It sees only the job's own input and a private scratch folder, which is deleted
+  afterwards.
+- **Least privilege.**
+  - Windows: AppContainer.
+  - Linux: namespaces, Landlock and seccomp.
+  - macOS: a deny-by-default sandbox profile.
+- **Your limits win.** The app pauses work when you use the computer, or when it gets too hot or the battery is low.
+
+Jobs are for public and non-sensitive data only. The buyer-facing data policy says so on every page of the website.
+
+## 💻 System requirements
+
+| OS | Requirements |
 |---|---|
-| `client/crates/pool-core` | the background agent: device identity, connection to the server, job scheduling, idle and thermal governor |
-| `client/crates/pool-runner` | the per-job worker that runs inside the sandbox (speech-to-text, embeddings; CPU and GPU backends) |
-| `client/crates/pool-sandbox` | OS sandboxes: AppContainer (Windows), namespaces + Landlock + seccomp (Linux), a deny-by-default sandbox profile (macOS) |
-| `client/crates/pool-proto` | the wire protocol and the signed objects the app verifies |
-| `client/pool-app` | the Tauri 2 desktop shell and its UI |
-| `client/fuzz` | fuzz targets for the decoders and the update-signature check |
-| `proto/node.proto` | the protocol definition the app is generated from |
+| Windows | Windows 10 or 11, x64. NVIDIA GPUs with 8 GB or more are paid; other devices join an unpaid beta. |
+| Linux | x86_64, AppImage or `.deb`. Devices without a TPM start with lower limits. |
+| macOS | Coming soon: macOS 13 or newer, Apple Silicon (M1 or later). |
 
-## Build from source
+## 🛠️ Build from source
 
 Requirements:
-- Rust 1.98.1 (pinned in `client/rust-toolchain.toml`; `rustup` installs it automatically);
-- Node.js 22 (for the Tauri CLI);
-- the Tauri 2 system prerequisites for your OS (https://tauri.app/start/prerequisites/):
-  - Windows: Visual Studio 2022 Build Tools ("Desktop development with C++") and WebView2 (preinstalled on Windows 11);
-  - Linux: `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libgtk-3-dev libssl-dev patchelf cmake clang libclang-dev`;
+- **Rust 1.98.1**, pinned in `client/rust-toolchain.toml`; `rustup` installs it automatically.
+- **Node.js 22**, for the Tauri CLI.
+- **The [Tauri 2 prerequisites](https://tauri.app/start/prerequisites/)** for your OS:
+  - Windows: Visual Studio 2022 Build Tools ("Desktop development with C++") and WebView2.
+  - Linux: `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libgtk-3-dev libssl-dev patchelf cmake clang libclang-dev`.
   - macOS: Xcode Command Line Tools.
 
-Test and lint:
-
 ```bash
+# test and lint
 cd client
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-```
 
-Run the app in development mode:
-
-```bash
-cd client/pool-app
+# run the app in development mode
+cd pool-app
 npm ci
 npx tauri dev
 ```
 
-Build an installer (unsigned development build):
+Build an unsigned development installer:
 
 ```bash
 cd client/pool-app
 npm ci
-npx tauri signer generate -w ../dev-keys/updater-1.key       # once; your own development update key
-# set TAURI_SIGNING_PRIVATE_KEY to the contents of that file (empty password), then:
-npx tauri build                                              # bundles in client/target/release/bundle/
+npx tauri signer generate -w ../dev-keys/updater-1.key   # once: your own development update key
+# set TAURI_SIGNING_PRIVATE_KEY to that file's contents (empty password), then:
+npx tauri build                                          # bundles in client/target/release/bundle/
 ```
 
-On Windows, the installer bundles the GPU backend pack (ONNX Runtime with DirectML from Microsoft's NuGet packages,
-plus the Visual C++ runtime vendored in `client/pool-app/vendor/vcruntime/`). Fetch it before building an installer:
+On Windows, the installer bundles the GPU backend pack: ONNX Runtime with DirectML, plus the Visual C++ runtime in
+`client/pool-app/vendor/vcruntime/`. Fetch it before building an installer:
 
 ```bash
 cd client/pool-app
-node scripts/gpu-pack.mjs          # downloads/copies the pack, checks every file against its SHA-256 pin
+node scripts/gpu-pack.mjs          # fetches the pack and checks every file against its SHA-256 pin
 node scripts/gpu-pack.mjs --check  # verify only
 ```
 
-The pins live in `client/crates/pool-runner/src/accel.rs`; a mismatch fails the script. A plain `cargo build`,
-`cargo test` or `cargo clippy` on a fresh checkout writes empty placeholder files instead, so it works without the
-pack (GPU jobs are then refused at job start, because a placeholder never matches its pin). A release build
-(`POOL_RELEASE=1`) refuses to compile unless every pack file matches its pin.
+A plain `cargo build` or `cargo test` works without the pack: GPU jobs are then refused at job start. Development
+builds use their own update channel and keys. They can't install release updates, and release builds refuse
+development keys.
 
-Development builds use a separate update channel and separate keys. They cannot install release updates, and release
-builds refuse development keys: a release build with development trust enabled fails to compile, and CI checks the
-release binaries for development markers before anything is signed.
+<details>
+<summary>Repository layout</summary>
 
-## Contributing
+| Path | What |
+|---|---|
+| `client/crates/pool-core` | the background agent: device identity, connection, job scheduling, idle and thermal governor |
+| `client/crates/pool-runner` | the per-job worker inside the sandbox (speech-to-text, embeddings; CPU and GPU backends) |
+| `client/crates/pool-sandbox` | the OS sandboxes for Windows, Linux and macOS |
+| `client/crates/pool-proto` | the wire protocol and the signed objects the app verifies |
+| `client/pool-app` | the Tauri 2 desktop shell and its UI |
+| `client/fuzz` | fuzz targets for the decoders and the update-signature check |
+| `proto/node.proto` | the protocol definition |
 
-Pull requests are welcome once the repository is public. Please run `cargo clippy` and `cargo test` before opening one.
-Changes to the protocol, the sandbox, the device key or the updater get an extra security review.
+</details>
 
-## Security
+## 🔗 Important links
 
-Please report vulnerabilities privately to **security@vouchcompute.com**, not in a public issue. See `SECURITY.md`.
+- Website: [vouchcompute.com](https://www.vouchcompute.com)
+- Download: [vouchcompute.com/download](https://www.vouchcompute.com/download)
+- How earnings work (realistic ranges): [vouchcompute.com/earn](https://www.vouchcompute.com/earn)
+- Trust and security: [vouchcompute.com/trust](https://www.vouchcompute.com/trust)
 
-## License
+## 🤝 Contributing
 
-To be decided before the repository is made public.
+Pull requests are welcome once the repository is public. Please run `cargo clippy` and `cargo test` before opening
+one. Changes to the protocol, the sandbox, the device key or the updater get an extra security review.
+
+## 🔒 Security
+
+Please report vulnerabilities privately to **security@vouchcompute.com**, not in a public issue. See
+[SECURITY.md](SECURITY.md).
+
+## 📄 License
+
+Not yet released under an open-source license. The owner will choose one before the repository is made public. Until
+then, all rights are reserved.
