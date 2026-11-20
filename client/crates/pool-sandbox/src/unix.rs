@@ -45,11 +45,13 @@ impl SandboxProcess for UnixProcess {
 ///   cache; without it every sandboxed process aborts in dyld before `main` (SIGABRT, `ignition_halt`). It grants
 ///   the listing of `/` only (top-level names such as `Users`, `Applications`), not anything below it.
 /// * `file-read-metadata` only for the paths the runner reads and their parent directories (path resolution needs
-///   them), plus the system symlinks `/var`, `/tmp`, `/etc`. A global allowance let a job `stat` any file of the
-///   user (existence, size, modification times).
-/// * `sysctl-read` only for hardware, CPU and OS-version names. A global allowance let a job read the arguments
-///   and **environment variables of every other process of the user** (`kern.procargs2`), and list them
-///   (`kern.proc.*`).
+///   them), plus `/private` and the system symlinks `/var`, `/tmp`, `/etc`. A global allowance let a job `stat` any
+///   file of the user (existence, size, modification times).
+/// * `sysctl-read` only for hardware, CPU and OS-version names (it was global).
+///
+/// **Known gap, not closed by this profile:** `KERN_PROCARGS2` (the arguments and environment variables of the
+/// user's other processes) is not mediated by `sandbox-exec` at all; no `sysctl-read` or `process-info*` rule
+/// changes it. See `known_gap_same_user_process_environment_is_readable` in pool-runner's `tests/sandbox_macos.rs`.
 #[cfg(target_os = "macos")]
 fn sbpl_profile(exe: &Path, cfg: &SandboxConfig) -> String {
     fn q(p: &Path) -> String {
