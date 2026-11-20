@@ -4352,6 +4352,7 @@ dependencies = [
  "libc",
  "serde",
  "tempfile",
+ "tracing",
  "windows 0.61.3",
 ]
 

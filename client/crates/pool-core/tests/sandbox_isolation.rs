@@ -5,7 +5,7 @@
 //!    its per-user DACL / 0600 socket), not its data dir (control token, device key, state), not a listing of the
 //!    user's home. Its own temp dir is not writable either. A control run without the sandbox shows every probe
 //!    works.
-//! 2. The memory cap applies (Job Object process memory on Windows, `RLIMIT_DATA` on Linux).
+//! 2. The memory cap applies (Job Object process memory on Windows, `RLIMIT_DATA` on Linux; macOS: see `memory_cap_applies`).
 //! 3. The CPU cap applies (Windows Job Object hard cap; Linux has only `nice`, see the doc).
 //! 4. A source audit: the only code that writes files is the reviewed list below (state, token, keys, logs, the
 //!    verified model cache). Nothing on the job path (lease, jobs, session, runner client, runner) writes a file.
@@ -126,8 +126,9 @@ async fn isolation(lpac: bool) {
     assert!(rep.all_blocked());
 }
 
-/// Windows (Job Object) and Linux (`RLIMIT_DATA`). macOS has no enforced address-space limit for the sandbox-exec
-/// runner (a known gap), so the test does not run there.
+/// Windows (Job Object) and Linux (`RLIMIT_DATA`): an allocation over the cap fails inside the runner. macOS applies
+/// no memory rlimit; there the agent's footprint watchdog kills the runner instead, tested in pool-runner's
+/// `tests/sandbox_macos.rs` (`memory_cap_kills_a_runner_over_the_cap`).
 #[cfg(not(target_os = "macos"))]
 #[test]
 fn memory_cap_applies() {

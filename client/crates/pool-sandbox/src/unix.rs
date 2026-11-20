@@ -39,37 +39,65 @@ impl SandboxProcess for UnixProcess {
     }
 }
 
-/// `(literal "/")` read-data: dyld on macOS 27 opens the root directory itself while locating the shared cache;
-/// without it every sandboxed process aborts in dyld before `main` (SIGABRT, `ignition_halt`). It grants the
-/// listing of `/` only (top-level names such as `Users`, `Applications`), not anything below it.
+/// The deny-default SBPL profile for one job.
+///
+/// * `file-read-data (literal "/")`: dyld on macOS 27 opens the root directory itself while locating the shared
+///   cache; without it every sandboxed process aborts in dyld before `main` (SIGABRT, `ignition_halt`). It grants
+///   the listing of `/` only (top-level names such as `Users`, `Applications`), not anything below it.
+/// * `file-read-metadata` only for the paths the runner reads and their parent directories (path resolution needs
+///   them), plus the system symlinks `/var`, `/tmp`, `/etc`. A global allowance let a job `stat` any file of the
+///   user (existence, size, modification times).
+/// * `sysctl-read` only for hardware, CPU and OS-version names. A global allowance let a job read the arguments
+///   and **environment variables of every other process of the user** (`kern.procargs2`), and list them
+///   (`kern.proc.*`).
 #[cfg(target_os = "macos")]
 fn sbpl_profile(exe: &Path, cfg: &SandboxConfig) -> String {
     fn q(p: &Path) -> String {
         p.to_string_lossy().replace('\\', "\\\\").replace('"', "\\\"")
     }
+    let exe_given = exe.to_path_buf();
+    let exe = exe.canonicalize().unwrap_or_else(|_| exe.to_path_buf());
     let mut reads = String::new();
+    let mut parents = std::collections::BTreeSet::new();
+    let mut add_parents = |p: &Path| {
+        for a in p.ancestors().skip(1) {
+            parents.insert(a.to_path_buf());
+        }
+    };
+    add_parents(&exe);
+    add_parents(&exe_given);
     for d in &cfg.readable_dirs {
+        add_parents(d);
         let d = d.canonicalize().unwrap_or_else(|_| d.clone());
+        add_parents(&d);
         reads.push_str(&format!(" (subpath \"{}\")", q(&d)));
     }
-    let exe = exe.canonicalize().unwrap_or_else(|_| exe.to_path_buf());
+    for s in ["/var", "/tmp", "/etc", "/private"] {
+        parents.insert(s.into());
+    }
+    let meta: String = parents.iter().map(|p| format!(" (literal \"{}\")", q(p))).collect();
     format!(
         r#"(version 1)
 (deny default)
 (allow process-exec (literal "{exe}"))
-(allow file-read-metadata)
+(allow file-read-metadata{meta})
 (allow file-read-data (literal "/"))
 (allow file-read* (literal "{exe}") (subpath "/usr/lib") (subpath "/System") (subpath "/Library/Apple")
   (subpath "/private/var/db/dyld") (subpath "/System/Volumes/Preboot/Cryptexes") (literal "/dev/null")
   (literal "/dev/urandom") (literal "/dev/random"){reads})
 (allow file-write-data (literal "/dev/null"))
-(allow sysctl-read)
+(allow sysctl-read (sysctl-name-prefix "hw.") (sysctl-name-prefix "machdep.cpu.") (sysctl-name "kern.osversion")
+  (sysctl-name "kern.osrelease") (sysctl-name "kern.ostype") (sysctl-name "kern.osproductversion")
+  (sysctl-name "kern.version") (sysctl-name "kern.argmax") (sysctl-name "kern.maxfilesperproc")
+  (sysctl-name "sysctl.proc_cputype") (sysctl-name "sysctl.proc_native") (sysctl-name "kern.secure_kernel")
+  (sysctl-name "vm.pagesize"))
 (allow mach-lookup (global-name "com.apple.system.logger"))
 (allow signal (target self))
 (deny network*)
 (deny process-fork)
 "#,
         exe = q(&exe),
+        meta = meta,
         reads = reads
     )
 }
@@ -144,13 +172,53 @@ pub fn spawn(exe: &Path, args: &[String], cfg: &SandboxConfig, sandboxed: bool) 
     let stdout = child.stdout.take().ok_or_else(|| io::Error::other("no stdout"))?;
     let stderr = child.stderr.take().ok_or_else(|| io::Error::other("no stderr"))?;
     let pid = child.id() as i32;
+    let child = Arc::new(Mutex::new(child));
+    #[cfg(target_os = "macos")]
+    if sandboxed {
+        memory_watchdog(child.clone(), pid, cfg.memory_limit_bytes);
+    }
     Ok(Spawned {
         stdin: Box::new(stdin),
         stdout: Box::new(stdout),
         stderr: Box::new(stderr),
-        process: Box::new(UnixProcess { child: Arc::new(Mutex::new(child)), pid }),
+        process: Box::new(UnixProcess { child, pid }),
         level,
     })
+}
+
+/// macOS enforces no memory rlimit (`RLIMIT_DATA` / `RLIMIT_AS` / `RLIMIT_RSS` are not applied to allocations),
+/// so the job's memory cap is a watchdog: every [`WATCHDOG_PERIOD`] it reads the runner's physical footprint
+/// (`proc_pid_rusage`, the figure Activity Monitor shows: resident + compressed + swapped dirty memory) and kills
+/// the runner once it is over `limit`. A soft cap: a job can overshoot by what it allocates within one period.
+/// The kill happens under the child lock after `try_wait` saw it still running, so the pid is never reaped (and
+/// never reused) at that point.
+#[cfg(target_os = "macos")]
+const WATCHDOG_PERIOD: std::time::Duration = std::time::Duration::from_millis(50);
+
+#[cfg(target_os = "macos")]
+fn memory_watchdog(child: Arc<Mutex<Child>>, pid: i32, limit: u64) {
+    std::thread::spawn(move || loop {
+        std::thread::sleep(WATCHDOG_PERIOD);
+        let mut c = child.lock().unwrap();
+        if !matches!(c.try_wait(), Ok(None)) {
+            return;
+        }
+        let Some(footprint) = phys_footprint(pid) else { continue };
+        if footprint > limit {
+            tracing::warn!("runner {pid} over its memory cap ({} MiB > {} MiB): killed", footprint >> 20, limit >> 20);
+            // SAFETY: plain kill(2) of our own unreaped child.
+            unsafe { libc::kill(pid, libc::SIGKILL) };
+            return;
+        }
+    });
+}
+
+#[cfg(target_os = "macos")]
+fn phys_footprint(pid: i32) -> Option<u64> {
+    let mut ri: libc::rusage_info_v4 = unsafe { std::mem::zeroed() };
+    // SAFETY: `ri` is a writable rusage_info_v4, matching the RUSAGE_INFO_V4 flavor.
+    let rc = unsafe { libc::proc_pid_rusage(pid, libc::RUSAGE_INFO_V4, (&mut ri as *mut libc::rusage_info_v4).cast()) };
+    (rc == 0).then_some(ri.ri_phys_footprint)
 }
 
 #[cfg(target_os = "linux")]
