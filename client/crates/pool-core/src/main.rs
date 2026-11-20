@@ -124,6 +124,8 @@ fn sandbox_probe(args: &[String]) -> anyhow::Result<()> {
         // dev diagnostics: POOL_SANDBOX_NO_LPAC=1 probes a regular AppContainer (GPU diagnosis)
         lpac: std::env::var("POOL_SANDBOX_NO_LPAC").as_deref() != Ok("1"),
         env: vec![],
+        // dev diagnostics: POOL_SANDBOX_GPU=1 probes with the macOS GPU (Metal) allowances
+        gpu: std::env::var("POOL_SANDBOX_GPU").as_deref() == Ok("1"),
     };
     let mut probe_args = vec!["probe".to_string()];
     probe_args.extend(args.iter().filter(|a| *a != "--no-harden").cloned());

@@ -141,7 +141,12 @@ impl Agent {
             .user_agent(concat!("vouch-core/", env!("CARGO_PKG_VERSION")))
             .build()?;
         let registry = Arc::new(Registry::new(data_dir.join("models"), cfg.model_cache_gb));
-        let runner = Arc::new(RunnerClient { exe: cfg.runner_exe(), memory_limit_bytes: 8 << 30, ort_pack_dir: cfg.ort_pack_dir() });
+        let runner = Arc::new(RunnerClient {
+            exe: cfg.runner_exe(),
+            memory_limit_bytes: 8 << 30,
+            ort_pack_dir: cfg.ort_pack_dir(),
+            metal_gpu: cfg!(all(target_os = "macos", feature = "metal")) && cfg.use_gpu,
+        });
         let (decision_tx, _) = watch::channel(Decision::Pause(crate::governor::PauseReason::UserActive));
         let (settings_tx, _) = watch::channel(state.settings.clone());
         let (stop_tx, _) = watch::channel(0u64);

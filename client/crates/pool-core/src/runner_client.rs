@@ -61,6 +61,9 @@ pub struct RunnerClient {
     pub memory_limit_bytes: u64,
     /// The GPU backend pack directory ([`pool_runner::accel`]); `None` = no GPU path.
     pub ort_pack_dir: Option<PathBuf>,
+    /// macOS: candle jobs may use the GPU through Metal (the user's "Use the GPU" setting). Their sandbox then gets
+    /// the Metal allowances ([`SandboxConfig::gpu`]); every other job runs with the GPU forced off.
+    pub metal_gpu: bool,
 }
 
 /// What the sandbox needs for one job's runtime. ONNX Runtime jobs get the pinned backend pack, after it verified
@@ -85,6 +88,13 @@ pub fn runtime_sandbox(runtime: &str, pack: Option<&std::path::Path>) -> (Vec<Pa
     }
 }
 
+/// macOS: does this job get the Metal GPU allowances? Only candle embedding jobs (candle is the runtime with a Metal
+/// backend; transcription runs faster on the CPU, see `pool_runner::accel::candle_transcription_device`), and only
+/// when the user lets the app use the GPU.
+pub fn metal_gpu_job(runtime: &str, input_format: &str, metal_gpu: bool) -> bool {
+    cfg!(target_os = "macos") && metal_gpu && runtime == "candle" && input_format == pool_proto::EMBED_BATCH_FORMAT
+}
+
 impl RunnerClient {
     /// `language`: the optional BCP 47 hint from the signed `LeaseEnvelope`, passed to Whisper.
     #[allow(clippy::too_many_arguments)]
@@ -106,11 +116,22 @@ impl RunnerClient {
             input_format: input_format.into(),
             max_output_bytes: 64 << 20,
         };
-        let (extra_dirs, env, lpac) = runtime_sandbox(&model.manifest.runtime, self.ort_pack_dir.as_deref());
+        let (extra_dirs, mut env, lpac) = runtime_sandbox(&model.manifest.runtime, self.ort_pack_dir.as_deref());
         let mut readable_dirs = vec![model.dir.clone()];
         readable_dirs.extend(extra_dirs);
+        let gpu = metal_gpu_job(&model.manifest.runtime, &model.manifest.input_format, self.metal_gpu);
+        if cfg!(target_os = "macos") && !gpu {
+            env.push((pool_runner::accel::FORCE_CPU_ENV.to_string(), "1".to_string()));
+        }
         // No more POOL_ORT_DYLIB passthrough: the ONNX Runtime library comes only from the verified pack
-        let cfg = SandboxConfig { readable_dirs, memory_limit_bytes: self.memory_limit_bytes, cpu_rate_pct: Some(RUNNER_CPU_CAP_PCT), lpac, env };
+        let cfg = SandboxConfig {
+            readable_dirs,
+            memory_limit_bytes: self.memory_limit_bytes,
+            cpu_rate_pct: Some(RUNNER_CPU_CAP_PCT),
+            lpac,
+            env,
+            gpu,
+        };
         let exe = self.exe.clone();
         tokio::task::spawn_blocking(move || run_blocking(&exe, &cfg, &req, &input, &preempt))
             .await
@@ -175,4 +196,18 @@ fn run_blocking(
         backend: resp.backend,
         sandbox: level,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::metal_gpu_job;
+
+    #[test]
+    fn only_candle_embedding_jobs_with_the_gpu_on_get_metal() {
+        let (emb, audio) = (pool_proto::EMBED_BATCH_FORMAT, pool_proto::CANONICAL_AUDIO_FORMAT);
+        assert!(!metal_gpu_job("candle", emb, false), "the user's GPU setting off: no GPU allowances");
+        assert!(!metal_gpu_job("onnxruntime", emb, true), "only candle has a Metal backend");
+        assert!(!metal_gpu_job("candle", audio, true), "transcription runs on the CPU");
+        assert_eq!(metal_gpu_job("candle", emb, true), cfg!(target_os = "macos"), "Metal is a macOS-only grant");
+    }
 }

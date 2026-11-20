@@ -45,6 +45,9 @@ pub struct ProbeReport {
     /// Creating a CUDA device (`cuda` builds).
     #[serde(default)]
     pub cuda: Option<Attempt>,
+    /// Creating a Metal device and running a kernel on it (`metal` builds, macOS).
+    #[serde(default)]
+    pub metal: Option<Attempt>,
     /// Reading a path's metadata (existence, size, times) without opening it.
     #[serde(default)]
     pub stat: Vec<Attempt>,
@@ -104,6 +107,7 @@ pub struct ProbeArgs {
     pub spin_ms: Option<u64>,
     pub load_dll: Vec<String>,
     pub cuda: bool,
+    pub metal: bool,
     pub stat: Vec<String>,
     pub procargs: Vec<i32>,
     pub mach_lookup: Vec<String>,
@@ -133,6 +137,7 @@ impl ProbeArgs {
                 "--spin-ms" => p.spin_ms = v().parse().ok(),
                 "--load-dll" => p.load_dll.push(v()),
                 "--cuda" => p.cuda = true,
+                "--metal" => p.metal = true,
                 "--stat" => p.stat.push(v()),
                 "--procargs" => p.procargs.extend(v().parse::<i32>().ok()),
                 "--mach" => p.mach_lookup.push(v()),
@@ -257,6 +262,13 @@ pub fn run(args: &ProbeArgs) -> ProbeReport {
         #[cfg(not(feature = "cuda"))]
         let r: std::io::Result<()> = Err(std::io::Error::other("not a cuda build"));
         rep.cuda = Some(attempt("cuda:0", r));
+    }
+    if args.metal {
+        #[cfg(all(feature = "metal", target_os = "macos"))]
+        let r = crate::accel::metal_device().map(|_| ()).map_err(|e| std::io::Error::other(e.to_string()));
+        #[cfg(not(all(feature = "metal", target_os = "macos")))]
+        let r: std::io::Result<()> = Err(std::io::Error::other("not a metal build"));
+        rep.metal = Some(attempt("metal:0", r));
     }
     for f in &args.stat {
         rep.stat.push(attempt(f, std::fs::metadata(f).map(|_| ())));

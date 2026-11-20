@@ -95,12 +95,27 @@ fn sbpl_profile(exe: &Path, cfg: &SandboxConfig) -> String {
 (allow signal (target self))
 (deny network*)
 (deny process-fork)
-"#,
+{gpu}"#,
         exe = q(&exe),
         meta = meta,
-        reads = reads
+        reads = reads,
+        gpu = if cfg.gpu { METAL_RULES } else { "" }
     )
 }
+
+/// What a GPU job needs for Metal, and nothing else. Measured one rule at a time: without the GPU user client no
+/// Metal device is visible; without the compiler service candle cannot build its kernels. (`IOSurfaceRootUserClient`
+/// was tried and is not needed, so it stays denied.) **For security review:**
+/// * `AGXDeviceUserClient`: the Apple GPU kernel driver's user client. This is the added attack surface: a driver
+///   bug reachable from it could escape the sandbox. Safari's web content processes are granted the same client.
+/// * `com.apple.MTLCompilerService`: Apple's shader compiler, an XPC service in its own sandbox; candle compiles its
+///   kernels from source at run time and sends it only that source.
+///
+/// No file, network or other Mach service is added; the job still cannot write anywhere.
+#[cfg(target_os = "macos")]
+const METAL_RULES: &str = r#"(allow iokit-open-user-client (iokit-user-client-class "AGXDeviceUserClient"))
+(allow mach-lookup (global-name "com.apple.MTLCompilerService"))
+"#;
 
 pub fn spawn(exe: &Path, args: &[String], cfg: &SandboxConfig, sandboxed: bool) -> io::Result<Spawned> {
     #[cfg(target_os = "macos")]

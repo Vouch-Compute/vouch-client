@@ -80,7 +80,7 @@ fn byte_decoder() -> HashMap<char, u8> {
 
 impl Transcriber {
     pub fn load(bundle: &mut VerifiedBundle) -> anyhow::Result<Self> {
-        let (device, backend) = crate::accel::candle_device();
+        let (device, backend) = crate::accel::candle_transcription_device();
         let config: Config = serde_json::from_slice(bundle.file("config.json")?)?;
         let tj: serde_json::Value = serde_json::from_slice(bundle.file("tokenizer.json")?)?;
         let mut vocab = HashMap::new();

@@ -45,8 +45,8 @@ pub const PINNED: &[(&str, &str)] = &[];
 /// `1` = use the pack's CPU provider only (the user's "Use the GPU" setting off, or a test's CPU baseline).
 pub const FORCE_CPU_ENV: &str = "POOL_ORT_FORCE_CPU";
 
-/// The device for candle backends: CUDA when built with `cuda`, a GPU is usable and [`FORCE_CPU_ENV`] is not set;
-/// the CPU otherwise. Returns the device and the backend label reported for the job.
+/// The device for candle backends: CUDA (`cuda` builds) or Metal (`metal` builds, macOS) when a GPU is usable and
+/// [`FORCE_CPU_ENV`] is not set; the CPU otherwise. Returns the device and the backend label reported for the job.
 #[cfg(feature = "candle")]
 pub fn candle_device() -> (candle_core::Device, &'static str) {
     #[cfg(feature = "cuda")]
@@ -56,7 +56,69 @@ pub fn candle_device() -> (candle_core::Device, &'static str) {
             Err(e) => eprintln!("CUDA unavailable, using the CPU: {e}"),
         }
     }
+    #[cfg(all(feature = "metal", target_os = "macos"))]
+    if std::env::var(FORCE_CPU_ENV).as_deref() != Ok("1") {
+        match metal_device() {
+            Ok(d) => return (d, "candle-metal"),
+            Err(e) => eprintln!("Metal unavailable, using the CPU: {e}"),
+        }
+    }
     (candle_core::Device::Cpu, "candle-cpu")
+}
+
+/// The device for candle Whisper. Same as [`candle_device`] except on Metal: measured on an M3 Pro (whisper-base,
+/// 60 s of speech, one job per runner process), Metal took 18.9 s and the CPU 8.2 s with identical transcripts:
+/// decoding is many small sequential kernels, and each job pays Metal's start-up again. So transcription stays on
+/// the CPU in `metal` builds (and the agent does not grant those jobs the GPU). `POOL_METAL_WHISPER=1` (benchmarks
+/// only; the agent never sets it) still selects Metal when the sandbox allows it.
+#[cfg(feature = "candle")]
+pub fn candle_transcription_device() -> (candle_core::Device, &'static str) {
+    #[cfg(all(feature = "metal", not(feature = "cuda")))]
+    if std::env::var(METAL_WHISPER_ENV).as_deref() != Ok("1") {
+        return (candle_core::Device::Cpu, "candle-cpu");
+    }
+    candle_device()
+}
+
+/// See [`candle_transcription_device`].
+pub const METAL_WHISPER_ENV: &str = "POOL_METAL_WHISPER";
+
+/// A Metal device that has actually run a kernel: creating the device can succeed inside a sandbox that later
+/// refuses the shader compiler or the GPU user client, so a small matmul is checked before any job uses it.
+#[cfg(all(feature = "candle", feature = "metal", target_os = "macos"))]
+pub fn metal_device() -> candle_core::Result<candle_core::Device> {
+    // candle's Device::new_metal panics (and release builds abort) when no Metal device is visible, e.g. in a
+    // sandbox without the GPU allowances; ask Metal itself first.
+    if !metal_device_visible() {
+        candle_core::bail!("no Metal device visible");
+    }
+    let d = candle_core::Device::new_metal(0)?;
+    let a = candle_core::Tensor::arange(0f32, 6., &d)?.reshape((2, 3))?;
+    let p = a.matmul(&a.t()?)?.to_vec2::<f32>()?;
+    if p != [[5.0, 14.0], [14.0, 50.0]] {
+        candle_core::bail!("Metal self-test returned {p:?}");
+    }
+    Ok(d)
+}
+
+#[cfg(all(feature = "candle", feature = "metal", target_os = "macos"))]
+fn metal_device_visible() -> bool {
+    #[link(name = "Metal", kind = "framework")]
+    extern "C" {
+        fn MTLCreateSystemDefaultDevice() -> *mut std::ffi::c_void;
+    }
+    #[link(name = "objc")]
+    extern "C" {
+        fn objc_release(obj: *mut std::ffi::c_void);
+    }
+    // SAFETY: a plain C entry point of Metal.framework; it returns a +1 retained id<MTLDevice> or nil.
+    let d = unsafe { MTLCreateSystemDefaultDevice() };
+    if d.is_null() {
+        return false;
+    }
+    // SAFETY: `d` is the retained object returned above, released exactly once.
+    unsafe { objc_release(d) };
+    true
 }
 
 /// The ONNX Runtime library inside the pack.

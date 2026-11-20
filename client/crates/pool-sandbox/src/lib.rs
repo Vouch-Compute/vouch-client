@@ -6,7 +6,7 @@
 //! |---------|-----------------------------------------------------------------------------------------|----------------|
 //! | Windows | Less-Privileged AppContainer (no capabilities => no network, no user files) + Job Object (kill on close, 1 process, memory cap, UI limits) + child-process policy; plain AppContainer if LPAC is refused | `windows-lpac` / `windows-appcontainer` |
 //! | Linux   | parent: new user+network namespace (`unshare`), `RLIMIT_DATA`/`RLIMIT_CORE`, `PDEATHSIG`; runner: Landlock + seccomp (`harden.rs`). If namespaces are blocked (Ubuntu 24.04 AppArmor policy without our profile), seccomp+Landlock still apply | `linux-userns` / `linux-seccomp-landlock` |
-//! | macOS   | `sandbox-exec` with a deny-default SBPL profile (no network, read-only model dir + system libs, no writes, no exec except the runner, metadata and sysctl reads allow-listed) + a memory watchdog that kills the runner over its cap (macOS applies no memory rlimit) | `macos-sandbox-exec` |
+//! | macOS   | `sandbox-exec` with a deny-default SBPL profile (no network, read-only model dir + system libs, no writes, no exec except the runner, metadata and sysctl reads allow-listed; GPU jobs also get the Apple GPU driver and the Metal compiler service) + a memory watchdog that kills the runner over its cap (macOS applies no memory rlimit) | `macos-sandbox-exec` |
 //!
 //! Production designs that need signing/packaging (release setup): macOS App Sandbox entitlements on a separately signed helper, the Linux
 //! AppArmor profile shipped in the .deb (`packaging/linux/apparmor/vouchcompute-runner`), bubblewrap when present.
@@ -46,11 +46,14 @@ pub struct SandboxConfig {
     pub lpac: bool,
     /// Extra environment variables. The runner gets a minimal environment, never the parent's.
     pub env: Vec<(String, String)>,
+    /// macOS: let this job use the GPU through Metal (the Apple GPU driver's IOKit user client and the Metal shader
+    /// compiler service; see `unix.rs`). Only for jobs that run on the GPU; ignored elsewhere.
+    pub gpu: bool,
 }
 
 impl Default for SandboxConfig {
     fn default() -> Self {
-        Self { readable_dirs: vec![], memory_limit_bytes: 8 << 30, cpu_rate_pct: None, lpac: true, env: vec![] }
+        Self { readable_dirs: vec![], memory_limit_bytes: 8 << 30, cpu_rate_pct: None, lpac: true, env: vec![], gpu: false }
     }
 }
 
