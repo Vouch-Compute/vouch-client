@@ -87,6 +87,14 @@ const c = api.consentHtml({ text, version: "v1", text_sha256: "ab".repeat(32), r
 if (!c.includes(api.esc(text))) fail("consent text not byte-identical after escaping");
 if (!c.includes('id="consent-accept"') || !c.includes('id="consent-refuse"')) fail("consent buttons");
 
+// 5b. the backend that ran the last job: label and "Accelerated" badge (Metal on Apple silicon, macOS)
+for (const [b, label, accel] of [["candle-metal", "Graphics card (Metal)", true], ["candle-cuda", "Graphics card (CUDA)", true],
+  ["onnxruntime-directml", "Graphics card (DirectML)", true], ["candle-cpu", "Processor (CPU)", false]]) {
+  const h = api.hardwareHtml({ gpu: "Apple M3 Pro", cpu: "Apple M3 Pro", ram_mb: 18432 }, b, "software");
+  if (!h.includes(label)) fail(`backend label for ${b}`);
+  if (h.includes("Accelerated") !== accel) fail(`accelerated badge for ${b}`);
+}
+
 // 6. totals from server strings only
 if (api.sumUsd("6.870000000", "0.120000000") !== "6.990000000") fail("sumUsd");
 if (api.duration(5400) !== "1 h 30 min" || api.duration(600) !== "10 min" || api.duration(null) !== "0 min" && api.duration(null) !== "—") fail("duration");

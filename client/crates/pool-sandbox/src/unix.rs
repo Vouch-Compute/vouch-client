@@ -216,7 +216,8 @@ const WATCHDOG_PERIOD: std::time::Duration = std::time::Duration::from_millis(50
 fn memory_watchdog(child: Arc<Mutex<Child>>, pid: i32, limit: u64) {
     std::thread::spawn(move || loop {
         std::thread::sleep(WATCHDOG_PERIOD);
-        let mut c = child.lock().unwrap();
+        // a poisoned lock (a panic elsewhere while holding it) must not switch the memory cap off
+        let mut c = child.lock().unwrap_or_else(|e| e.into_inner());
         if !matches!(c.try_wait(), Ok(None)) {
             return;
         }
