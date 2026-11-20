@@ -6,7 +6,7 @@
 //! |---------|-----------------------------------------------------------------------------------------|----------------|
 //! | Windows | Less-Privileged AppContainer (no capabilities => no network, no user files) + Job Object (kill on close, 1 process, memory cap, UI limits) + child-process policy; plain AppContainer if LPAC is refused | `windows-lpac` / `windows-appcontainer` |
 //! | Linux   | parent: new user+network namespace (`unshare`), `RLIMIT_DATA`/`RLIMIT_CORE`, `PDEATHSIG`; runner: Landlock + seccomp (`harden.rs`). If namespaces are blocked (Ubuntu 24.04 AppArmor policy without our profile), seccomp+Landlock still apply | `linux-userns` / `linux-seccomp-landlock` |
-//! | macOS   | `sandbox-exec` with a deny-default SBPL profile (no network, read-only model dir + system libs, no writes, no exec except the runner) | `macos-sandbox-exec` |
+//! | macOS   | `sandbox-exec` with a deny-default SBPL profile (no network, read-only model dir + system libs, no writes, no exec except the runner, metadata and sysctl reads allow-listed) + a memory watchdog that kills the runner over its cap (macOS applies no memory rlimit) | `macos-sandbox-exec` |
 //!
 //! Production designs that need signing/packaging (release setup): macOS App Sandbox entitlements on a separately signed helper, the Linux
 //! AppArmor profile shipped in the .deb (`packaging/linux/apparmor/vouchcompute-runner`), bubblewrap when present.
@@ -36,7 +36,7 @@ pub enum SandboxLevel {
 pub struct SandboxConfig {
     /// Directories the runner may read (the model bundle dir). Everything else is denied.
     pub readable_dirs: Vec<PathBuf>,
-    /// Job memory cap in bytes.
+    /// Job memory cap in bytes (macOS: a soft cap, enforced by a footprint watchdog in the agent).
     pub memory_limit_bytes: u64,
     /// Hard cap on the runner's share of the machine's total CPU time, in percent (1..=100). Windows enforces
     /// it with the Job Object's CPU rate control (hard cap); Linux and macOS have no unprivileged equivalent, so

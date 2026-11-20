@@ -45,6 +45,18 @@ pub struct ProbeReport {
     /// Creating a CUDA device (`cuda` builds).
     #[serde(default)]
     pub cuda: Option<Attempt>,
+    /// Reading a path's metadata (existence, size, times) without opening it.
+    #[serde(default)]
+    pub stat: Vec<Attempt>,
+    /// Reading another process's arguments and environment (macOS `KERN_PROCARGS2`, Linux `/proc/<pid>/environ`).
+    #[serde(default)]
+    pub procargs: Vec<Attempt>,
+    /// Looking up a Mach service by name (macOS: pasteboard, keychain, window server, TCC, ...).
+    #[serde(default)]
+    pub mach_lookup: Vec<Attempt>,
+    /// Sending signal 0 to another process (does it exist / may we signal it).
+    #[serde(default)]
+    pub signal: Vec<Attempt>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -64,6 +76,9 @@ impl ProbeReport {
             && self.ipc_connect.iter().all(|a| !a.ok)
             && self.dir_list.iter().all(|a| !a.ok)
             && self.temp_write.as_ref().is_none_or(|a| !a.ok)
+            && self.procargs.iter().all(|a| !a.ok)
+            && self.mach_lookup.iter().all(|a| !a.ok)
+            && self.signal.iter().all(|a| !a.ok)
     }
 }
 
@@ -89,6 +104,10 @@ pub struct ProbeArgs {
     pub spin_ms: Option<u64>,
     pub load_dll: Vec<String>,
     pub cuda: bool,
+    pub stat: Vec<String>,
+    pub procargs: Vec<i32>,
+    pub mach_lookup: Vec<String>,
+    pub signal: Vec<i32>,
     /// Control run only (tests): skip the runner's self-hardening so the probes can show they work.
     /// `run` (jobs) always hardens; this flag exists only in probe mode.
     pub no_harden: bool,
@@ -114,6 +133,10 @@ impl ProbeArgs {
                 "--spin-ms" => p.spin_ms = v().parse().ok(),
                 "--load-dll" => p.load_dll.push(v()),
                 "--cuda" => p.cuda = true,
+                "--stat" => p.stat.push(v()),
+                "--procargs" => p.procargs.extend(v().parse::<i32>().ok()),
+                "--mach" => p.mach_lookup.push(v()),
+                "--signal" => p.signal.extend(v().parse::<i32>().ok()),
                 "--no-harden" => p.no_harden = true,
                 _ => {}
             }
@@ -235,10 +258,86 @@ pub fn run(args: &ProbeArgs) -> ProbeReport {
         let r: std::io::Result<()> = Err(std::io::Error::other("not a cuda build"));
         rep.cuda = Some(attempt("cuda:0", r));
     }
+    for f in &args.stat {
+        rep.stat.push(attempt(f, std::fs::metadata(f).map(|_| ())));
+    }
+    for pid in &args.procargs {
+        rep.procargs.push(attempt(&pid.to_string(), procargs(*pid)));
+    }
+    for name in &args.mach_lookup {
+        rep.mach_lookup.push(attempt(name, mach_lookup(name)));
+    }
+    for pid in &args.signal {
+        rep.signal.push(attempt(&pid.to_string(), signal0(*pid)));
+    }
     if let Some(ms) = args.spin_ms {
         rep.cpu = Some(spin(ms));
     }
     rep
+}
+
+/// Another process's argv + environment: `KERN_PROCARGS2` on macOS, `/proc/<pid>/environ` on Linux.
+#[cfg(target_os = "macos")]
+fn procargs(pid: i32) -> std::io::Result<()> {
+    let mut mib = [libc::CTL_KERN, libc::KERN_PROCARGS2, pid];
+    let mut buf = vec![0u8; 256 * 1024];
+    let mut len = buf.len();
+    // SAFETY: mib has 3 valid entries; buf/len describe a writable buffer.
+    let rc = unsafe { libc::sysctl(mib.as_mut_ptr(), 3, buf.as_mut_ptr().cast(), &mut len, std::ptr::null_mut(), 0) };
+    if rc != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    if len == 0 {
+        return Err(std::io::Error::other("empty"));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn procargs(pid: i32) -> std::io::Result<()> {
+    std::fs::read(format!("/proc/{pid}/environ")).map(|_| ())
+}
+
+#[cfg(not(unix))]
+fn procargs(_pid: i32) -> std::io::Result<()> {
+    Err(std::io::Error::other("not probed on this OS"))
+}
+
+#[cfg(target_os = "macos")]
+fn mach_lookup(name: &str) -> std::io::Result<()> {
+    extern "C" {
+        static bootstrap_port: u32;
+        fn bootstrap_look_up(bp: u32, name: *const std::ffi::c_char, sp: *mut u32) -> i32;
+    }
+    let c = std::ffi::CString::new(name).map_err(std::io::Error::other)?;
+    let mut port: u32 = 0;
+    // SAFETY: bootstrap_port is the task's bootstrap port set up by libSystem; `c` is NUL-terminated.
+    let kr = unsafe { bootstrap_look_up(bootstrap_port, c.as_ptr(), &mut port) };
+    if kr == 0 && port != 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::other(format!("bootstrap_look_up kr={kr}")))
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn mach_lookup(_name: &str) -> std::io::Result<()> {
+    Err(std::io::Error::other("no Mach services on this OS"))
+}
+
+#[cfg(unix)]
+fn signal0(pid: i32) -> std::io::Result<()> {
+    // SAFETY: signal 0 only checks permission and existence.
+    if unsafe { libc::kill(pid, 0) } == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error())
+    }
+}
+
+#[cfg(not(unix))]
+fn signal0(_pid: i32) -> std::io::Result<()> {
+    Err(std::io::Error::other("not probed on this OS"))
 }
 
 /// Open the agent's control endpoint: a named pipe path on Windows (`\\.\pipe\...`), a socket path elsewhere.
