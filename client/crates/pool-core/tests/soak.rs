@@ -57,7 +57,23 @@ fn usage() -> (f64, u64) {
     (c.pagefile as f64 / (1 << 20) as f64, u64::from(h))
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "macos")]
+fn usage() -> (f64, u64) {
+    // physical footprint (resident + compressed + swapped dirty memory: what a leak grows) and open descriptors
+    let pid = std::process::id() as i32;
+    let mut ri: libc::rusage_info_v4 = unsafe { std::mem::zeroed() };
+    // SAFETY: `ri` matches the RUSAGE_INFO_V4 flavor.
+    let rc = unsafe { libc::proc_pid_rusage(pid, libc::RUSAGE_INFO_V4, (&mut ri as *mut libc::rusage_info_v4).cast()) };
+    let mb = if rc == 0 { ri.ri_phys_footprint as f64 / (1 << 20) as f64 } else { 0.0 };
+    let rec = std::mem::size_of::<libc::proc_fdinfo>();
+    let mut buf: Vec<libc::proc_fdinfo> = Vec::with_capacity(4096);
+    // SAFETY: `buf` has room for 4096 records; the call writes at most the given byte count and returns how many.
+    let bytes = unsafe { libc::proc_pidinfo(pid, libc::PROC_PIDLISTFDS, 0, buf.as_mut_ptr().cast(), (4096 * rec) as i32) };
+    let fds = if bytes > 0 { bytes as u64 / rec as u64 } else { 0 };
+    (mb, fds)
+}
+
+#[cfg(all(unix, not(target_os = "macos")))]
 fn usage() -> (f64, u64) {
     let status = std::fs::read_to_string("/proc/self/status").unwrap_or_default();
     let kb = status.lines().find(|l| l.starts_with("VmRSS:")).and_then(|l| l.split_whitespace().nth(1)).and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0);
