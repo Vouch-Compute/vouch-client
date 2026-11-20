@@ -1,0 +1,14 @@
+# cargo audit configuration. Every ignore needs a reason that shows the advisory does not apply to how this
+# project uses the crate, and is removed as soon as a compatible fixed version is adopted.
+[advisories]
+ignore = [
+    # RUSTSEC-2023-0071 (rsa, "Marvin Attack"): timing side channel in RSA *private-key* operations (decryption and
+    # signing). The app uses `rsa` only with public keys: it verifies a TPM attestation key's signature
+    # (`RsaPublicKey::verify` in pool-core `identity/attest.rs`). No private RSA key exists in the app; the only
+    # private-key operations are in unit tests, with a throwaway key generated at test time. The fix is rsa 0.10,
+    # an API-breaking release (new big-integer and digest types) for that verification code; planned as a
+    # separate, reviewed change.
+    # Expiry: migrate to rsa 0.10 by the first public vouch-client release, or as soon as any non-test RSA
+    # private-key use is added.
+    "RUSTSEC-2023-0071",
+]

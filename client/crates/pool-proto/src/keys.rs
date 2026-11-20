@@ -41,6 +41,12 @@ pub fn device_key_id(key: &VerifyingKey) -> String {
 /// Software ES256 key. Used for the DEV identity tier (no TPM / platform key available), for tests and
 /// for the test doubles of the server keys. A device using it enrolls with `key_attestation.format = "none"`,
 /// which has no hardware key attestation.
+/// A candidate private scalar (big-endian) as a signing key, or `None` when it is not in [1, n-1]
+/// (`generate` then draws again).
+fn scalar_key(b: &[u8; 32]) -> Option<SigningKey> {
+    SigningKey::from_slice(&b[..]).ok()
+}
+
 #[derive(Clone)]
 pub struct SoftwareKey {
     key: SigningKey,
@@ -48,8 +54,18 @@ pub struct SoftwareKey {
 }
 
 impl SoftwareKey {
+    /// A new P-256 key from the OS CSPRNG: 32 random bytes, rejected and redrawn when not a valid scalar
+    /// (zero or >= the group order; probability about 2^-32), so the key is uniform over the valid range.
+    /// This is the only path that creates a new device key.
     pub fn generate() -> Self {
-        Self::from_signing_key(SigningKey::random(&mut rand_core::OsRng))
+        use rand_core::RngCore;
+        let mut b = zeroize::Zeroizing::new([0u8; 32]);
+        loop {
+            rand_core::OsRng.fill_bytes(&mut b[..]);
+            if let Some(key) = scalar_key(&b) {
+                return Self::from_signing_key(key);
+            }
+        }
     }
     pub fn from_signing_key(key: SigningKey) -> Self {
         let kid = device_key_id(key.verifying_key());
@@ -89,6 +105,30 @@ impl Es256Signer for SoftwareKey {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The key-generation path refuses scalars outside [1, n-1]: zero, the group order n and n+1 are refused,
+    /// 1 and n-1 are accepted.
+    #[test]
+    fn generate_path_refuses_zero_and_the_group_order() {
+        fn be(hex: &str) -> [u8; 32] {
+            let mut b = [0u8; 32];
+            for (i, byte) in b.iter_mut().enumerate() {
+                *byte = u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).unwrap();
+            }
+            b
+        }
+        const N: &str = "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551";
+        const N_MINUS_1: &str = "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632550";
+        const N_PLUS_1: &str = "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632552";
+        assert!(scalar_key(&[0u8; 32]).is_none(), "zero");
+        assert!(scalar_key(&be(N)).is_none(), "n");
+        assert!(scalar_key(&be(N_PLUS_1)).is_none(), "n + 1");
+        assert!(scalar_key(&[0xff; 32]).is_none(), "2^256 - 1");
+        let mut one = [0u8; 32];
+        one[31] = 1;
+        assert!(scalar_key(&one).is_some(), "1");
+        assert!(scalar_key(&be(N_MINUS_1)).is_some(), "n - 1");
+    }
 
     #[test]
     fn device_key_id_shape() {

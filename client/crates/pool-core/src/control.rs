@@ -280,6 +280,27 @@ pub mod acl {
         }
     }
 
+    /// The full `S-1-...` form of an SDDL trustee. SDDL output abbreviates well-known SIDs to two-letter aliases,
+    /// including some that are ordinary user accounts: `LA` is the machine's built-in Administrator account (RID 500),
+    /// which is the account CI runners use. Comparing SIDs as text therefore needs this resolution first.
+    #[cfg(test)]
+    pub fn full_sid(trustee: &str) -> anyhow::Result<String> {
+        use windows::Win32::Security::Authorization::ConvertStringSidToSidW;
+        use windows::Win32::Security::PSID;
+        unsafe {
+            let w = wide(trustee);
+            let mut sid = PSID::default();
+            ConvertStringSidToSidW(PCWSTR(w.as_ptr()), &mut sid)?;
+            let mut s = PWSTR::null();
+            let r = ConvertSidToStringSidW(sid, &mut s);
+            let _ = LocalFree(Some(HLOCAL(sid.0)));
+            r?;
+            let out = s.to_string()?;
+            let _ = LocalFree(Some(HLOCAL(s.0.cast())));
+            Ok(out)
+        }
+    }
+
     /// The DACL of an open pipe as SDDL (tests and diagnostics).
     pub fn dacl_sddl(handle: std::os::windows::io::RawHandle) -> anyhow::Result<String> {
         unsafe {
@@ -371,15 +392,31 @@ mod tests {
         assert!(sid.starts_with("S-1-5-"), "{sid}");
         let dacl = acl::dacl_sddl(l.server.as_raw_handle()).unwrap();
         assert!(dacl.starts_with("D:P"), "protected, nothing inherited: {dacl}");
-        assert_eq!(dacl.matches("(A;").count(), 1, "exactly one allow ACE: {dacl}");
-        assert!(dacl.contains(&sid), "{dacl}");
-        for other in [";;;WD)", ";;;AN)", ";;;BA)", ";;;SY)", ";;;BU)", ";;;AU)"] {
-            assert!(!dacl.contains(other), "{other} in {dacl}");
+        let aces: Vec<&str> = dacl["D:P".len()..].split_terminator(')').map(|a| a.trim_start_matches('(')).collect();
+        assert_eq!(aces.len(), 1, "exactly one ACE: {dacl}");
+        assert!(aces[0].starts_with("A;"), "an allow ACE: {dacl}");
+        // the trustee as the full SID: SDDL may print the current user as an alias (`LA` on CI runners)
+        let trustee = aces[0].rsplit(';').next().unwrap();
+        assert_eq!(acl::full_sid(trustee).unwrap(), sid, "the only ACE is for the current user: {dacl}");
+        for other in ["WD", "AN", "BA", "SY", "BU", "AU"] {
+            assert_ne!(trustee, other, "{other} in {dacl}");
         }
         // a second instance can only be made with the same DACL; the installing user connects
         assert!(bind_named(dir.path(), &name).is_err(), "one agent per user");
         let client = tokio::net::windows::named_pipe::ClientOptions::new().open(&name);
         assert!(client.is_ok(), "the installing user (the app) can open the pipe");
+    }
+
+    /// SDDL aliases resolve to full SIDs (the pipe test compares the ACE trustee this way), and a full SID is unchanged.
+    #[cfg(windows)]
+    #[test]
+    fn sddl_trustee_aliases_resolve_to_full_sids() {
+        let la = acl::full_sid("LA").unwrap();
+        assert!(la.starts_with("S-1-5-21-") && la.ends_with("-500"), "built-in Administrator: {la}");
+        assert_eq!(acl::full_sid("SY").unwrap(), "S-1-5-18");
+        let me = acl::current_user_sid().unwrap();
+        assert_eq!(acl::full_sid(&me).unwrap(), me);
+        assert!(acl::full_sid("not a sid").is_err());
     }
 
     #[cfg(unix)]

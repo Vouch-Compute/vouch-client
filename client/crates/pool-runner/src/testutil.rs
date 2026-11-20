@@ -151,9 +151,12 @@ pub fn flac_tone(ms: usize) -> Vec<u8> {
 
 #[cfg(feature = "candle")]
 fn save_varmap(vm: &candle_nn::VarMap) -> Vec<u8> {
-    let tmp = tempfile::NamedTempFile::new().unwrap();
-    vm.save(tmp.path()).unwrap();
-    std::fs::read(tmp.path()).unwrap()
+    // a path in a fresh directory, not an open NamedTempFile: on Windows the save cannot replace a file
+    // that is still held open
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("model.safetensors");
+    vm.save(&p).unwrap();
+    std::fs::read(&p).unwrap()
 }
 
 /// A random-weight 1-layer BERT (hidden 16) with a 30-token vocab: proves the embeddings pipeline.

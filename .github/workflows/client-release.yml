@@ -34,7 +34,7 @@ jobs:
       matrix:
         include:
           - { name: linux-x86_64, os: ubuntu-22.04, bundles: "appimage,deb" }
-          - { name: macos-aarch64, os: macos-14, bundles: dmg }
+          - { name: macos-aarch64, os: macos-latest, bundles: dmg }   # arm64; the macos-14 image is no longer offered
           - { name: windows-x86_64, os: windows-latest, bundles: nsis }
     defaults:
       run:

@@ -83,20 +83,12 @@ jobs:
     timeout-minutes: 90
     strategy:
       fail-fast: false
+      # macOS runs only when the workflow is started by hand (Actions > client > Run workflow): macOS runner minutes
+      # are billed at a multiple of Linux minutes for private repositories, and the pinned `macos-14` image is no
+      # longer offered ("configuration 'macos-14-arm64-us-default' is not supported"). `macos-latest` is arm64.
+      # Push and pull-request runs build Linux and Windows. Matrix contexts cannot use `env`, hence the inline JSON.
       matrix:
-        include:
-          - name: linux-x86_64
-            os: ubuntu-22.04
-            bundles: appimage,deb
-            native_features: whisper,onnx
-          - name: macos-aarch64
-            os: macos-14
-            bundles: dmg
-            native_features: whisper,onnx
-          - name: windows-x86_64
-            os: windows-latest
-            bundles: nsis
-            native_features: onnx
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx"},{"name":"macos-aarch64","os":"macos-latest","bundles":"dmg","native_features":"whisper,onnx"},{"name":"windows-x86_64","os":"windows-latest","bundles":"nsis","native_features":"onnx"}]' || '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx"},{"name":"windows-x86_64","os":"windows-latest","bundles":"nsis","native_features":"onnx"}]') }}
     defaults:
       run:
         working-directory: client
@@ -169,11 +161,16 @@ jobs:
         shell: bash
         run: |
           npx tauri signer generate --ci -w "$RUNNER_TEMP/updater.key" -f
+          # Multi-line value for GITHUB_ENV: a random delimiter that cannot occur in the key, CRs stripped, and the
+          # value always ends with a newline before the closing delimiter (the key file has no trailing newline).
+          delim="KEY_$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+          key="$(tr -d '\r' < "$RUNNER_TEMP/updater.key")"
+          case "$key" in *"$delim"*) echo "delimiter collision"; exit 1;; esac
           {
-            echo "TAURI_SIGNING_PRIVATE_KEY<<KEY_EOF"
-            cat "$RUNNER_TEMP/updater.key"
-            echo "KEY_EOF"
-            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD="
+            printf '%s<<%s\n' TAURI_SIGNING_PRIVATE_KEY "$delim"
+            printf '%s\n' "$key"
+            printf '%s\n' "$delim"
+            printf 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD=\n'
           } >> "$GITHUB_ENV"
 
       # Windows: `tauri build` runs scripts/sidecars.mjs, which fetches the pinned GPU pack (scripts/gpu-pack.mjs,
