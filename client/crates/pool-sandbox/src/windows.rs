@@ -547,6 +547,16 @@ fn make_job(memory_limit: u64, cpu_rate_pct: Option<u8>) -> io::Result<HANDLE> {
     }
 }
 
+/// Delete the job sandbox's AppContainer profiles (current and pre-rename) and their folders. Run on uninstall;
+/// a missing profile is not an error.
+pub fn remove_profiles() {
+    for name in [PROFILE_NAME, OLD_PROFILE_NAME] {
+        unsafe {
+            let _ = DeleteAppContainerProfile(PCWSTR(wide(OsStr::new(name)).as_ptr()));
+        }
+    }
+}
+
 pub fn spawn(exe: &Path, args: &[String], cfg: &SandboxConfig) -> io::Result<Spawned> {
     if !cfg.lpac {
         return create(exe, args, cfg, Mode::AppContainer);

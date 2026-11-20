@@ -68,6 +68,25 @@ async fn install_update(app: AppHandle) -> Result<(), String> {
     updater::install(&app).await
 }
 
+/// Whether the app starts when the user signs in to the computer (per-user login item: the HKCU `Run` key on
+/// Windows, a LaunchAgent on macOS). It starts in the tray (`--background`), visible there, never hidden.
+#[tauri::command]
+fn autostart_get(app: AppHandle) -> Result<bool, String> {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().is_enabled().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn autostart_set(app: AppHandle, enabled: bool) -> Result<bool, String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let a = app.autolaunch();
+    if enabled { a.enable() } else { a.disable() }.map_err(|e| e.to_string())?;
+    a.is_enabled().map_err(|e| e.to_string())
+}
+
+/// Started by the login item: stay in the tray instead of opening the window.
+const BACKGROUND_ARG: &str = "--background";
+
 fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
@@ -81,8 +100,22 @@ fn main() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| show_main(app)))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![core, ensure_core, open_link, build_info, check_update, install_update])
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec![BACKGROUND_ARG])))
+        .invoke_handler(tauri::generate_handler![
+            core,
+            ensure_core,
+            open_link,
+            build_info,
+            check_update,
+            install_update,
+            autostart_get,
+            autostart_set
+        ])
         .setup(|app| {
+            // the window starts hidden (tauri.conf.json); show it unless the login item started the app
+            if !std::env::args().any(|a| a == BACKGROUND_ARG) {
+                show_main(app.handle());
+            }
             let open = MenuItem::with_id(app, "open", "Open Vouch Compute", true, None::<&str>)?;
             let pause = MenuItem::with_id(app, "pause", "Pause for 1 hour", true, None::<&str>)?;
             let resume = MenuItem::with_id(app, "resume", "Resume", true, None::<&str>)?;

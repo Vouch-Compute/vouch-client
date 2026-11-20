@@ -37,15 +37,19 @@ pub struct Config {
     pub dev_trust_roots: Vec<String>,
 }
 
+/// Release endpoints: the job server, the account server's device-facing host and the web app.
+pub const RELEASE_ENGINE_WS_URL: &str = "wss://api.vouchcompute.com/node/v1/connect";
+pub const RELEASE_VAULT_URL: &str = "https://enroll.vouchcompute.com";
+pub const RELEASE_WEB_URL: &str = "https://www.vouchcompute.com";
+
 impl Default for Config {
     fn default() -> Self {
-        // Release builds default to the production hosts (api.vouchcompute.com for the API and the job server,
-        // vouchcompute.com for the web app); dev builds keep the local dev stack.
+        // Release builds use the fixed release hosts; dev builds keep the local dev stack.
         let dev = cfg!(feature = "dev-trust");
         let (engine_ws_url, vault_url, web_url) = if dev {
             ("ws://127.0.0.1:8000/node/v1/connect", "http://127.0.0.1:8100", "http://127.0.0.1:3000")
         } else {
-            ("wss://api.vouchcompute.com/node/v1/connect", "https://api.vouchcompute.com", "https://vouchcompute.com")
+            (RELEASE_ENGINE_WS_URL, RELEASE_VAULT_URL, RELEASE_WEB_URL)
         };
         Self {
             engine_ws_url: engine_ws_url.into(),
@@ -83,7 +87,31 @@ impl Config {
         if let Ok(v) = std::env::var("POOL_RUNNER_PATH") {
             c.runner_path = Some(v.into());
         }
-        c
+        if cfg!(feature = "dev-trust") {
+            c
+        } else {
+            c.pinned_to_release()
+        }
+    }
+
+    /// Release builds talk only to the release hosts: endpoint values from `config.json` or `POOL_*_URL` are
+    /// replaced (and logged), so neither a local dev stack nor a host planted in the config can be used, and the
+    /// dev switches are off.
+    pub fn pinned_to_release(mut self) -> Self {
+        for (field, fixed) in [
+            (&mut self.engine_ws_url, RELEASE_ENGINE_WS_URL),
+            (&mut self.vault_url, RELEASE_VAULT_URL),
+            (&mut self.web_url, RELEASE_WEB_URL),
+        ] {
+            if field.as_str() != fixed {
+                tracing::warn!("release build: endpoint {field} ignored, using {fixed}");
+                *field = fixed.to_string();
+            }
+        }
+        self.dev = false;
+        self.bench_duration_override_s = None;
+        self.dev_trust_roots.clear();
+        self
     }
 
     /// The zero exporter / plain ws:// path is only possible in dev builds with dev mode on.
@@ -196,6 +224,26 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// What a release build does with a config pointing at a dev stack or another host: the release hosts win.
+    #[test]
+    fn release_builds_refuse_dev_and_foreign_endpoints() {
+        let planted = Config {
+            engine_ws_url: "ws://127.0.0.1:8000/node/v1/connect".into(),
+            vault_url: "http://127.0.0.1:8100".into(),
+            web_url: "https://vouchcompute.com.evil.example".into(),
+            dev: true,
+            bench_duration_override_s: Some(5),
+            dev_trust_roots: vec!["AAAA".into()],
+            ..Config::default()
+        };
+        let c = planted.pinned_to_release();
+        assert_eq!(c.engine_ws_url, "wss://api.vouchcompute.com/node/v1/connect");
+        assert_eq!(c.vault_url, "https://enroll.vouchcompute.com");
+        assert_eq!(c.web_url, "https://www.vouchcompute.com");
+        assert!(!c.dev && c.bench_duration_override_s.is_none() && c.dev_trust_roots.is_empty());
+        assert!(!c.allow_insecure_dev());
+    }
 
     #[test]
     fn state_roundtrip_and_defaults() {

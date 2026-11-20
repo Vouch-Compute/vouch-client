@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Main app (hardened runtime, not sandboxed: it launches the agent). The job runner helper is signed
-     separately with App Sandbox entitlements and no network/file entitlements: see
-     the release signing setup. -->
+<!-- Hardened runtime with no exceptions, for the app and its two helpers (pool-core, pool-runner), which the
+     bundler signs with the same identity. Not App Sandboxed: the app starts the agent, and the agent confines
+     each job runner with its own deny-by-default sandbox profile (no network, no user files). No JIT, no
+     unsigned libraries, no debugger attachment. -->
 <plist version="1.0">
 <dict>
 </dict>

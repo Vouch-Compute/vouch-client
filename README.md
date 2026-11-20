@@ -156,5 +156,5 @@ Please report vulnerabilities privately to **security@vouchcompute.com**, not in
 
 ## 📄 License
 
-Not yet released under an open-source license. The owner will choose one before the repository is made public. Until
+Not yet released under an open-source license. A license will be chosen before the repository is made public. Until
 then, all rights are reserved.

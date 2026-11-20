@@ -301,7 +301,7 @@ impl Agent {
                             self.status.update(|s| s.last_error = Some(format!("connect: {e}")));
                             SessionEnd::Reconnect(None)
                         }
-                        Ok(ws) => {
+                        Ok((ws, edge)) => {
                             let key = self.key();
                             let deps = Arc::new(session::Deps {
                                 cfg: self.cfg.clone(),
@@ -320,7 +320,7 @@ impl Agent {
                                 platform: self.platform.clone(),
                                 worked_ms: self.worked_ms.clone(),
                             });
-                            let end = session::run(deps, ws).await;
+                            let end = session::run(deps, ws, edge).await;
                             // Only a session that reached Welcome resets the backoff. A server that
                             // closes before the Challenge (1013 "busy") now gets exponential backoff instead of a
                             // reconnect every 1-2 s.
@@ -688,7 +688,7 @@ impl Agent {
             let mut st = self.state.lock().unwrap();
             st.hw_report_last_sent_ms = Some(now_ms());
             st.hw_report_last_attempt_ms = None;
-            st.tpm_key_name = key.key_name().filter(|n| n.as_str() != "VouchCompute-Device-Key");
+            st.tpm_key_name = key.key_name().filter(|n| n.as_str() != crate::identity::TPM_KEY_NAME);
         }
         self.set_enrollment(&reg.device_id, &reg.trust_ceiling);
         Ok(())
@@ -712,11 +712,7 @@ impl Agent {
     /// Sign a `DeviceControl` (fresh 16-byte nonce, current time) with the device's current key.
     pub fn device_control_cose(&self, action: &str) -> anyhow::Result<(String, Vec<u8>)> {
         let device_id = self.device_id().ok_or_else(|| anyhow::anyhow!("this computer is not registered"))?;
-        let mut nonce = [0u8; 16];
-        rand_core::OsRng.fill_bytes(&mut nonce);
-        let c = pool_proto::objects::DeviceControl { device_id: device_id.clone(), action: action.into(), ts: crate::clock::server_now_ms(), nonce };
-        pool_proto::objects::DeviceControl::from_value(&c.to_value()).map_err(|e| anyhow::anyhow!("{e}"))?;
-        let cose = pool_proto::cose::sign1(&c.to_value(), self.key().as_ref()).map_err(|e| anyhow::anyhow!("{e}"))?;
+        let cose = sign_device_control(self.key().as_ref(), &device_id, action)?;
         Ok((device_id, cose))
     }
 
@@ -926,6 +922,36 @@ impl Agent {
 
 /// The code "Recover my account" takes: `<case_id>.<challenge>` (the challenge as base64, base64url or hex), as the
 /// web shows it. Whitespace is ignored.
+/// A COSE-signed `DeviceControl` (fresh 16-byte nonce, current server time) for `device_id`.
+pub fn sign_device_control(key: &dyn DeviceKey, device_id: &str, action: &str) -> anyhow::Result<Vec<u8>> {
+    let mut nonce = [0u8; 16];
+    rand_core::OsRng.fill_bytes(&mut nonce);
+    let c = pool_proto::objects::DeviceControl { device_id: device_id.to_string(), action: action.into(), ts: crate::clock::server_now_ms(), nonce };
+    pool_proto::objects::DeviceControl::from_value(&c.to_value()).map_err(|e| anyhow::anyhow!("{e}"))?;
+    pool_proto::cose::sign1(&c.to_value(), key).map_err(|e| anyhow::anyhow!("{e}"))
+}
+
+/// Uninstall with "delete the application data": remove this device from the account before its keys are
+/// deleted, by signing a `self_revoke` with the existing device key. Best effort and bounded by `limit`: no key
+/// is ever created, and `Ok(false)` means there was nothing to revoke (not registered, or no key left). Without a
+/// network path the device stays listed on the account until it is removed on the website.
+pub async fn uninstall_self_revoke(data_dir: &std::path::Path, cfg: &Config, limit: Duration) -> anyhow::Result<bool> {
+    let state = State::load(data_dir);
+    let Some(device_id) = state.device_id.clone() else { return Ok(false) };
+    let Some(key) = identity::open_existing(data_dir, cfg.prefer_tpm, state.tpm_key_name.as_deref()) else { return Ok(false) };
+    let cose = sign_device_control(key.as_ref(), &device_id, "self_revoke")?;
+    let http = reqwest::Client::builder()
+        .connect_timeout(limit)
+        .timeout(limit)
+        .user_agent(concat!("vouch-core/", env!("CARGO_PKG_VERSION")))
+        .build()?;
+    let vault = VaultClient::new(&cfg.vault_url, &cfg.oauth_client_id, http);
+    tokio::time::timeout(limit, vault.device_control(&device_id, &cose))
+        .await
+        .map_err(|_| anyhow::anyhow!("the account server did not answer in time"))??;
+    Ok(true)
+}
+
 pub fn parse_recovery_code(code: &str) -> anyhow::Result<(String, [u8; 32])> {
     let code: String = code.chars().filter(|c| !c.is_whitespace()).collect();
     let (case_id, ch) = code.split_once(['.', ':']).ok_or_else(|| anyhow::anyhow!("enter the whole code shown on the web"))?;

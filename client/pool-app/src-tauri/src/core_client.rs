@@ -85,6 +85,9 @@ pub async fn call(method: &str, params: Value) -> Result<Value, String> {
 
 /// Start the agent (bundled sidecar next to the app binary) if it is not reachable, then wait for it.
 pub async fn ensure_running() -> Result<(), String> {
+    // the app's setup and the page both ask at start: one at a time, so only one agent is launched
+    static STARTING: std::sync::OnceLock<tokio::sync::Mutex<()>> = std::sync::OnceLock::new();
+    let _one = STARTING.get_or_init(|| tokio::sync::Mutex::new(())).lock().await;
     if call("status", Value::Null).await.is_ok() {
         return Ok(());
     }

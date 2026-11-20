@@ -20,9 +20,9 @@ use windows::Win32::Security::Cryptography::{
 use super::attest::{self, TpmActivation, TpmAttester, TpmPublics};
 use super::{DeviceKey, KeyStorage};
 
-pub const KEY_NAME: &str = "VouchCompute-Device-Key";
+pub const KEY_NAME: &str = super::TPM_KEY_NAME;
 /// Name of the persisted attestation identity key (AIK) in the Platform Crypto Provider.
-pub const AIK_NAME: &str = "VouchCompute-AIK";
+pub const AIK_NAME: &str = super::TPM_AIK_NAME;
 const BCRYPT_ECDSA_PUBLIC_P256_MAGIC: u32 = 0x3153_4345; // "ECS1"
 const BCRYPT_RSAPUBLIC_MAGIC: u32 = 0x3141_5352; // "RSA1"
 
@@ -53,6 +53,11 @@ impl TpmDeviceKey {
     /// Open the persisted key `name`, or create it.
     pub fn open_or_create(name: &str) -> anyhow::Result<Self> {
         Self::open_inner(name, true)
+    }
+
+    /// Open the persisted key `name`; fails if it does not exist (never creates one).
+    pub fn open_existing(name: &str) -> anyhow::Result<Self> {
+        Self::open_inner(name, false)
     }
 
     /// Create a new key `name`; fails if one exists (key rotation).
@@ -133,6 +138,28 @@ impl TpmDeviceKey {
         }
         Ok(())
     }
+}
+
+/// Delete persisted platform-provider keys by name if they exist (uninstall with "delete my data"); never creates
+/// a key. Returns how many were deleted.
+pub fn delete_persisted_keys(names: &[&str]) -> usize {
+    let mut deleted = 0;
+    unsafe {
+        let Ok(prov) = open_provider() else { return 0 };
+        for name in names {
+            let wname = wide(name);
+            let mut key = NCRYPT_KEY_HANDLE::default();
+            if NCryptOpenKey(prov, &mut key, PCWSTR(wname.as_ptr()), CERT_KEY_SPEC(0), NCRYPT_SILENT_FLAG).is_ok() {
+                if NCryptDeleteKey(key, 0).is_ok() {
+                    deleted += 1;
+                } else {
+                    let _ = NCryptFreeObject(key.into());
+                }
+            }
+        }
+        let _ = NCryptFreeObject(prov.into());
+    }
+    deleted
 }
 
 unsafe fn export_point(key: NCRYPT_KEY_HANDLE) -> anyhow::Result<Vec<u8>> {

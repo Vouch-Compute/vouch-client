@@ -107,6 +107,34 @@ pub fn attestation(
     }
 }
 
+/// Names of the persisted TPM keys. Dev builds use their own names, just as they use their own bundle id, so a dev
+/// build can never sign as a release device on the same machine. Rotated keys are `<TPM_KEY_NAME>-r<ms>`.
+#[cfg(feature = "dev-trust")]
+pub const TPM_KEY_NAME: &str = "VouchCompute-Dev-Device-Key";
+#[cfg(feature = "dev-trust")]
+pub const TPM_AIK_NAME: &str = "VouchCompute-Dev-AIK";
+#[cfg(not(feature = "dev-trust"))]
+pub const TPM_KEY_NAME: &str = "VouchCompute-Device-Key";
+#[cfg(not(feature = "dev-trust"))]
+pub const TPM_AIK_NAME: &str = "VouchCompute-AIK";
+
+/// The existing device key, never a new one (the uninstaller signs with it before deleting it): the TPM key
+/// `tpm_key_name` (else the default name) when `prefer_tpm`, else the sealed software key if its file exists.
+pub fn open_existing(data_dir: &Path, prefer_tpm: bool, tpm_key_name: Option<&str>) -> Option<Arc<dyn DeviceKey>> {
+    #[cfg(windows)]
+    if prefer_tpm {
+        if let Ok(k) = tpm::TpmDeviceKey::open_existing(tpm_key_name.unwrap_or(TPM_KEY_NAME)) {
+            return Some(Arc::new(k));
+        }
+    }
+    let _ = (prefer_tpm, tpm_key_name);
+    let path = software_key_path(data_dir);
+    if !path.exists() {
+        return None;
+    }
+    SoftwareDeviceKey::load_or_create(&path).ok().map(|k| Arc::new(k) as Arc<dyn DeviceKey>)
+}
+
 /// Load the existing device key or create one. `prefer_tpm`: try the platform TPM first. `tpm_key_name`: the
 /// persisted TPM key name from `state.json` (after a key rotation), else the default name.
 pub fn load_or_create(data_dir: &Path, prefer_tpm: bool, tpm_key_name: Option<&str>) -> anyhow::Result<Arc<dyn DeviceKey>> {
@@ -134,7 +162,7 @@ fn rotating_key_path(data_dir: &Path) -> std::path::PathBuf {
 pub fn create_rotation_key(data_dir: &Path, current: &dyn DeviceKey) -> anyhow::Result<Arc<dyn DeviceKey>> {
     #[cfg(windows)]
     if current.storage() == KeyStorage::Tpm {
-        let name = format!("VouchCompute-Device-Key-r{}", pool_proto::now_ms());
+        let name = format!("{TPM_KEY_NAME}-r{}", pool_proto::now_ms());
         return Ok(Arc::new(tpm::TpmDeviceKey::create_new(&name)?));
     }
     let _ = current;
@@ -159,6 +187,30 @@ pub fn commit_rotation_key(data_dir: &Path, key: &dyn DeviceKey) -> anyhow::Resu
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Dev builds (dev bundle id) use dev TPM key names; release builds the release names. Never mixed.
+    #[test]
+    fn tpm_key_names_follow_the_build_channel() {
+        let dev = pool_proto::BUNDLE_ID.ends_with(".dev");
+        assert_eq!(TPM_KEY_NAME.contains("-Dev-"), dev, "{TPM_KEY_NAME} vs {}", pool_proto::BUNDLE_ID);
+        assert_eq!(TPM_AIK_NAME.contains("-Dev-"), dev, "{TPM_AIK_NAME} vs {}", pool_proto::BUNDLE_ID);
+        if dev {
+            assert_eq!((TPM_KEY_NAME, TPM_AIK_NAME), ("VouchCompute-Dev-Device-Key", "VouchCompute-Dev-AIK"));
+        } else {
+            assert_eq!((TPM_KEY_NAME, TPM_AIK_NAME), ("VouchCompute-Device-Key", "VouchCompute-AIK"));
+        }
+    }
+
+    /// Opening the existing key never creates one.
+    #[test]
+    fn open_existing_never_creates_a_key() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(open_existing(dir.path(), false, None).is_none());
+        assert!(!software_key_path(dir.path()).exists());
+        let k = load_or_create(dir.path(), false, None).unwrap();
+        let again = open_existing(dir.path(), false, None).expect("the existing key opens");
+        assert_eq!(again.device_key_id(), k.device_key_id());
+    }
 
     #[test]
     fn attestation_policy_matches_vault() {

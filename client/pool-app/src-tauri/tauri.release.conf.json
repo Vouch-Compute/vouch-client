@@ -3,12 +3,31 @@
   "identifier": "com.vouchcompute.app",
   "bundle": {
     "publisher": "Vouch Compute",
-    "copyright": "Vouch Compute"
+    "copyright": "Vouch Compute",
+    "macOS": {
+      "dmg": {
+        "background": "macos/dmg-background.png",
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 190
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 190
+        }
+      }
+    }
   },
   "plugins": {
     "updater": {
       "pubkey": "set-by-the-release-workflow-from-the-offline-key",
-      "endpoints": ["https://vouchcompute.com/updates/{{target}}/{{arch}}/{{current_version}}.json"],
+      "endpoints": [
+        "https://downloads.vouchcompute.com/desktop/stable/latest.json"
+      ],
       "dangerousInsecureTransportProtocol": false
     }
   }

@@ -4,9 +4,11 @@
 //!   pool-core --headless      agent + control channel, logs to stderr (P1 worker mode)
 //!   pool-core version
 //!   pool-core sandbox-probe [probe args]   dev builds only: run `pool-runner probe` in the job sandbox (e2e)
+//!   pool-core uninstall-cleanup [--delete-data]   run by the uninstaller (sandbox profile; device keys on request)
 //!
 //! Data dir: `POOL_DATA_DIR` or the per-user local app data dir. Config: `<data>/config.json` and
-//! `POOL_ENGINE_WS_URL`, `POOL_VAULT_URL`, `POOL_WEB_URL`, `POOL_RUNNER_PATH`.
+//! `POOL_ENGINE_WS_URL`, `POOL_VAULT_URL`, `POOL_WEB_URL`, `POOL_RUNNER_PATH`; release builds ignore the endpoint
+//! values and always use the release hosts.
 
 use pool_core::{agent::Agent, config};
 
@@ -21,6 +23,9 @@ async fn main() -> anyhow::Result<()> {
     pool_core::hwids::disable_crash_dumps();
     if args.first().map(String::as_str) == Some("sandbox-probe") {
         return sandbox_probe(&args[1..]);
+    }
+    if args.first().map(String::as_str) == Some("uninstall-cleanup") {
+        return uninstall_cleanup(args.iter().any(|a| a == "--delete-data")).await;
     }
     let headless = args.iter().any(|a| a == "--headless");
     let data_dir = config::default_data_dir();
@@ -56,6 +61,39 @@ async fn main() -> anyhow::Result<()> {
         _ = agent.run() => {}
         r = pool_core::control::serve(a, listener) => { r?; }
         _ = tokio::signal::ctrl_c() => {}
+    }
+    Ok(())
+}
+
+/// Run by the uninstaller (the agent is already stopped). Always removes the job sandbox's OS profile. With
+/// `--delete-data` (the user ticked "delete the application data") it first removes this device from the account
+/// with a signed `self_revoke` (best effort, at most 5 s, never fails the uninstall), and only then deletes this
+/// user's device keys from the TPM; the data folder itself is removed by the uninstaller. Exits 0 in every case.
+async fn uninstall_cleanup(delete_data: bool) -> anyhow::Result<()> {
+    pool_sandbox::remove_os_profiles();
+    if !delete_data {
+        return Ok(());
+    }
+    let data_dir = config::default_data_dir();
+    let cfg = config::Config::load(&data_dir);
+    let limit = std::time::Duration::from_secs(5);
+    // strictly before the keys are deleted: the revocation is signed with the device key
+    let revoke = tokio::time::timeout(limit, pool_core::agent::uninstall_self_revoke(&data_dir, &cfg, limit)).await;
+    match revoke {
+        Ok(Ok(true)) => println!("this device was removed from the account"),
+        Ok(Ok(false)) => println!("this computer was not registered; nothing to remove from the account"),
+        Ok(Err(e)) => println!("could not remove this device from the account ({e}); remove it on the website"),
+        Err(_) => println!("the account server did not answer in time; remove this device on the website"),
+    }
+    #[cfg(windows)]
+    {
+        let state = config::State::load(&data_dir);
+        let mut names = vec![pool_core::identity::TPM_KEY_NAME, pool_core::identity::TPM_AIK_NAME];
+        if let Some(n) = state.tpm_key_name.as_deref() {
+            names.push(n);
+        }
+        let n = pool_core::identity::tpm::delete_persisted_keys(&names);
+        println!("removed {n} device key(s)");
     }
     Ok(())
 }

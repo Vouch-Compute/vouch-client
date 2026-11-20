@@ -35,7 +35,7 @@ fn invoke_handler_lists_exactly_the_reviewed_commands() {
     let end = start + MAIN_RS[start..].find(']').unwrap();
     let mut cmds: Vec<&str> = MAIN_RS[start..end].split(',').map(str::trim).filter(|s| !s.is_empty()).collect();
     cmds.sort();
-    assert_eq!(cmds, ["build_info", "check_update", "core", "ensure_core", "install_update", "open_link"]);
+    assert_eq!(cmds, ["autostart_get", "autostart_set", "build_info", "check_update", "core", "ensure_core", "install_update", "open_link"]);
     // nothing takes a path, a URL or a shell command from the page
     for c in &cmds {
         let sig = MAIN_RS.find(&format!("fn {c}(")).map(|i| &MAIN_RS[i..i + MAIN_RS[i..].find('{').unwrap()]).unwrap();
@@ -70,7 +70,7 @@ fn core_proxy_allow_list_matches_the_agent() {
     for (i, _) in APP_JS.match_indices("invoke(\"") {
         let rest = &APP_JS[i + 8..];
         let c = &rest[..rest.find('"').unwrap()];
-        assert!(["core", "ensure_core", "open_link", "build_info", "check_update", "install_update"].contains(&c), "{c}");
+        assert!(["core", "ensure_core", "open_link", "build_info", "check_update", "install_update", "autostart_get", "autostart_set"].contains(&c), "{c}");
     }
 }
 

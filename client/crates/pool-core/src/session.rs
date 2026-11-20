@@ -85,9 +85,12 @@ fn is_loopback(host: &str) -> bool {
 /// Open the WebSocket. `wss://` uses TLS 1.3 only (webpki roots). Plain `ws://` is allowed only for a
 /// loopback host in dev builds with dev mode on (the exporter is then 32 zero bytes, which the server accepts
 /// only with VAULT_ENV=dev).
-pub async fn connect(cfg: &Config) -> anyhow::Result<WebSocketStream<Conn>> {
+///
+/// Also returns the edge binding when the job server sits behind Cloudflare: a `wss://` connection to a non-loopback host
+/// whose `101` upgrade response carries `CF-Ray` (see [`EdgeBinding`]).
+pub async fn connect(cfg: &Config) -> anyhow::Result<(WebSocketStream<Conn>, Option<EdgeBinding>)> {
     let url = url::Url::parse(&cfg.engine_ws_url)?;
-    let host = url.host_str().ok_or_else(|| anyhow::anyhow!("no host"))?.to_string();
+    let host = url.host_str().ok_or_else(|| anyhow::anyhow!("no host"))?.to_ascii_lowercase();
     let port = url.port_or_known_default().unwrap_or(443);
     let tcp = TcpStream::connect((host.as_str(), port)).await?;
     tcp.set_nodelay(true)?;
@@ -116,7 +119,52 @@ pub async fn connect(cfg: &Config) -> anyhow::Result<WebSocketStream<Conn>> {
     if proto != Some(WS_SUBPROTOCOL) {
         anyhow::bail!("server did not select subprotocol {WS_SUBPROTOCOL}");
     }
-    Ok(ws)
+    let edge = edge_from_upgrade(&host, ws.get_ref().is_tls(), resp.headers().get("CF-Ray").map(|v| v.as_bytes()))?;
+    Ok((ws, edge))
+}
+
+/// Domain-separation label of the edge binding.
+pub const EDGE_BINDING_LABEL: &[u8] = b"pool/edge-binding/v1";
+
+/// The session binding for a job server behind Cloudflare's edge. TLS ends at the edge, so the server cannot see this
+/// connection's TLS exporter; both sides instead bind the session to the edge's per-upgrade ray id:
+/// `SHA-256("pool/edge-binding/v1" || 0x00 || hub_host || 0x00 || cf_ray)`. `hub_host` is always the host this
+/// agent dialled (lower case), never a host named by the server.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EdgeBinding {
+    hub_host: String,
+    cf_ray: String,
+}
+
+impl EdgeBinding {
+    pub fn value(&self) -> [u8; 32] {
+        use sha2::Digest;
+        let mut h = sha2::Sha256::new();
+        h.update(EDGE_BINDING_LABEL);
+        h.update([0u8]);
+        h.update(self.hub_host.as_bytes());
+        h.update([0u8]);
+        h.update(self.cf_ray.as_bytes());
+        h.finalize().into()
+    }
+}
+
+/// Decide the binding from the upgrade response: edge binding only for a TLS connection to a non-loopback host
+/// with a `CF-Ray` header; otherwise `None` (the TLS exporter is used). A `CF-Ray` that is not a plain ray id
+/// (1-64 characters of `A-Z a-z 0-9 -`) is refused rather than ignored.
+pub fn edge_from_upgrade(dialled_host: &str, tls: bool, cf_ray: Option<&[u8]>) -> anyhow::Result<Option<EdgeBinding>> {
+    let Some(raw) = cf_ray else { return Ok(None) };
+    if !tls || is_loopback(dialled_host) {
+        return Ok(None);
+    }
+    let ok = !raw.is_empty() && raw.len() <= 64 && raw.iter().all(|b| b.is_ascii_alphanumeric() || *b == b'-');
+    if !ok {
+        anyhow::bail!("malformed CF-Ray header in the upgrade response");
+    }
+    Ok(Some(EdgeBinding {
+        hub_host: dialled_host.to_ascii_lowercase(),
+        cf_ray: String::from_utf8_lossy(raw).into_owned(),
+    }))
 }
 
 /// TLS 1.3 exporter (label `EXPORTER-pool-node-hello`, context = nonce, 32 bytes) from our side of the
@@ -129,6 +177,20 @@ pub fn tls_exporter(ws: &WebSocketStream<Conn>, nonce: &[u8]) -> anyhow::Result<
         }
         Conn::Plain(_) => Ok([0u8; 32]),
     }
+}
+
+/// The value signed into `Hello.tls_exporter`: the edge binding when the job server is behind Cloudflare, else this
+/// connection's TLS exporter. All zeros (the dev `ws://` value) only where dev transport is allowed.
+pub fn session_binding(ws: &WebSocketStream<Conn>, nonce: &[u8], edge: Option<&EdgeBinding>, allow_zero: bool) -> anyhow::Result<[u8; 32]> {
+    let v = match edge {
+        Some(e) if ws.get_ref().is_tls() => e.value(),
+        Some(_) => anyhow::bail!("edge binding on a non-TLS connection"),
+        None => tls_exporter(ws, nonce)?,
+    };
+    if v == [0u8; 32] && !allow_zero {
+        anyhow::bail!("all-zero channel binding outside dev");
+    }
+    Ok(v)
 }
 
 // ------------------------------------------------------------------ session
@@ -267,7 +329,7 @@ fn goodbye_end(g: &pb::Goodbye) -> SessionEnd {
 }
 
 /// Run one authenticated session until it ends.
-pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>) -> SessionEnd {
+pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<EdgeBinding>) -> SessionEnd {
     if !ws.get_ref().is_tls() && !deps.cfg.allow_insecure_dev() {
         return SessionEnd::ProtocolError("insecure transport outside dev".into());
     }
@@ -290,7 +352,7 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>) -> SessionEnd {
     if let Err(e) = check_challenge_nonce(&deps, &challenge.nonce) {
         return SessionEnd::ProtocolError(e);
     }
-    let exporter = match tls_exporter(&ws, &challenge.nonce) {
+    let exporter = match session_binding(&ws, &challenge.nonce, edge.as_ref(), deps.cfg.allow_insecure_dev()) {
         Ok(x) => x,
         Err(e) => return SessionEnd::ProtocolError(format!("exporter: {e}")),
     };
@@ -883,4 +945,54 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
     });
     deps.status.update(|s| if let Some(b) = &mut s.benchmark { b.state = state.into() });
     let _ = tx.send(Event::BenchDone(body)).await;
+}
+
+#[cfg(test)]
+mod edge_binding_tests {
+    use super::*;
+
+    const RAY: &[u8] = b"8e3b2c1d4f5a6b7c-AMS";
+
+    /// Known answer (Python: hashlib.sha256(b"pool/edge-binding/v1\x00api.vouchcompute.com\x00" + ray)), shared
+    /// with the job server and the account server.
+    #[test]
+    fn value_matches_the_published_construction() {
+        let e = edge_from_upgrade("api.vouchcompute.com", true, Some(RAY)).unwrap().unwrap();
+        assert_eq!(hex::encode(e.value()), "931cb866de58f7080352c0693e2cd0640f0a7b2e889300c476cacdd48a665270");
+    }
+
+    #[test]
+    fn only_the_dialled_host_lower_case_is_bound() {
+        let upper = edge_from_upgrade("API.VouchCompute.com", true, Some(RAY)).unwrap().unwrap();
+        let lower = edge_from_upgrade("api.vouchcompute.com", true, Some(RAY)).unwrap().unwrap();
+        assert_eq!(upper.value(), lower.value());
+        let other = edge_from_upgrade("api.vouchcompute.com.evil.example", true, Some(RAY)).unwrap().unwrap();
+        assert_ne!(other.value(), lower.value());
+        let other_ray = edge_from_upgrade("api.vouchcompute.com", true, Some(b"8e3b2c1d4f5a6b7d-AMS")).unwrap().unwrap();
+        assert_ne!(other_ray.value(), lower.value());
+    }
+
+    #[test]
+    fn no_edge_binding_without_cf_ray_for_loopback_or_without_tls() {
+        assert_eq!(edge_from_upgrade("api.vouchcompute.com", true, None).unwrap(), None);
+        assert_eq!(edge_from_upgrade("127.0.0.1", true, Some(RAY)).unwrap(), None);
+        assert_eq!(edge_from_upgrade("localhost", true, Some(RAY)).unwrap(), None);
+        assert_eq!(edge_from_upgrade("::1", true, Some(RAY)).unwrap(), None);
+        assert_eq!(edge_from_upgrade("api.vouchcompute.com", false, Some(RAY)).unwrap(), None);
+    }
+
+    #[test]
+    fn malformed_cf_ray_is_refused() {
+        let long = vec![b'a'; 65];
+        for bad in [&b""[..], b"8e3b 2c1d", b"8e3b\x002c1d", b"ray\r\nx", "räy".as_bytes(), &long] {
+            assert!(edge_from_upgrade("api.vouchcompute.com", true, Some(bad)).is_err(), "{bad:?}");
+        }
+        assert!(edge_from_upgrade("api.vouchcompute.com", true, Some(&[b'a'; 64])).is_ok());
+    }
+
+    #[test]
+    fn the_binding_is_never_all_zero() {
+        let e = edge_from_upgrade("api.vouchcompute.com", true, Some(RAY)).unwrap().unwrap();
+        assert_ne!(e.value(), [0u8; 32]);
+    }
 }

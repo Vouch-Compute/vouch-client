@@ -3,8 +3,18 @@
 # which refuses any binary whose embedded build info says dev-trust=yes or that contains the dev trust roots or the
 # dev reference backend marker. Updates are signed with the RELEASE updater key and published to the release channel;
 # dev builds use their own channel and keys.
-# Before the first run (maintainers): the production KeySet roots in pool-proto, the `release` environment
-# secrets/vars below, and the Apple notarization and Windows code-signing identities.
+#
+# Code signing is optional and off until the identities exist. Unsigned builds still produce working installers
+# (Windows shows a SmartScreen notice; macOS needs right-click > Open once). Switch on with `release` environment
+# variables, secrets as listed:
+#   WINDOWS_SIGNING = pfx    secrets WINDOWS_PFX_BASE64, WINDOWS_PFX_PASSWORD (an OV/EV code-signing certificate)
+#   WINDOWS_SIGNING = azure  secrets AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET; variables
+#                            AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE (Trusted Signing)
+#   MACOS_SIGNING   = on     secrets APPLE_CERTIFICATE (Developer ID Application .p12, base64),
+#                            APPLE_CERTIFICATE_PASSWORD, APPLE_API_KEY_P8 (App Store Connect API key, .p8 text);
+#                            variables APPLE_SIGNING_IDENTITY ("Developer ID Application: <name> (<TEAMID>)"),
+#                            APPLE_API_ISSUER, APPLE_API_KEY (key id)
+#   PUBLISH_R2      = on     secrets R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY; variables R2_ACCOUNT_ID, R2_BUCKET
 name: client-release
 
 on:
@@ -13,7 +23,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # OIDC to the signing KMS/HSM
 
 concurrency:
   group: client-release-${{ github.ref }}
@@ -22,6 +31,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN: "1.98.1"
+  DOWNLOAD_BASE: https://downloads.vouchcompute.com/desktop
 
 jobs:
   release:
@@ -34,7 +44,7 @@ jobs:
       matrix:
         include:
           - { name: linux-x86_64, os: ubuntu-22.04, bundles: "appimage,deb" }
-          - { name: macos-aarch64, os: macos-latest, bundles: dmg }   # arm64; the macos-14 image is no longer offered
+          - { name: macos-aarch64, os: macos-latest, bundles: "app,dmg" }   # arm64; the macos-14 image is no longer offered
           - { name: windows-x86_64, os: windows-latest, bundles: nsis }
     defaults:
       run:
@@ -46,11 +56,18 @@ jobs:
       VOUCH_RELEASE_UPDATER_PUBKEYS: ${{ vars.VOUCH_RELEASE_UPDATER_PUBKEYS }}
       VOUCH_RELEASE_UPDATE_URL: ${{ vars.VOUCH_RELEASE_UPDATE_URL }}
     steps:
+      # Keep LF: pool-app/scripts/gpu-pack.mjs reads the GPU pack pins from accel.rs, and the sources are LF-only.
+      - name: Check out with LF line endings
+        working-directory: .
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - name: Release configuration present
         run: |
           test -n "$VOUCH_RELEASE_UPDATER_PUBKEYS" || { echo "VOUCH_RELEASE_UPDATER_PUBKEYS (release environment var) missing"; exit 1; }
           case "$VOUCH_RELEASE_UPDATE_URL" in https://*) ;; *) echo "VOUCH_RELEASE_UPDATE_URL must be https"; exit 1;; esac
+          tag="${GITHUB_REF_NAME#client-v}"
+          app="$(node -p 'require("./pool-app/src-tauri/tauri.conf.json").version')"
+          test "$tag" = "$app" || { echo "tag $GITHUB_REF_NAME does not match the app version $app"; exit 1; }
       - name: Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -73,8 +90,14 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           node scripts/sidecars.mjs --release
+      - name: GPU pack matches its pins (refuses placeholders and mismatches)
+        if: runner.os == 'Windows'
+        working-directory: client/pool-app
+        run: node scripts/gpu-pack.mjs --check
       - name: Marker check before signing (refuses dev-trust binaries)
         run: bash ci/release-marker-check.sh pool-app/src-tauri/binaries
+      # updater.rs passes each release key to the updater explicitly (current, then next); the overlay's `pubkey` is only
+      # the plugin's config default, set here so no placeholder ships.
       - name: Release updater pubkey into the release overlay config
         working-directory: client/pool-app
         run: |
@@ -85,16 +108,79 @@ jobs:
             c.plugins.updater.pubkey = process.env.VOUCH_RELEASE_UPDATER_PUBKEYS.split(",")[0].trim();
             fs.writeFileSync(p, JSON.stringify(c, null, 2));
           '
+
+      # ---------------------------------------------------------------- optional code signing (off by default)
+      # Each step writes src-tauri/tauri.signing.conf.json (merged after the release overlay); "{}" = unsigned.
+      - name: Signing config (none)
+        working-directory: client/pool-app
+        run: echo '{}' > src-tauri/tauri.signing.conf.json
+      - name: Windows signing with a PFX certificate
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING == 'pfx'
+        working-directory: client/pool-app
+        shell: pwsh
+        env:
+          WINDOWS_PFX_BASE64: ${{ secrets.WINDOWS_PFX_BASE64 }}
+          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP "signing.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_PFX_BASE64))
+          $pw = ConvertTo-SecureString $env:WINDOWS_PFX_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw
+          Remove-Item $pfx
+          @{ bundle = @{ windows = @{ certificateThumbprint = $cert.Thumbprint; digestAlgorithm = "sha256";
+             timestampUrl = "http://timestamp.digicert.com" } } } | ConvertTo-Json -Depth 5 |
+             Set-Content -Encoding utf8NoBOM src-tauri/tauri.signing.conf.json
+      - name: Windows signing with Azure Trusted Signing
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING == 'azure'
+        working-directory: client/pool-app
+        env:
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+        run: |
+          cargo install trusted-signing-cli --locked
+          node -e '
+            const e = process.env;
+            const cmd = `trusted-signing-cli -e ${e.AZURE_SIGNING_ENDPOINT} -a ${e.AZURE_SIGNING_ACCOUNT} -c ${e.AZURE_SIGNING_PROFILE} -d "Vouch Compute" %1`;
+            require("fs").writeFileSync("src-tauri/tauri.signing.conf.json", JSON.stringify({ bundle: { windows: { signCommand: cmd } } }));
+          '
+      - name: macOS ad-hoc signature (no Developer ID yet)
+        if: runner.os == 'macOS' && vars.MACOS_SIGNING != 'on'
+        working-directory: client/pool-app
+        run: echo '{"bundle":{"macOS":{"signingIdentity":"-"}}}' > src-tauri/tauri.signing.conf.json
+      - name: macOS Developer ID signing and notarization
+        if: runner.os == 'macOS' && vars.MACOS_SIGNING == 'on'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          # the bundler signs (hardened runtime, timestamp) the app and its helpers, then notarizes and staples
+          p8="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s\n' "$APPLE_API_KEY_P8" > "$p8"
+          {
+            echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE"
+            echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+            echo "APPLE_SIGNING_IDENTITY=${{ vars.APPLE_SIGNING_IDENTITY }}"
+            echo "APPLE_API_ISSUER=${{ vars.APPLE_API_ISSUER }}"
+            echo "APPLE_API_KEY=${{ vars.APPLE_API_KEY }}"
+            echo "APPLE_API_KEY_PATH=$p8"
+          } >> "$GITHUB_ENV"
+
       - name: Bundle and sign updater artifacts with the RELEASE key (release bundle id and endpoint)
         working-directory: client/pool-app
         env:
           POOL_RELEASE: "1"
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.VOUCH_RELEASE_UPDATER_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.VOUCH_RELEASE_UPDATER_KEY_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
           test -n "$TAURI_SIGNING_PRIVATE_KEY" || { echo "release updater key missing"; exit 1; }
-          npx tauri build --config src-tauri/tauri.release.conf.json --bundles ${{ matrix.bundles }}
+          npx tauri build --config src-tauri/tauri.release.conf.json --config src-tauri/tauri.signing.conf.json \
+            --bundles ${{ matrix.bundles }}
       - name: Marker check on the packaged app (refuses dev-trust builds)
         run: bash ci/release-marker-check.sh target/release/bundle pool-app/src-tauri/binaries
       - name: No dev update channel or dev bundle id in the packaged app
@@ -102,9 +188,23 @@ jobs:
           if grep -r -a -l -F -e 'updates/vouchcompute-dev' -e 'com.vouchcompute.app.dev' target/release/bundle; then
             echo "dev updater endpoint or dev bundle id found in a release bundle"; exit 1
           fi
-      # Platform code signing / notarization go here (identities in the `release` environment). Each signing step
-      # must run the marker check above on the exact files it signs, immediately before signing them.
-      - name: Upload signed bundles
+      - name: Windows signature is valid (when signing is on)
+        if: runner.os == 'Windows' && (vars.WINDOWS_SIGNING == 'pfx' || vars.WINDOWS_SIGNING == 'azure')
+        shell: pwsh
+        run: |
+          Get-ChildItem target/release/bundle/nsis/*.exe | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            if ($s.Status -ne "Valid") { throw "$($_.Name): signature $($s.Status)" }
+            "$($_.Name): $($s.SignerCertificate.Subject)"
+          }
+      - name: macOS signature and notarization are valid (when signing is on)
+        if: runner.os == 'macOS' && vars.MACOS_SIGNING == 'on'
+        run: |
+          app="$(ls -d target/release/bundle/macos/*.app | head -1)"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          spctl --assess --type execute --verbose=2 "$app"
+          xcrun stapler validate "$app"
+      - name: Upload bundles
         uses: actions/upload-artifact@v4
         with:
           name: vouch-compute-${{ matrix.name }}-release
@@ -113,5 +213,60 @@ jobs:
             client/target/release/bundle/appimage/*.AppImage
             client/target/release/bundle/deb/*.deb
             client/target/release/bundle/dmg/*.dmg
+            client/target/release/bundle/macos/*.app.tar.gz
             client/target/release/bundle/nsis/*.exe
             client/target/release/bundle/**/*.sig
+
+  # The download set: stable file names, the updater manifest (latest.json) and SHA256SUMS signed with the release
+  # updater key. Published to the download host only when PUBLISH_R2 is on; always kept as a workflow artifact.
+  publish:
+    name: download-set
+    needs: release
+    runs-on: ubuntu-22.04
+    environment: release
+    defaults:
+      run:
+        working-directory: client
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          path: client/release-bundles
+          pattern: vouch-compute-*-release
+      - name: latest.json and SHA256SUMS
+        run: |
+          version="${GITHUB_REF_NAME#client-v}"
+          node ci/release-manifest.mjs release-bundles release-set "$version" "$DOWNLOAD_BASE/$version"
+      - name: Sign SHA256SUMS with the release updater key
+        working-directory: client/pool-app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.VOUCH_RELEASE_UPDATER_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.VOUCH_RELEASE_UPDATER_KEY_PASSWORD }}
+        run: |
+          npm ci --no-audit --no-fund
+          npx tauri signer sign ../release-set/SHA256SUMS
+          ls -l ../release-set
+      - name: Upload the download set
+        uses: actions/upload-artifact@v4
+        with:
+          name: vouch-compute-download-set
+          if-no-files-found: error
+          path: client/release-set/*
+      - name: Publish to the download host (Cloudflare R2)
+        if: vars.PUBLISH_R2 == 'on'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: https://${{ vars.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          version="${GITHUB_REF_NAME#client-v}"
+          # versioned files first; the channel manifest last, so no client sees a manifest before its files exist
+          aws s3 cp release-set "s3://$R2_BUCKET/desktop/$version/" --recursive --endpoint-url "$R2_ENDPOINT"
+          aws s3 cp release-set/latest.json "s3://$R2_BUCKET/desktop/stable/latest.json" --endpoint-url "$R2_ENDPOINT" \
+            --cache-control "no-cache"

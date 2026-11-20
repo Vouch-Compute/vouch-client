@@ -82,6 +82,12 @@ pub struct Spawned {
 }
 
 /// Start `exe args...` inside the strongest sandbox available on this OS.
+/// Remove what the sandbox left on the system (the Windows AppContainer profiles); nothing to do elsewhere.
+pub fn remove_os_profiles() {
+    #[cfg(windows)]
+    windows::remove_profiles();
+}
+
 pub fn spawn_sandboxed(exe: &Path, args: &[String], cfg: &SandboxConfig) -> io::Result<Spawned> {
     #[cfg(windows)]
     {

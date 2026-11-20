@@ -20,7 +20,8 @@
         "minWidth": 380,
         "minHeight": 560,
         "resizable": true,
-        "center": true
+        "center": true,
+        "visible": false
       }
     ],
     "security": {
@@ -43,9 +44,11 @@
       "nsis": {
         "installMode": "currentUser",
         "displayLanguageSelector": false,
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "windows/hooks.nsh",
+        "startMenuFolder": "Vouch Compute"
       },
-      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true }
+      "webviewInstallMode": { "type": "embedBootstrapper", "silent": true }
     },
     "macOS": {
       "minimumSystemVersion": "13.0",

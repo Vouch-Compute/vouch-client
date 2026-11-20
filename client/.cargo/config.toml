@@ -1,0 +1,8 @@
+# Windows (MSVC toolchain, as on CI runners): link the C runtime statically, so the installed app needs no
+# Visual C++ Redistributable on the user's machine. The GPU pack carries its own pinned VC++ runtime DLLs for
+# ONNX Runtime and loads them by full path. The GNU toolchain links only the UCRT that ships with Windows 10 and 11.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
