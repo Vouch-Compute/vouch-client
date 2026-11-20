@@ -39,6 +39,9 @@ impl SandboxProcess for UnixProcess {
     }
 }
 
+/// `(literal "/")` read-data: dyld on macOS 27 opens the root directory itself while locating the shared cache;
+/// without it every sandboxed process aborts in dyld before `main` (SIGABRT, `ignition_halt`). It grants the
+/// listing of `/` only (top-level names such as `Users`, `Applications`), not anything below it.
 #[cfg(target_os = "macos")]
 fn sbpl_profile(exe: &Path, cfg: &SandboxConfig) -> String {
     fn q(p: &Path) -> String {
@@ -55,6 +58,7 @@ fn sbpl_profile(exe: &Path, cfg: &SandboxConfig) -> String {
 (deny default)
 (allow process-exec (literal "{exe}"))
 (allow file-read-metadata)
+(allow file-read-data (literal "/"))
 (allow file-read* (literal "{exe}") (subpath "/usr/lib") (subpath "/System") (subpath "/Library/Apple")
   (subpath "/private/var/db/dyld") (subpath "/System/Volumes/Preboot/Cryptexes") (literal "/dev/null")
   (literal "/dev/urandom") (literal "/dev/random"){reads})
