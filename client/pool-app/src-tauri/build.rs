@@ -3,19 +3,21 @@
 //! because CARGO_TARGET_DIR is ASCII) and passed explicitly.
 use std::{env, fs, path::PathBuf};
 
-/// `externalBin` sidecars must exist for tauri-build to succeed. `tauri build`/`tauri dev` build the real
-/// ones first (scripts/sidecars.mjs); plain `cargo build/clippy -p pool-app` gets empty placeholders so it
-/// can compile. A placeholder is never shipped: the bundler's beforeBuildCommand overwrites it.
-fn ensure_sidecar_placeholders() {
-    let triple = env::var("TARGET").unwrap();
-    let exe = if triple.contains("windows") { ".exe" } else { "" };
-    fs::create_dir_all("binaries").unwrap();
-    for name in ["pool-core", "pool-runner"] {
-        let p = PathBuf::from("binaries").join(format!("{name}-{triple}{exe}"));
-        if !p.exists() {
-            println!("cargo:warning=sidecar {} missing; writing a placeholder (run `npm run sidecars`)", p.display());
-            fs::write(&p, b"").unwrap();
-        }
+/// `externalBin` sidecars. tauri-build copies every sidecar from `binaries/<name>-<triple>` to
+/// `target/<profile>/<name>`, which is exactly where cargo puts the real `pool-core` / `pool-runner`. Under the
+/// Tauri CLI (`tauri build` / `tauri dev`, which set `TAURI_ENV_PLATFORM`) scripts/sidecars.mjs has just built
+/// the real binaries into `binaries/`, so the copy is wanted. A plain `cargo build/test/clippy --workspace` has no
+/// sidecars (or stale ones from an earlier `tauri dev`): copying them overwrote the freshly built agent and runner
+/// in the target dir, depending on build order, and the tests then started an empty or old runner. Plain cargo
+/// builds therefore drop `bundle.externalBin` through tauri-build's `TAURI_CONFIG` merge.
+fn sidecars_only_under_tauri_cli() {
+    println!("cargo:rerun-if-env-changed=TAURI_ENV_PLATFORM");
+    if env::var_os("TAURI_ENV_PLATFORM").is_some() {
+        return;
+    }
+    match env::var("TAURI_CONFIG") {
+        Err(_) => env::set_var("TAURI_CONFIG", r#"{"bundle":{"externalBin":null}}"#),
+        Ok(_) => println!("cargo:warning=TAURI_CONFIG is set outside the Tauri CLI; sidecars in binaries/ are copied to the target dir"),
     }
 }
 
@@ -106,7 +108,7 @@ fn build_time() {
 fn main() {
     build_time();
     release_channel();
-    ensure_sidecar_placeholders();
+    sidecars_only_under_tauri_cli();
     gpu_pack();
     let mut attrs = tauri_build::Attributes::new();
     if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
