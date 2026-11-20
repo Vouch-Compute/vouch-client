@@ -32,7 +32,7 @@ async fn running_job_is_killed_within_five_seconds() {
         model_hash: fx.model_hash,
         dir: fx.dir.path().to_path_buf(),
     };
-    let runner = RunnerClient { exe: runner_exe(), memory_limit_bytes: 4 << 30, ort_pack_dir: None };
+    let runner = RunnerClient { exe: runner_exe(), memory_limit_bytes: 4 << 30, ort_pack_dir: None, metal_gpu: false };
     // 10 minutes of audio: far longer than the time until pre-emption
     let audio = pool_runner::testutil::flac_tone(10 * 60 * 1000);
     let p = Preempt::default();

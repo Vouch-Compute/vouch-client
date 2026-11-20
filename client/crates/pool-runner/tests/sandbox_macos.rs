@@ -228,3 +228,35 @@ fn memory_cap_kills_a_runner_over_the_cap() {
     let (code, _) = go(2048, false);
     assert_eq!(code, 0, "control: the same allocation works without the sandbox");
 }
+
+/// GPU jobs (`SandboxConfig::gpu`, `metal` builds): Metal works inside the sandbox, and the GPU allowances open
+/// nothing else: every escape probe still fails. Without the allowances no Metal device is visible and the runner
+/// reports it (no crash), so the job falls back to the CPU.
+#[cfg(feature = "metal")]
+#[test]
+fn metal_gpu_jobs_keep_every_other_rule() {
+    let fx = fixture();
+    let mut args = fx.args.clone();
+    args.push("--metal".into());
+    let run_gpu = |gpu: bool| {
+        let cfg = SandboxConfig { readable_dirs: vec![fx.model.clone()], gpu, ..Default::default() };
+        let mut s = spawn_sandboxed(&runner(), &args, &cfg).expect("spawn runner");
+        drop(std::mem::replace(&mut s.stdin, Box::new(std::io::sink())));
+        let (mut out, mut err) = (String::new(), String::new());
+        s.stdout.read_to_string(&mut out).unwrap();
+        s.stderr.read_to_string(&mut err).unwrap();
+        assert_eq!(s.process.wait().unwrap(), 0, "probe exited: {out} {err}");
+        serde_json::from_str::<ProbeReport>(out.trim()).unwrap()
+    };
+    let mut gpu = run_gpu(true);
+    eprintln!("GPU sandbox: {gpu:#?}");
+    assert!(gpu.metal.as_ref().unwrap().ok, "Metal must work in a GPU job's sandbox: {:?}", gpu.metal);
+    for a in &gpu.stat {
+        assert!(!a.ok, "GPU sandbox: metadata of {}", a.target);
+    }
+    gpu.procargs.clear(); // the known gap, see known_gap_same_user_process_environment_is_readable
+    assert!(gpu.all_blocked(), "the GPU allowances opened something else: {gpu:#?}");
+    let cpu = run_gpu(false);
+    let m = cpu.metal.unwrap();
+    assert!(!m.ok, "without the GPU allowances Metal must not be reachable: {m:?}");
+}
