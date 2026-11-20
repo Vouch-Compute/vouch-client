@@ -27,8 +27,8 @@ ratios (CPU vs GPU) are more reliable than the absolute values.
 | Step | Result | Counts / duration |
 |---|---|---|
 | `cargo build --workspace` | pass | 1 m 16 s (cold) |
-| `cargo test --workspace` | **failed at first, passes after fixes** | first run: 6 test binaries failed (2 bugs, §5); after the fixes **158 passed, 0 failed, 1 ignored** (the soak), 161 s |
-| `cargo clippy --workspace --all-targets -D warnings` | pass | also passes with `--features metal` |
+| `cargo test --workspace` | **failed at first, passes after fixes** | first run: 6 test binaries failed (2 bugs, §5); after the fixes and the rebase onto current `main`: **169 passed, 0 failed, 1 ignored** (the soak), 159 s |
+| `cargo clippy --workspace --all-targets -D warnings` | pass | also with `--features pool-runner/metal,pool-core/metal` |
 | `cargo test -p pool-proto --no-default-features` | pass | 50 passed (39 + 11 fuzz-decoding), 33 s |
 | macOS sandbox tests (new `tests/sandbox_macos.rs`) | pass | 3 tests (4 with `--features metal`), §4 |
 | Bundle: `npx tauri build --target aarch64-apple-darwin` | pass (unsigned) | `.app` 16 MB, `.dmg` 6.9 MB, updater `.app.tar.gz` + `.sig`. DMG layout needs `CI=true`, see §7 |
@@ -59,9 +59,11 @@ the first run silently used the 120 s default).
   trusted-node runs CoreML brought no speed-up for bge-small and fell back to the CPU for bge-m3 (§3);
 - whisper.cpp needs a C++ build and covers transcription only.
 
-Implementation (`vouch-client`, `mac-support`):
+Implementation (`vouch-client`, `mac-support`). **Apple silicon only**: on Intel Macs the `metal` build never uses
+the GPU and every job runs on the CPU.
 - `pool-runner --features metal`: Metal when a device is visible **and** a self-test matmul is correct, CPU
-  otherwise; the backend actually used is reported (`candle-metal` / `candle-cpu`). A pre-check through
+  otherwise; the backend actually used is reported (`candle-metal` / `candle-cpu`; the app shows `candle-metal` as
+  "Graphics card (Metal)"). `candle-metal` is a new backend label for the change-request log. A pre-check through
   `MTLCreateSystemDefaultDevice` avoids a candle panic (an abort in release builds) when no device is visible.
 - `SandboxConfig::gpu` adds exactly two rules; see "for security review" below.
 - The agent grants it only to **candle embedding jobs**, only with "Use the GPU" on, and only when pool-core is
@@ -101,9 +103,9 @@ required and nothing else is:
 
 | Model | Worker path today | Best other runtime on this Mac | Peak memory |
 |---|---|---|---|
-| whisper-large-v3-turbo | CTranslate2 int8, CPU: **2.89 audio-s/s** (3.04 in a repeat) | mlx-whisper (Metal): **24.9 audio-s/s** (8.6×), same transcript | CT2 RSS 1.4 GB; MLX RSS 0.9 GB + 2.4 GB GPU |
-| bge-small-en-v1.5 (catalog int8 ONNX) | ONNX CPU: **5,137 tok/s** (5,776 short texts) | sentence-transformers on MPS: **38,028 tok/s** (7.4×) | ONNX RSS 2.4 GB; MPS RSS 0.6 GB + 2.2 GB GPU |
-| bge-m3 (catalog fp32 ONNX) | ONNX CPU: **480 tok/s** (535 short) | MPS: **4,096 tok/s** (8.5×) | ONNX RSS 2.4 GB; MPS RSS 1.7 GB + 3.1 GB GPU |
+| whisper-large-v3-turbo | CTranslate2 int8, CPU: **2.89 audio-s/s** (3.04 in a repeat) | mlx-whisper (Metal): **21.4 audio-s/s** (7.4×), same transcript | CT2 RSS 1.4 GB; MLX RSS 0.9 GB + 2.4 GB GPU |
+| bge-small-en-v1.5 (catalog int8 ONNX) | ONNX CPU: **5,137 tok/s** (5,776 short texts) | sentence-transformers on MPS: **33,201 tok/s** (6.5×) | ONNX RSS 2.4 GB; MPS RSS 0.6 GB + 2.2 GB GPU |
+| bge-m3 (catalog fp32 ONNX) | ONNX CPU: **480 tok/s** (535 short) | MPS: **3,664 tok/s** (7.6×) | ONNX RSS 2.4 GB; MPS RSS 1.7 GB + 3.1 GB GPU |
 | (ONNX Runtime CoreML provider) | | no gain for bge-small; bge-m3 fell back to the CPU provider | |
 
 Power was not measured: `powermetrics` needs sudo.
@@ -116,8 +118,8 @@ Power was not measured: `powermetrics` needs sudo.
 ENGINE_OPENROUTER_TRUSTED_UPS="whisper-large-v3-turbo=2.89,bge-small-en-v1.5=5137,bge-m3=480"
 #   declared per minute (0.5 x / 3 models x 60): 28 audio-s, 51,000 and 4,800 tokens
 # if the worker gained MLX (whisper) and MPS (embeddings) backends
-ENGINE_OPENROUTER_TRUSTED_UPS="whisper-large-v3-turbo=24.9,bge-small-en-v1.5=38028,bge-m3=4096"
-#   declared per minute: 240 audio-s, 380,000 and 40,000 tokens
+ENGINE_OPENROUTER_TRUSTED_UPS="whisper-large-v3-turbo=21.4,bge-small-en-v1.5=33201,bge-m3=3664"
+#   declared per minute: 210 audio-s, 330,000 and 36,000 tokens
 ```
 
 The M11 table estimated ~4 audio-s/s, ~8k and ~700 tokens/s for this Mac. The measured worker path is somewhat
@@ -125,9 +127,15 @@ lower (in Low Power Mode). Notes:
 - **The reference worker cannot serve these models on a Mac today.** `--device cpu` uses the small CPU models
   (whisper-tiny, bge-small); only `--device cuda` uses `GpuBackend` with the catalog weights. Serving
   whisper-large-v3-turbo / bge-m3 from a Mac needs a worker option for `GpuBackend("cpu")`, or, better, MLX/MPS
-  backends (8× faster here).
-- MLX/MPS figures use the Hugging Face safetensors weights, not the catalog ONNX/CT2 files. Adopting them means
-  adding those formats to the catalog and reviewing them.
+  backends (about 7× faster here).
+- Every download in `mac_bench.py` is pinned to the commit that was measured, and no pickle weights are fetched or
+  loaded (PyTorch models load with `use_safetensors=True`). MLX/MPS figures use safetensors weights, not the catalog
+  ONNX/CT2 files; adopting them means adding those formats to the catalog and reviewing them.
+- **bge-m3 has no publisher safetensors.** BAAI publishes its PyTorch weights only as a pickle (`pytorch_model.bin`);
+  the MPS figure uses the safetensors conversion in `refs/pr/130` (Hugging Face's conversion bot, not merged by
+  BAAI). An earlier bge-m3 MPS run in this report had loaded the pickle; it was re-measured with safetensors only.
+- The worker's own `fetch_weights` (`refworker/gpu.py`) downloads the catalog repos without a pinned revision.
+  That is outside this PR, but worth pinning in the catalog.
 - scipy's Python 3.10 wheel (1.15.3, the last release for 3.10) **does not load on macOS 27** (dyld rejects its
   `__thread_bss` section). sentence-transformers and mlx-whisper import it, so those two extras ran from a Python
   3.12 venv. The worker path does not use scipy.
@@ -159,7 +167,7 @@ Gaps, rated:
 | Memory cap is a 50 ms footprint watchdog: a job can overshoot by what it allocates within one period, and it is killed instead of failing an allocation | Low | **New** (there was no cap at all before) |
 | GPU rules (§2), when enabled | Medium (driver attack surface) | Off by default; needs security review |
 | The profile now allows reading the listing of `/` (top-level names only), required by dyld on macOS 27 | Low | New, documented |
-| `file-read-metadata` and `sysctl-read` were global | Low–Medium | **Fixed**: allow-listed (metadata: the runner's paths and their parents; sysctl: `hw.*`, `machdep.cpu.*`, `kern.os*` and a few others) |
+| `file-read-metadata` and `sysctl-read` were global | Low–Medium | **Fixed**: allow-listed (metadata: the runner's paths and their parents; sysctl: the `hw.` and `machdep.cpu.` prefixes and the exact names `kern.osversion`, `kern.osrelease`, `kern.ostype`, `kern.osproductversion`, `kern.version`, `kern.argmax`, `kern.maxfilesperproc`, `kern.secure_kernel`, `sysctl.proc_cputype`, `sysctl.proc_native`, `vm.pagesize`) |
 
 ## 5. Bugs found and fixed
 
@@ -168,9 +176,11 @@ Gaps, rated:
 | **Plain `cargo build/test --workspace` replaced `target/*/pool-runner` and `pool-core` with empty sidecar placeholders** (tauri-build copies `externalBin` sidecars into the target dir). Depending on build order, every sandboxed test then started a 0-byte runner. Affects every OS; CI only avoided it because clippy ran the build script first. | `pool-app/src-tauri/build.rs` | client `mac-support` |
 | **Every sandboxed job aborted in dyld on macOS 27** (dyld reads `/` while locating the shared cache) | `pool-sandbox/src/unix.rs` | client |
 | Global `file-read-metadata` / `sysctl-read`; no memory cap on macOS | `pool-sandbox` | client |
+| Review follow-ups: the app shows `candle-metal` as "Graphics card (Metal)" (with a render test); the Metal benchmark asserts identical transcripts; the memory watchdog survives a poisoned lock; Metal is Apple silicon only | `pool-app/ui`, `pool-runner`, `pool-sandbox` | client |
 | Soak measured 0 MB / 0 descriptors on macOS (it read `/proc`), so its leak checks passed without measuring | `pool-core/tests/soak.rs` | client |
 | Metal backend + tests + benchmark (new feature, off by default) | `pool-runner`, `pool-core`, `pool-sandbox` | client |
 | **engine had no `greenlet` on macOS arm64** (SQLAlchemy's marker lists `aarch64`, not `arm64`); every async DB connection failed (248 errors) | `engine/pyproject.toml` → `sqlalchemy[asyncio]` | backend `mac-support` |
+| **SSRF guard: hosts were checked in their Unicode form** (review): a non-ASCII host is now mapped with IDNA/UTS-46 and punycode before every check, so `０１７７．0．0．1`, `0177.0.0.1。`, `metadata.google。internal` and `ｌｏｃａｌｈｏｓｔ` are refused like their ASCII forms; a malformed redirect target is a clean denial instead of a 500 (timeouts keep their type so webhooks still retry) | `engine/src/engine/egress.py` | backend |
 | **SSRF guard depended on the OS's address parser**: `0177.0.0.1` is 127.0.0.1 on glibc but 177.0.0.1 on macOS. Not exploitable (the connection is pinned to the vetted address), but non-canonical IPv4 hosts are now refused before resolution on every OS | `engine/src/engine/egress.py` | backend |
 | Trusted-node benchmark for Apple silicon | `engine/tools/mac_bench.py` | backend |
 | e2e harness: simulated devices bind random `127.0.x.y` source addresses, which macOS does not have | `tests/e2e` (fixed loopback pool on macOS + preflight message) | backend |
@@ -184,11 +194,10 @@ Gaps, rated:
 
   ```
   for i in $(seq 2 33); do sudo ifconfig lo0 alias 127.0.1.$i up; done
-  cd ~/vouch/ws && ./scripts/dev.sh e2e        # ~/vouch/ws already has the fixes overlaid
+  ./scripts/dev.sh e2e        # in the integration workspace (README "Integration workspace")
   ```
 
-  Port 8000 must be free: another local app (`strategic-intelligence-agent`, uvicorn on :8000) blocked the first
-  run and was stopped for this test.
+  The e2e ports (engine :8000-8002, vault :8100-8102, web :3000, web-admin :3201) must be free.
 - **App UI:** check by hand in about 2 minutes: open
   `client/target/aarch64-apple-darwin/release/bundle/macos/Vouch Compute.app` (unsigned: right-click → Open the first
   time). Confirm the window renders, the menu-bar tray icon and its menu work, Pause/Resume change the status, and
@@ -212,7 +221,7 @@ Gaps, rated:
    the memory watchdog, and **especially the Metal GPU rules** before `metal` is ever enabled.
 3. Decide on the **High** `KERN_PROCARGS2` gap (privileged helper with a separate user, or App Sandbox once
    signing exists).
-4. Add the `lo0` aliases and run the live e2e (§6); restart your app on port 8000 afterwards.
+4. Add the `lo0` aliases and run the live e2e (§6).
 5. Re-run the GPU and trusted-node benchmarks on AC power with Low Power Mode off; decide whether Metal ships.
 6. Check the app UI by hand (§6).
 7. Review and merge the two draft PRs.
