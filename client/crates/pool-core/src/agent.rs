@@ -145,7 +145,8 @@ impl Agent {
             exe: cfg.runner_exe(),
             memory_limit_bytes: 8 << 30,
             ort_pack_dir: cfg.ort_pack_dir(),
-            metal_gpu: cfg!(all(target_os = "macos", feature = "metal")) && cfg.use_gpu,
+            // macOS: only when the runner itself reports a Metal build (pool-runner's `metal` feature is the one switch)
+            metal_gpu: cfg.use_gpu && crate::runner_client::runner_supports_metal(&cfg.runner_exe()),
         });
         let (decision_tx, _) = watch::channel(Decision::Pause(crate::governor::PauseReason::UserActive));
         let (settings_tx, _) = watch::channel(state.settings.clone());

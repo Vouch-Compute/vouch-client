@@ -43,6 +43,10 @@ pub const PINNED: &[(&str, &str)] = &[
 #[cfg(not(windows))]
 pub const PINNED: &[(&str, &str)] = &[];
 
+/// This build can run candle jobs on an Apple silicon GPU through Metal (`metal` feature, macOS, aarch64). Reported by
+/// `pool-runner capabilities`; the agent grants the GPU sandbox rules only when it is true.
+pub const METAL_BUILD: bool = cfg!(all(feature = "metal", target_os = "macos", target_arch = "aarch64"));
+
 /// `1` = use the pack's CPU provider only (the user's "Use the GPU" setting off, or a test's CPU baseline).
 pub const FORCE_CPU_ENV: &str = "POOL_ORT_FORCE_CPU";
 
