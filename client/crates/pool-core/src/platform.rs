@@ -3,7 +3,8 @@
 //!
 //! * Windows: `GetLastInputInfo` (idle), `SHQueryUserNotificationState` (fullscreen D3D / presentation /
 //!   busy), `GetSystemPowerStatus` (AC, battery), NVML (GPU temperature).
-//! * macOS: `ioreg -c IOHIDSystem` HIDIdleTime, `pmset -g batt`.
+//! * macOS: `ioreg -c IOHIDSystem` HIDIdleTime, `pmset -g batt`, `NSProcessInfo.thermalState` (thermal pressure: macOS
+//!   gives unprivileged processes no CPU/GPU temperature).
 //! * Linux: logind `IdleHint` via `loginctl`, `/sys/class/power_supply`, hwmon CPU temperature.
 
 use crate::governor::Inputs;
@@ -18,6 +19,8 @@ pub struct Readings {
     pub cpu_temp_c: Option<f32>,
     /// GPU utilisation 0..100 (NVML), for the 1.2.0 heartbeat telemetry only.
     pub gpu_util_pct: Option<u32>,
+    /// macOS `NSProcessInfo.thermalState` (the governor's thermal guard on a Mac; see `governor::ThermalPressure`).
+    pub thermal_pressure: Option<crate::governor::ThermalPressure>,
 }
 
 pub fn read() -> Readings {
@@ -45,6 +48,7 @@ pub fn to_inputs(r: &Readings, now_ms: u64, worked_today_s: u64) -> Inputs {
         battery_pct: r.battery_pct,
         gpu_temp_c: r.gpu_temp_c,
         cpu_temp_c: r.cpu_temp_c,
+        thermal_pressure: r.thermal_pressure,
         weekday,
         minute_of_day,
         now_ms,
@@ -218,7 +222,49 @@ mod os {
                 r.battery_pct = p.parse().ok();
             }
         }
+        r.thermal_pressure = thermal_state();
         r
+    }
+
+    /// `[[NSProcessInfo processInfo] thermalState]`: the public, unprivileged thermal signal on macOS (0 nominal,
+    /// 1 fair, 2 serious, 3 critical), read through the Objective-C runtime.
+    #[cfg(target_os = "macos")]
+    fn thermal_state() -> Option<crate::governor::ThermalPressure> {
+        use crate::governor::ThermalPressure::*;
+        use std::ffi::{c_char, c_void};
+        #[link(name = "Foundation", kind = "framework")]
+        extern "C" {}
+        #[link(name = "objc")]
+        extern "C" {
+            fn objc_getClass(name: *const c_char) -> *mut c_void;
+            fn sel_registerName(name: *const c_char) -> *mut c_void;
+            fn objc_msgSend();
+        }
+        // SAFETY: objc_msgSend is called through function-pointer types that match the two methods' signatures
+        // (`+[NSProcessInfo processInfo]` returns an object, `-thermalState` an NSInteger); the class and both
+        // selectors are checked for null, and the shared process-info object is not owned (nothing to release).
+        let state = unsafe {
+            let class = objc_getClass(c"NSProcessInfo".as_ptr());
+            if class.is_null() {
+                return None;
+            }
+            let send_obj: unsafe extern "C" fn(*mut c_void, *mut c_void) -> *mut c_void =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            let info = send_obj(class, sel_registerName(c"processInfo".as_ptr()));
+            if info.is_null() {
+                return None;
+            }
+            let send_int: unsafe extern "C" fn(*mut c_void, *mut c_void) -> isize =
+                std::mem::transmute(objc_msgSend as unsafe extern "C" fn());
+            send_int(info, sel_registerName(c"thermalState".as_ptr()))
+        };
+        match state {
+            0 => Some(Nominal),
+            1 => Some(Fair),
+            2 => Some(Serious),
+            3 => Some(Critical),
+            _ => None,
+        }
     }
 
     #[cfg(not(target_os = "macos"))]
@@ -288,6 +334,13 @@ mod os {
 
 #[cfg(test)]
 mod tests {
+    /// The thermal guard has a real signal on macOS (NSProcessInfo.thermalState answers on every Mac).
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_reports_thermal_pressure() {
+        assert!(super::read().thermal_pressure.is_some());
+    }
+
     #[test]
     fn readings_do_not_panic_and_time_is_sane() {
         let r = super::read();

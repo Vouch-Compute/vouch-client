@@ -90,12 +90,25 @@ pub struct Inputs {
     pub battery_pct: Option<u8>,
     pub gpu_temp_c: Option<f32>,
     pub cpu_temp_c: Option<f32>,
+    /// The OS's own thermal pressure, where there is no temperature to read (macOS: `NSProcessInfo.thermalState`).
+    pub thermal_pressure: Option<ThermalPressure>,
     /// Local weekday (0 = Monday) and minute of day.
     pub weekday: u8,
     pub minute_of_day: u16,
     pub now_ms: u64,
     /// Seconds already worked today (local day).
     pub worked_today_s: u64,
+}
+
+/// The OS-reported thermal pressure (macOS `NSProcessInfo.thermalState`, in its order). macOS gives unprivileged
+/// processes no CPU/GPU temperature, so on a Mac this is the thermal guard: jobs pause at `Serious` and resume at
+/// `Fair` or below.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ThermalPressure {
+    Nominal,
+    Fair,
+    Serious,
+    Critical,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -143,6 +156,7 @@ impl Window {
 #[derive(Debug, Default)]
 pub struct Governor {
     thermal_paused: bool,
+    pressure_paused: bool,
 }
 
 impl Governor {
@@ -173,6 +187,16 @@ impl Governor {
                 return Decision::Pause(Thermal);
             }
             self.thermal_paused = false;
+        }
+        match i.thermal_pressure {
+            Some(p) if p >= ThermalPressure::Serious => {
+                self.pressure_paused = true;
+                return Decision::Pause(Thermal);
+            }
+            Some(_) => self.pressure_paused = false,
+            // the reading vanished while the machine was under pressure: stay paused until it reports cooler
+            None if self.pressure_paused => return Decision::Pause(Thermal),
+            None => {}
         }
         if i.on_ac == Some(false) {
             if i.battery_pct.is_some_and(|b| b < HARD_MIN_BATTERY_PCT) {
@@ -214,6 +238,23 @@ impl Governor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn macos_thermal_pressure_pauses_and_resumes() {
+        use ThermalPressure::*;
+        let s = Settings { mode: Mode::AlwaysOn, ..Default::default() };
+        let mut g = Governor::new();
+        let at = |p: Option<ThermalPressure>| Inputs { thermal_pressure: p, ..idle(0) };
+        assert_eq!(g.decide(&s, &at(Some(Nominal))), Decision::Run);
+        assert_eq!(g.decide(&s, &at(Some(Fair))), Decision::Run, "fair is not a pause");
+        assert_eq!(g.decide(&s, &at(Some(Serious))), Decision::Pause(PauseReason::Thermal));
+        assert_eq!(g.decide(&s, &at(None)), Decision::Pause(PauseReason::Thermal), "a vanished reading must not clear it");
+        assert_eq!(g.decide(&s, &at(Some(Critical))), Decision::Pause(PauseReason::Thermal));
+        assert_eq!(g.decide(&s, &at(Some(Fair))), Decision::Run, "resumes once the OS reports fair");
+        assert_eq!(g.decide(&s, &at(None)), Decision::Run, "no reading and never hot: unknown, as on other OSes");
+        // a temperature pause and a pressure reading are independent: either one pauses
+        assert_eq!(g.decide(&s, &Inputs { gpu_temp_c: Some(95.0), thermal_pressure: Some(Nominal), ..idle(0) }), Decision::Pause(PauseReason::Thermal));
+    }
 
     fn idle(min: u64) -> Inputs {
         Inputs { idle_s: Some(min * 60), on_ac: Some(true), weekday: 2, minute_of_day: 600, now_ms: 1_000, ..Default::default() }
@@ -351,14 +392,16 @@ mod tests {
         fn hard_limits_hold_for_any_settings(
             s in any_settings(),
             sanitize in any::<bool>(),
-            seq in proptest::collection::vec((proptest::option::of(-50.0f32..150.0), proptest::option::of(any::<bool>()), proptest::option::of(0u8..=100), proptest::option::of(any::<u64>()), any::<bool>(), 0u8..7, 0u16..1440, any::<u64>(), any::<u64>()), 1..12),
+            seq in proptest::collection::vec((proptest::option::of(-50.0f32..150.0), proptest::option::of(any::<bool>()), proptest::option::of(0u8..=100), proptest::option::of(any::<u64>()), any::<bool>(), 0u8..7, 0u16..1440, any::<u64>(), any::<u64>(), proptest::option::of(0u8..4)), 1..12),
         ) {
             let s = if sanitize { s.sanitized() } else { s };
             let mut g = Governor::new();
-            for (temp, on_ac, batt, idle_s, fullscreen, weekday, minute_of_day, now_ms, worked) in seq {
-                let i = Inputs { idle_s, fullscreen, on_ac, battery_pct: batt, gpu_temp_c: temp, cpu_temp_c: None, weekday, minute_of_day, now_ms, worked_today_s: worked };
+            for (temp, on_ac, batt, idle_s, fullscreen, weekday, minute_of_day, now_ms, worked, pressure) in seq {
+                let thermal_pressure = pressure.map(|p| [ThermalPressure::Nominal, ThermalPressure::Fair, ThermalPressure::Serious, ThermalPressure::Critical][p as usize]);
+                let i = Inputs { idle_s, fullscreen, on_ac, battery_pct: batt, gpu_temp_c: temp, cpu_temp_c: None, thermal_pressure, weekday, minute_of_day, now_ms, worked_today_s: worked };
                 let d = g.decide(&s, &i);
                 if d.is_run() {
+                    prop_assert!(thermal_pressure.is_none_or(|p| p < ThermalPressure::Serious), "ran under {thermal_pressure:?} thermal pressure");
                     prop_assert!(temp.is_none_or(|t| t < HARD_MAX_TEMP_C), "ran at {temp:?}");
                     prop_assert!(!(on_ac == Some(false) && batt.is_some_and(|b| b < HARD_MIN_BATTERY_PCT)), "ran on low battery");
                     prop_assert!(!s.paused_until_ms.is_some_and(|u| u > now_ms), "ran while paused by the user");
