@@ -1,0 +1,10 @@
+# gitleaks configuration (T-156): the default rule set plus the reviewed false positives below (placeholders, test fixtures).
+# Add an entry only after checking that the value is not a credential.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "reviewed false positives: empty placeholders in .env.example and fixed test fixtures"
+paths = [
+  '''^client/crates/pool-core/src/identity/attest\.rs$''',
+]

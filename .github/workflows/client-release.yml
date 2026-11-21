@@ -17,9 +17,13 @@
 #   PUBLISH_R2      = on     secrets R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY; variables R2_ACCOUNT_ID, R2_BUCKET
 name: client-release
 
+# Triggers (T-156): tags and manual dispatch only, never push to a branch or pull request. A manual dispatch must pick a
+# client-v* tag as the ref ("Use workflow from: Tag"), which re-runs that release without moving the tag; any other
+# ref is skipped by the job conditions below. macOS and Windows minutes (10x and 2x) are spent only here.
 on:
   push:
     tags: ["client-v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -36,9 +40,10 @@ env:
 jobs:
   release:
     name: release-${{ matrix.name }}
+    if: startsWith(github.ref, 'refs/tags/client-v')
     runs-on: ${{ matrix.os }}
     environment: release
-    timeout-minutes: 120
+    timeout-minutes: 60
     strategy:
       fail-fast: true
       matrix:
@@ -60,7 +65,7 @@ jobs:
       - name: Check out with LF line endings
         working-directory: .
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Release configuration present
         run: |
           test -n "$VOUCH_RELEASE_UPDATER_PUBKEYS" || { echo "VOUCH_RELEASE_UPDATER_PUBKEYS (release environment var) missing"; exit 1; }
@@ -69,10 +74,10 @@ jobs:
           app="$(node -p 'require("./pool-app/src-tauri/tauri.conf.json").version')"
           test "$tag" = "$app" || { echo "tag $GITHUB_REF_NAME does not match the app version $app"; exit 1; }
       - name: Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
       - name: Linux system packages
@@ -205,7 +210,7 @@ jobs:
           spctl --assess --type execute --verbose=2 "$app"
           xcrun stapler validate "$app"
       - name: Upload bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: vouch-compute-${{ matrix.name }}-release
           if-no-files-found: error
@@ -222,6 +227,7 @@ jobs:
   publish:
     name: download-set
     needs: release
+    if: startsWith(github.ref, 'refs/tags/client-v')
     runs-on: ubuntu-22.04
     environment: release
     defaults:
@@ -229,11 +235,11 @@ jobs:
         working-directory: client
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: client/release-bundles
           pattern: vouch-compute-*-release
@@ -251,7 +257,7 @@ jobs:
           npx tauri signer sign ../release-set/SHA256SUMS
           ls -l ../release-set
       - name: Upload the download set
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: vouch-compute-download-set
           if-no-files-found: error
