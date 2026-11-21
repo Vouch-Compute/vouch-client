@@ -28,7 +28,7 @@ ratios (CPU vs GPU) are more reliable than the absolute values.
 |---|---|---|
 | `cargo build --workspace` | pass | 1 m 16 s (cold) |
 | `cargo test --workspace` | **failed at first, passes after fixes** | first run: 6 test binaries failed (2 bugs, §5); after the fixes and the rebase onto current `main`: **169 passed, 0 failed, 1 ignored** (the soak), 159 s |
-| `cargo clippy --workspace --all-targets -D warnings` | pass | also with `--features pool-runner/metal,pool-core/metal` |
+| `cargo clippy --workspace --all-targets -D warnings` | pass | also with `-p pool-runner --features metal` |
 | `cargo test -p pool-proto --no-default-features` | pass | 50 passed (39 + 11 fuzz-decoding), 33 s |
 | macOS sandbox tests (new `tests/sandbox_macos.rs`) | pass | 3 tests (4 with `--features metal`), §4 |
 | Bundle: `npx tauri build --target aarch64-apple-darwin` | pass (unsigned) | `.app` 16 MB, `.dmg` 6.9 MB, updater `.app.tar.gz` + `.sig`. DMG layout needs `CI=true`, see §7 |
@@ -66,8 +66,13 @@ the GPU and every job runs on the CPU.
   "Graphics card (Metal)"). `candle-metal` is a new backend label for the change-request log. A pre-check through
   `MTLCreateSystemDefaultDevice` avoids a candle panic (an abort in release builds) when no device is visible.
 - `SandboxConfig::gpu` adds exactly two rules; see "for security review" below.
-- The agent grants it only to **candle embedding jobs**, only with "Use the GPU" on, and only when pool-core is
-  built with its own `metal` feature. Every other job runs with `POOL_ORT_FORCE_CPU=1` and without the rules.
+- The agent grants it only to **candle embedding jobs**, only with "Use the GPU" on, and only when the runner
+  itself reports a Metal build: at start the agent asks `pool-runner capabilities` inside the sandbox (5 s limit;
+  any failure means no grant). pool-runner's `metal` feature is the one switch. Every other job runs with
+  `POOL_ORT_FORCE_CPU=1` and without the rules.
+- **Thermal guard:** macOS gives unprivileged processes no CPU/GPU temperature, so the governor's °C cap never
+  applied on a Mac. The agent now reads `NSProcessInfo.thermalState` and pauses jobs at Serious or Critical
+  pressure, resuming at Fair or below (a reading that vanishes while hot keeps the pause).
 - **Not enabled in the bundle** (`scripts/sidecars.mjs` unchanged) because of the mixed results below.
 
 Measured with the real runner **inside the sandbox**, median of 3 jobs after a warm-up, 2,048 texts / 60 s of speech
@@ -212,6 +217,16 @@ Gaps, rated:
 - Permission prompts seen: Finder Automation (DMG layout). Screen Recording was not granted, so there were no
   screenshots. The unsigned app needs right-click → Open (Gatekeeper).
 - Low Power Mode was on and the Mac was on battery during all benchmarks.
+
+## 7b. Follow-ups done in the second PR (`mac-metal-followups`)
+
+- macOS thermal guard (above), with a governor property test that it never runs under Serious/Critical pressure.
+- The two `metal` switches are now one (the runner's), tied at run time through `pool-runner capabilities`.
+- CI: on manual runs the macOS job also runs clippy and the macOS sandbox tests with the runner's `metal` feature
+  (the GPU half skips itself on a runner VM without a usable Metal device), and every run now executes the app's
+  `render.test.js` (it was not run in CI before).
+- Still open before Metal is enabled in release builds: backend-aware fraud benchmarks, closing the
+  `KERN_PROCARGS2` gap (signed App Sandbox helper), and an owner-approved GPU re-benchmark.
 
 ## 8. What the owner needs to do
 
