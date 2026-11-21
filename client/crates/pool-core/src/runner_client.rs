@@ -61,8 +61,9 @@ pub struct RunnerClient {
     pub memory_limit_bytes: u64,
     /// The GPU backend pack directory ([`pool_runner::accel`]); `None` = no GPU path.
     pub ort_pack_dir: Option<PathBuf>,
-    /// macOS: candle jobs may use the GPU through Metal (the user's "Use the GPU" setting). Their sandbox then gets
-    /// the Metal allowances ([`SandboxConfig::gpu`]); every other job runs with the GPU forced off.
+    /// macOS: candle embedding jobs may use the GPU through Metal: the user's "Use the GPU" setting is on and the
+    /// runner reports a Metal build ([`runner_supports_metal`]). Their sandbox then gets the Metal allowances
+    /// ([`SandboxConfig::gpu`]); every other job runs with the GPU forced off.
     pub metal_gpu: bool,
 }
 
@@ -86,6 +87,44 @@ pub fn runtime_sandbox(runtime: &str, pack: Option<&std::path::Path>) -> (Vec<Pa
         }
         None => (vec![], vec![], true),
     }
+}
+
+/// macOS: does the runner at `exe` say it is a Metal build (`pool-runner capabilities`)? This ties the GPU sandbox
+/// rules to the one switch, pool-runner's `metal` feature: an agent never opens the GPU driver to a runner that cannot
+/// use it. The runner is asked inside the sandbox (no GPU rules) with a 5 s limit; any failure means no.
+pub fn runner_supports_metal(exe: &std::path::Path) -> bool {
+    if !cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        return false;
+    }
+    let Ok(mut s) = pool_sandbox::spawn_sandboxed(exe, &["capabilities".to_string()], &SandboxConfig::default()) else {
+        return false;
+    };
+    drop(std::mem::replace(&mut s.stdin, Box::new(std::io::sink())));
+    let kill = s.process.kill_handle();
+    let mut stdout = std::mem::replace(&mut s.stdout, Box::new(std::io::empty()));
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut out = String::new();
+        let _ = std::io::Read::read_to_string(&mut stdout, &mut out);
+        let _ = tx.send(out);
+    });
+    let out = match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+        Ok(out) => out,
+        Err(_) => {
+            kill.kill();
+            String::new()
+        }
+    };
+    let _ = s.process.wait();
+    reports_metal(&out)
+}
+
+/// `{"metal": true}` and nothing else counts as yes.
+fn reports_metal(capabilities_json: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(capabilities_json.trim())
+        .ok()
+        .and_then(|v| v.get("metal")?.as_bool())
+        .unwrap_or(false)
 }
 
 /// macOS: does this job get the Metal GPU allowances? Only candle embedding jobs (candle is the runtime with a Metal
@@ -200,7 +239,16 @@ fn run_blocking(
 
 #[cfg(test)]
 mod tests {
-    use super::metal_gpu_job;
+    use super::{metal_gpu_job, reports_metal, runner_supports_metal};
+
+    #[test]
+    fn only_an_explicit_metal_capability_counts() {
+        assert!(reports_metal("{\"metal\":true}\n"));
+        for no in ["{\"metal\":false}", "{\"metal\":\"true\"}", "{}", "", "pool-runner 0.1.0", "{\"metal\":1}"] {
+            assert!(!reports_metal(no), "{no:?}");
+        }
+        assert!(!runner_supports_metal(std::path::Path::new("/nonexistent/pool-runner")), "a missing runner: no grant");
+    }
 
     #[test]
     fn only_candle_embedding_jobs_with_the_gpu_on_get_metal() {

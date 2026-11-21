@@ -16,9 +16,6 @@ dev-trust = ["pool-proto/dev-trust", "pool-sandbox/dev-trust"]
 release = ["pool-proto/release"]
 # NVIDIA GPU temperature/power via NVML (loaded dynamically; absent library = no GPU readings).
 nvml = ["dep:nvml-wrapper"]
-# macOS: grant candle embedding jobs the Metal GPU allowances. Build it together with pool-runner's `metal` feature
-# (`cargo build -p pool-core --features metal` and `-p pool-runner --features metal`); without it no job gets them.
-metal = []
 
 [dependencies]
 pool-proto.workspace = true

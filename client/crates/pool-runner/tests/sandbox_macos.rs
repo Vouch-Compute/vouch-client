@@ -256,3 +256,16 @@ fn metal_gpu_jobs_keep_every_other_rule() {
     let m = cpu.metal.unwrap();
     assert!(!m.ok, "without the GPU allowances Metal must not be reachable: {m:?}");
 }
+
+/// `pool-runner capabilities`, run inside the sandbox the way the agent asks it, reports exactly what this build is.
+#[test]
+fn capabilities_report_the_metal_build() {
+    let mut s = spawn_sandboxed(&runner(), &["capabilities".to_string()], &SandboxConfig::default()).unwrap();
+    drop(std::mem::replace(&mut s.stdin, Box::new(std::io::sink())));
+    let mut out = String::new();
+    s.stdout.read_to_string(&mut out).unwrap();
+    assert_eq!(s.process.wait().unwrap(), 0);
+    let v: serde_json::Value = serde_json::from_str(out.trim()).unwrap();
+    assert_eq!(v["metal"].as_bool(), Some(pool_runner::accel::METAL_BUILD), "{out}");
+    assert_eq!(pool_runner::accel::METAL_BUILD, cfg!(all(feature = "metal", target_arch = "aarch64")));
+}

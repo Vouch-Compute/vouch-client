@@ -210,3 +210,10 @@ fn only_reviewed_code_writes_files() {
         assert!(!writers.iter().any(|w| w == job_path), "{job_path} writes files");
     }
 }
+
+/// The agent grants the macOS GPU sandbox rules only to a runner that reports a Metal build; the default runner (no
+/// `metal` feature) never gets them, whatever the user's GPU setting.
+#[test]
+fn default_runner_gets_no_gpu_grant() {
+    assert!(!pool_core::runner_client::runner_supports_metal(&runner_exe()));
+}
