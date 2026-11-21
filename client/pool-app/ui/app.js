@@ -145,10 +145,11 @@ function backendLabel(b) {
   if (!b) return "No job yet";
   if (b === "onnxruntime-directml") return "Graphics card (DirectML)";
   if (b === "candle-cuda") return "Graphics card (CUDA)";
+  if (b === "candle-metal") return "Graphics card (Metal)";
   if (b.endsWith("-cpu") || b === "onnxruntime") return "Processor (CPU)";
   return b;
 }
-const isAccelerated = (b) => b === "onnxruntime-directml" || b === "candle-cuda";
+const isAccelerated = (b) => b === "onnxruntime-directml" || b === "candle-cuda" || b === "candle-metal";
 
 function hardwareHtml(hw, backend, keyStorage) {
   const h = hw || {};
