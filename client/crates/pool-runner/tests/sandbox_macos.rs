@@ -228,6 +228,10 @@ fn memory_cap_kills_a_runner_over_the_cap() {
 /// GPU jobs (`SandboxConfig::gpu`, `metal` builds): Metal works inside the sandbox, and the GPU allowances open
 /// nothing else: every escape probe still fails. Without the allowances no Metal device is visible and the runner
 /// reports it (no crash), so the job falls back to the CPU.
+///
+/// The GPU allowances name the Apple-silicon GPU driver (AGX) only. A virtual Mac (GitHub's hosted runners) has a
+/// paravirtual GPU instead: Metal works there outside the sandbox but stays unreachable inside it, and the job runs
+/// on the CPU. On such a machine the escape checks still run; only the "Metal works inside" check is skipped.
 #[cfg(feature = "metal")]
 #[test]
 fn metal_gpu_jobs_keep_every_other_rule() {
@@ -255,7 +259,11 @@ fn metal_gpu_jobs_keep_every_other_rule() {
     };
     let mut gpu = run_gpu(true);
     eprintln!("GPU sandbox: {gpu:#?}");
-    assert!(gpu.metal.as_ref().unwrap().ok, "Metal must work in a GPU job's sandbox: {:?}", gpu.metal);
+    if apple_silicon_gpu() {
+        assert!(gpu.metal.as_ref().unwrap().ok, "Metal must work in a GPU job's sandbox: {:?}", gpu.metal);
+    } else {
+        eprintln!("SKIPPED (Metal inside the sandbox): no Apple-silicon (AGX) GPU, Metal here is a virtual device");
+    }
     for a in &gpu.stat {
         assert!(!a.ok, "GPU sandbox: metadata of {}", a.target);
     }
@@ -264,6 +272,14 @@ fn metal_gpu_jobs_keep_every_other_rule() {
     let cpu = run_gpu(false);
     let m = cpu.metal.unwrap();
     assert!(!m.ok, "without the GPU allowances Metal must not be reachable: {m:?}");
+}
+
+/// Whether this Mac's GPU is Apple silicon's own (an `AGXAccelerator` in the I/O registry), the only GPU driver the
+/// sandbox's GPU allowances name.
+#[cfg(feature = "metal")]
+fn apple_silicon_gpu() -> bool {
+    let out = std::process::Command::new("/usr/sbin/ioreg").args(["-r", "-c", "AGXAccelerator", "-d", "1"]).output();
+    out.is_ok_and(|o| o.status.success() && !o.stdout.is_empty())
 }
 
 /// `pool-runner capabilities`, run inside the sandbox the way the agent asks it, reports exactly what this build is.
