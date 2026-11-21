@@ -138,18 +138,17 @@ function heroState(s, now) {
 
 // Pilot banner: only when the agent's snapshot says so; hidden otherwise.
 const isPilot = (s) => !!s && !s.error && (s.pilot === true || s.environment === "pilot");
-const pilotHtml = (s) => (isPilot(s) ? `${icon("info")}<span>Pilot: test money (Solana devnet USDC)</span>` : "");
+const pilotHtml = (s) => (isPilot(s) ? `${icon("info")}<span>Pilot: test money, no real value</span>` : "");
 
 // The runtime of the last job, in plain words (the agent reports what really ran, never what was hoped for).
 function backendLabel(b) {
   if (!b) return "No job yet";
   if (b === "onnxruntime-directml") return "Graphics card (DirectML)";
   if (b === "candle-cuda") return "Graphics card (CUDA)";
-  if (b === "candle-metal") return "Graphics card (Metal)";
   if (b.endsWith("-cpu") || b === "onnxruntime") return "Processor (CPU)";
   return b;
 }
-const isAccelerated = (b) => b === "onnxruntime-directml" || b === "candle-cuda" || b === "candle-metal";
+const isAccelerated = (b) => b === "onnxruntime-directml" || b === "candle-cuda";
 
 function hardwareHtml(hw, backend, keyStorage) {
   const h = hw || {};
@@ -530,7 +529,7 @@ function renderOnboarding() {
       ["bolt", "Electricity.", "Work uses power. Your estimate subtracts an electricity cost so you can judge whether it is worth it."],
       ["wifiOff", "Your internet provider", "may restrict commercial use of a home connection. Check your contract."],
       ["info", "Taxes", "on what you earn are your responsibility."],
-      ["check", "This is not mining.", "No cryptocurrency is mined on your computer. Earnings are paid in USDC."],
+      ["check", "This is not mining.", "No cryptocurrency is mined on your computer. Earnings are paid in US dollars to your payout account."],
       ["hourglass", "New devices start on probation.", "Earnings are held in escrow for 21 days while work is verified. Unverified work is not paid."],
       ["settings", "Defaults are conservative:", "work starts only when you've been away for 10 minutes, stops the moment you're back, pauses for games and on battery, and respects a temperature limit."],
     ];

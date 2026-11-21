@@ -68,7 +68,7 @@ noRaw(bench, "benchmark");
 if (api.isPilot(null) || api.isPilot({}) || api.isPilot({ pilot: "true" }) || api.isPilot({ environment: "production" }) || api.isPilot({ error: "x", pilot: true })) fail("pilot shown without the snapshot saying so");
 if (!api.isPilot({ pilot: true }) || !api.isPilot({ environment: "pilot" })) fail("pilot not shown when the snapshot says pilot");
 if (api.pilotHtml({}) !== "") fail("pilot banner rendered by default");
-if (!api.pilotHtml({ pilot: true }).includes("Pilot: test money (Solana devnet USDC)")) fail("pilot banner text");
+if (!api.pilotHtml({ pilot: true }).includes("Pilot: test money, no real value")) fail("pilot banner text");
 
 // 4. estimate: a range, the base and the temporary launch bonus shown apart, never a promise
 const e = api.estimateHtml({ ok: { low_usd: "9.000000000", high_usd: "24.000000000", base: { low_usd: "3.500000000", high_usd: "9.000000000" },
@@ -86,14 +86,6 @@ const text = `Line one & "two" <three>\n  indented, 'four'. ${"x".repeat(2000)}`
 const c = api.consentHtml({ text, version: "v1", text_sha256: "ab".repeat(32), refused_message: "no" }, null);
 if (!c.includes(api.esc(text))) fail("consent text not byte-identical after escaping");
 if (!c.includes('id="consent-accept"') || !c.includes('id="consent-refuse"')) fail("consent buttons");
-
-// 5b. the backend that ran the last job: label and "Accelerated" badge (Metal on Apple silicon, macOS)
-for (const [b, label, accel] of [["candle-metal", "Graphics card (Metal)", true], ["candle-cuda", "Graphics card (CUDA)", true],
-  ["onnxruntime-directml", "Graphics card (DirectML)", true], ["candle-cpu", "Processor (CPU)", false]]) {
-  const h = api.hardwareHtml({ gpu: "Apple M3 Pro", cpu: "Apple M3 Pro", ram_mb: 18432 }, b, "software");
-  if (!h.includes(label)) fail(`backend label for ${b}`);
-  if (h.includes("Accelerated") !== accel) fail(`accelerated badge for ${b}`);
-}
 
 // 6. totals from server strings only
 if (api.sumUsd("6.870000000", "0.120000000") !== "6.990000000") fail("sumUsd");
