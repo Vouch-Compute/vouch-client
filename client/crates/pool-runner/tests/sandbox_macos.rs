@@ -234,6 +234,15 @@ fn metal_gpu_jobs_keep_every_other_rule() {
     let fx = fixture();
     let mut args = fx.args.clone();
     args.push("--metal".into());
+    // Control: is Metal usable on this machine at all, outside the sandbox? Hosted CI Macs are VMs that may have
+    // no usable Metal device; that is the machine, not the sandbox, so the GPU half of the test is skipped there.
+    let mut ctl_args = args.clone();
+    ctl_args.push("--no-harden".into());
+    let (ctl, _) = run(&ctl_args, &fx.model, false);
+    if !ctl.metal.as_ref().is_some_and(|m| m.ok) {
+        eprintln!("SKIPPED: no usable Metal device on this machine even without the sandbox: {:?}", ctl.metal);
+        return;
+    }
     let run_gpu = |gpu: bool| {
         let cfg = SandboxConfig { readable_dirs: vec![fx.model.clone()], gpu, ..Default::default() };
         let mut s = spawn_sandboxed(&runner(), &args, &cfg).expect("spawn runner");

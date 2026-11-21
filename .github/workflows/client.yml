@@ -142,6 +142,15 @@ jobs:
       - name: Release decoding rules (pool-proto without dev-trust)
         run: cargo test -p pool-proto --no-default-features
 
+      # macOS (manual runs only, see the matrix): the Metal build and the macOS sandbox checks. The workspace tests
+      # above already run tests/sandbox_macos.rs without Metal; this adds clippy and the same tests with the
+      # runner's `metal` feature (the GPU half skips itself on a runner VM without a usable Metal device).
+      - name: macOS Metal build (clippy, sandbox tests with the GPU rules)
+        if: runner.os == 'macOS'
+        run: |
+          cargo clippy -p pool-runner --features metal --all-targets -- -D warnings
+          cargo test -p pool-runner --features metal --test sandbox_macos -- --nocapture
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -151,6 +160,9 @@ jobs:
 
       - name: App reliability card (server-provided object only)
         run: node pool-app/tests/reliability.test.js
+
+      - name: App rendering (hero status, escaping, backend labels incl. Metal)
+        run: node pool-app/tests/render.test.js
 
       - name: Tauri CLI
         working-directory: client/pool-app
