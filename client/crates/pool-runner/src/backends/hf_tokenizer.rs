@@ -38,7 +38,7 @@ impl HfTokenizer {
         let max_len = cfg
             .model_max_length
             .as_ref()
-            .and_then(serde_json::Value::as_u64)
+            .and_then(|v| v.as_u64().or_else(|| v.as_f64().filter(|f| f.fract() == 0.0 && (2.0..1e15).contains(f)).map(|f| f as u64)))
             .filter(|n| *n >= 2)
             .map_or(DEFAULT_MAX_LEN, |n| n.min(MAX_LEN_CAP as u64) as usize);
         let mut inner = Tokenizer::from_bytes(tokenizer_json).map_err(|e| format!("tokenizer.json: {e}"))?;
@@ -137,7 +137,9 @@ mod tests {
         assert_eq!(len(None), DEFAULT_MAX_LEN);
         assert_eq!(len(Some(br#"{"model_max_length": 8192}"#)), 8192);
         assert_eq!(len(Some(br#"{"model_max_length": 1000000}"#)), MAX_LEN_CAP);
+        assert_eq!(len(Some(br#"{"model_max_length": 8192.0}"#)), 8192);
         assert_eq!(len(Some(br#"{"model_max_length": 1e30}"#)), DEFAULT_MAX_LEN);
+        assert_eq!(len(Some(br#"{"model_max_length": 512.5}"#)), DEFAULT_MAX_LEN);
         assert_eq!(len(Some(br#"{"model_max_length": 1}"#)), DEFAULT_MAX_LEN);
         assert!(HfTokenizer::from_bytes(&tok, Some(b"not json")).is_err());
         assert!(HfTokenizer::from_bytes(b"{}", None).is_err());

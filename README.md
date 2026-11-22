@@ -66,7 +66,7 @@ On older macOS versions, right-click (or Control-click) the app in Applications 
 the folder that holds both files:
 
 ```bash
-shasum -a 256 -c SHA256SUMS --ignore-missing
+grep '\.dmg$' SHA256SUMS | shasum -a 256 -c -
 # or compare by eye:
 shasum -a 256 VouchCompute-<version>-macos-arm64.dmg
 ```
@@ -77,6 +77,8 @@ The line for the `.dmg` must say `OK` (or the two hashes must be equal). If not,
 update key (the `.sig` file next to each update), whose public half is built into the app. It also refuses older
 versions. So a changed or swapped update file is rejected, even though Apple doesn't sign the app. What it does not
 cover: the first download itself (that's what the checksum is for), and a compromise of our release key.
+
+This section applies once the first macOS build is published; until then the download page shows macOS as coming soon.
 
 **What being unsigned changes for you.** Nothing in how jobs run: every job still runs in the macOS sandbox described
 below. Without Apple's signing, the app can't use a Secure Enclave key or Apple's device attestation yet, so Macs start

@@ -19,8 +19,9 @@
 # Optional: RELEASE_BASE_URL (where the files will be downloadable; default: this repo's GitHub release download URL,
 # which needs the repository to be public), RELEASE_REPO (default MetehanAydemir/vouch-client).
 #
-# Secrets: the updater PRIVATE key is read from the environment only, by the Tauri bundler. This script never prints
-# it, never writes it to disk and refuses a key file inside the repository. Shell tracing is switched off.
+# Secrets: the updater PRIVATE key is read from the environment only. This script never prints it, never writes it to
+# disk and refuses a key file inside the repository. It is removed from the environment for every step except the
+# final `tauri build` (so `npm ci` install scripts and the guard builds never see it). Shell tracing is switched off.
 set -euo pipefail
 set +x
 
@@ -50,16 +51,26 @@ if [ -f "$TAURI_SIGNING_PRIVATE_KEY" ]; then
     "$root"/*) die "the updater key file is inside the repository; keep it outside (for example in your keychain or ~/.vouch-keys)" ;;
   esac
 fi
-case "$VOUCH_RELEASE_UPDATER_PUBKEYS" in
-  *PRIVATE*|*"secret key"*) die "VOUCH_RELEASE_UPDATER_PUBKEYS looks like a private key; it takes the PUBLIC keys" ;;
-esac
+# every entry must decode to a minisign PUBLIC key (a private key pasted here would end up inside the app)
+node -e '
+  for (const k of process.env.VOUCH_RELEASE_UPDATER_PUBKEYS.split(",")) {
+    const text = Buffer.from(k.trim(), "base64").toString("utf8");
+    if (!/minisign public key/.test(text) || /secret key/i.test(text)) process.exit(1);
+  }
+' || die "VOUCH_RELEASE_UPDATER_PUBKEYS must hold minisign PUBLIC keys only (base64, comma-separated)"
+
+# keep the key out of the environment until the bundler needs it
+signing_key="$TAURI_SIGNING_PRIVATE_KEY"
+signing_key_password="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
+unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 
 if [ -n "$(git status --porcelain)" ]; then
   die "the working tree has changes; release from a clean checkout of the commit you mean to ship"
 fi
 version="$(node -p 'require("./client/pool-app/src-tauri/tauri.conf.json").version')"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "unexpected app version '$version'"
-tag="client-v$version"
+# Not "client-v<version>": pushing that tag starts the release workflow on GitHub Actions. This tag does not match it.
+tag="client-macos-v$version"
 commit="$(git rev-parse HEAD)"
 repo="${RELEASE_REPO:-MetehanAydemir/vouch-client}"
 base="${RELEASE_BASE_URL:-https://github.com/$repo/releases/download/$tag}"
@@ -97,7 +108,8 @@ rm -rf "$bundle_dir" "$out"
   cd client/pool-app
   npm ci --no-audit --no-fund
   # CI=true skips the Finder layout step of the DMG bundler (it waits on an Automation prompt otherwise)
-  CI=true POOL_RELEASE=1 npx tauri build --target "$target" --bundles app,dmg \
+  TAURI_SIGNING_PRIVATE_KEY="$signing_key" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="$signing_key_password" \
+    CI=true POOL_RELEASE=1 npx tauri build --target "$target" --bundles app,dmg \
     --config "src-tauri/$(basename "$release_conf")" --config "src-tauri/$(basename "$signing_conf")"
 )
 
@@ -112,6 +124,7 @@ codesign --verify --deep --strict "$app" || die "the ad-hoc signature does not v
 if [ -z "$(ls "$bundle_dir"/macos/*.app.tar.gz.sig 2>/dev/null)" ]; then
   die "no updater signature (.app.tar.gz.sig): was TAURI_SIGNING_PRIVATE_KEY accepted?"
 fi
+unset signing_key signing_key_password
 
 # ------------------------------------------------------------------------------------------------ collect
 # stable, space-free names + latest.json (updater manifest) via the same script the release workflow uses
@@ -134,7 +147,7 @@ notes="$out/RELEASE_NOTES.md"
   echo "blocks it once: open System Settings > Privacy & Security, find the note about Vouch Compute and click"
   echo "\"Open Anyway\". See the README section \"First launch on macOS\"."
   echo
-  echo "Check the download before opening it: \`shasum -a 256 -c SHA256SUMS --ignore-missing\`"
+  echo "Check the download before opening it: \`grep '\.dmg\$' SHA256SUMS | shasum -a 256 -c -\`"
   echo
   echo '```'
   cat "$out/SHA256SUMS"
