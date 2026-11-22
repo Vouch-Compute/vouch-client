@@ -10,19 +10,19 @@
 //! * nothing else (`file:`, `javascript:`, `data:`, custom schemes, ...).
 
 pub fn check(url: &str, dev_build: bool) -> Result<String, String> {
-    let u = tauri::Url::parse(url.trim()).map_err(|_| "refusing an invalid link".to_string())?;
+    let u = tauri::Url::parse(url.trim()).map_err(|_| crate::i18n::t("error.link.invalid"))?;
     if !u.username().is_empty() || u.password().is_some() {
-        return Err("refusing a link with user info".into());
+        return Err(crate::i18n::t("error.link.userInfo"));
     }
     let host = u.host_str().unwrap_or_default();
     if host.is_empty() {
-        return Err("refusing a link without a host".into());
+        return Err(crate::i18n::t("error.link.noHost"));
     }
     match u.scheme() {
         "https" => Ok(u.into()),
         "http" if dev_build && matches!(host, "127.0.0.1" | "localhost" | "[::1]") => Ok(u.into()),
-        "http" => Err("refusing a non-https link".into()),
-        _ => Err("refusing a link that is not a web page".into()),
+        "http" => Err(crate::i18n::t("error.link.notHttps")),
+        _ => Err(crate::i18n::t("error.link.notWeb")),
     }
 }
 

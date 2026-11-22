@@ -1,0 +1,562 @@
+{
+  "common": {
+    "loading": "Carregando…",
+    "back": "Voltar",
+    "continue": "Continuar",
+    "resume": "Retomar",
+    "signIn": "Entrar",
+    "range": "{low} – {high}",
+    "rangeSpoken": "de {low} a {high}",
+    "devBuild": "VERSÃO DE DESENVOLVIMENTO",
+    "devBuildTitle": "Versão de desenvolvimento: chaves de desenvolvimento, canal de atualização de desenvolvimento, rede de testes. Não é uma versão oficial.",
+    "duration": {
+      "minutes": "{m} min",
+      "hoursMinutes": "{h} h {m} min"
+    },
+    "unit": {
+      "min": "min",
+      "celsius": "°C"
+    }
+  },
+  "shell": {
+    "skip": "Pular para o conteúdo",
+    "tagline": "Computação de IA verificada com computadores ociosos.",
+    "navLabel": "Principal",
+    "starting": "Iniciando…",
+    "themeToggle": "Alternar tema de cores",
+    "themeToggleTitle": "Alternar tema"
+  },
+  "nav": {
+    "home": "Início",
+    "earnings": "Ganhos",
+    "device": "Dispositivo",
+    "settings": "Configurações"
+  },
+  "mode": {
+    "idleOnly": "Na minha ausência",
+    "scheduled": "Por horário",
+    "alwaysOn": "Sempre ligado"
+  },
+  "hero": {
+    "loading": {
+      "title": "Iniciando…",
+      "sub": "Conectando ao agente do Vouch Compute."
+    },
+    "down": {
+      "title": "Agente não está em execução",
+      "sub": "O agente em segundo plano que faz o trabalho não está em execução."
+    },
+    "signedOut": {
+      "title": "Você saiu da conta",
+      "sub": "Entre na sua conta para que este computador possa receber trabalho verificado.",
+      "authFailed": "Este dispositivo não foi reconhecido. Entre novamente para registrá-lo de novo."
+    },
+    "offline": {
+      "title": "Sem conexão",
+      "connecting": "Conectando…",
+      "sub": "Não é possível acessar a rede do Vouch Compute no momento.",
+      "subRetry": "Não é possível acessar a rede do Vouch Compute no momento. Nova tentativa em {seconds, plural, one {# segundo} many {# segundos} other {# segundos}}."
+    },
+    "setup": {
+      "title": "Configurando este dispositivo",
+      "sub": "Registrando a chave deste computador na sua conta."
+    },
+    "updateRequired": {
+      "title": "Atualização necessária",
+      "sub": "Esta versão não consegue mais se conectar. Instale a atualização em Configurações."
+    },
+    "revoked": {
+      "title": "Dispositivo pausado ou suspenso",
+      "sub": "Este dispositivo não pode receber trabalho agora. O Vouch Compute tenta de novo de tempos em tempos; confira Dispositivos na web."
+    },
+    "earning": {
+      "title": "Ganhando",
+      "sub": "Executando um trabalho no ambiente isolado. Ele é pago quando o servidor o verifica.",
+      "subModel": "Executando um trabalho de {model} no ambiente isolado. Ele é pago quando o servidor o verifica."
+    },
+    "benchmark": {
+      "title": "Teste de desempenho",
+      "sub": "Executando o teste de desempenho contínuo de 20 minutos. Não é trabalho pago."
+    },
+    "paused": {
+      "title": "Pausado",
+      "until": "Até {time}. Nenhum trabalho novo começa enquanto estiver pausado.",
+      "local": "Nenhum trabalho novo começa enquanto estiver pausado."
+    },
+    "idle": {
+      "title": "Ocioso, aguardando trabalhos",
+      "sub": "Pronto para trabalhar. Os ganhos dependem da demanda, então pode haver períodos de pouco movimento."
+    },
+    "waiting": {
+      "userActive": {
+        "title": "Aguardando você se ausentar",
+        "sub": "Começa depois de {minutes, plural, one {# minuto} many {# minutos} other {# minutos}} sem uso do teclado ou do mouse."
+      },
+      "fullscreen": {
+        "title": "Pausado para seu jogo ou apresentação",
+        "sub": "Retoma quando você sair da tela cheia."
+      },
+      "onBattery": {
+        "title": "Pausado na bateria",
+        "sub": "O Vouch Compute só funciona ligado na tomada."
+      },
+      "batteryLow": {
+        "title": "Bateria fraca",
+        "sub": "O Vouch Compute nunca funciona com a bateria abaixo de 30%."
+      },
+      "thermal": {
+        "title": "Esfriando",
+        "sub": "Pausado até a temperatura cair abaixo do seu limite de {limit, number} °C."
+      },
+      "outsideSchedule": {
+        "title": "Fora do seu horário",
+        "sub": "O Vouch Compute só funciona nos horários que você escolheu."
+      },
+      "dailyCap": {
+        "title": "Limite diário atingido",
+        "sub": "Retoma amanhã."
+      }
+    }
+  },
+  "pilot": {
+    "banner": "Piloto: dinheiro de teste, sem valor real"
+  },
+  "hw": {
+    "gpu": "Placa de vídeo",
+    "notDetected": "Não detectada",
+    "vram": ", {size}",
+    "gigabytes": "{value, number} GB",
+    "accelerated": "Acelerado",
+    "cpu": "Processador",
+    "memory": "Memória",
+    "lastBackend": "Último trabalho executado em",
+    "deviceKey": "Chave do dispositivo",
+    "keySoftware": "Chave de software (desenvolvimento)",
+    "backend": {
+      "none": "Nenhum trabalho ainda",
+      "directml": "Placa de vídeo (DirectML)",
+      "cuda": "Placa de vídeo (CUDA)",
+      "metal": "Placa de vídeo (Metal)",
+      "cpu": "Processador (CPU)"
+    }
+  },
+  "bench": {
+    "title": "Teste de desempenho",
+    "waiting": "Aguardando a rede enviar seu teste de desempenho. Mantenha o Vouch Compute aberto e ligado na tomada.",
+    "progressLabel": "Progresso do teste de desempenho",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# rodada concluída} many {# rodadas concluídas} other {# rodadas concluídas}}. Você pode continuar usando o computador para tarefas leves; se você escolheu “Executar agora”, mover o mouse não cancela o teste.",
+    "finished": "Teste de desempenho concluído. O servidor confere os resultados.",
+    "stopped": "O teste de desempenho parou antes de terminar. Ele vai começar de novo mais tarde.",
+    "about": "Um teste contínuo e assinado de 20 minutos mede o que este computador realmente consegue fazer. Ele nunca é pago, e você pode interrompê-lo a qualquer momento.",
+    "runNow": "Executar agora",
+    "runAtIdle": "Executar na primeira ociosidade"
+  },
+  "consent": {
+    "title": "Identificadores de hardware",
+    "lede": "Antes de registrar este computador, o Vouch Compute precisa da sua resposta. Este é o texto completo:",
+    "englishBinding": "Este texto de permissão é exibido em inglês. A versão em inglês é a que prevalece.",
+    "sentOnly": "Enviado apenas ao serviço de contas do Vouch Compute, nunca à rede de trabalhos. Versão {version}.",
+    "refuse": "Não permitir",
+    "accept": "Permitir e continuar"
+  },
+  "estimate": {
+    "title": "Sua estimativa",
+    "sub": "Calculada pelo servidor com base no seu teste de desempenho e na demanda atual.",
+    "loading": "Pedindo uma estimativa ao servidor…",
+    "unavailable": "Uma estimativa precisa de um teste de desempenho concluído e de conexão com o servidor. ({error})",
+    "rangeLabel": "Faixa estimada por mês, já descontada a energia",
+    "notPromise": "Uma estimativa, não uma promessa",
+    "base": "Pagamento base",
+    "baseHint": "O que o trabalho rende por si só.",
+    "bonus": "Bônus de lançamento",
+    "temporary": "Temporário",
+    "none": "Nenhum",
+    "bonusHint": "Um bônus de lançamento temporário. Ele diminui conforme a demanda paga cresce.",
+    "bonusHintEnds": "Um bônus de lançamento temporário, termina em {date}. Ele diminui conforme a demanda paga cresce.",
+    "noBonus": "Nenhum bônus de lançamento no momento.",
+    "electricity": "Energia elétrica",
+    "electricityHint": "{watts, number} W a {price}/kWh, já descontado.",
+    "assumes": "Considera {hours, number} h/dia disponíveis e trabalho em {utilization, number, percent} desse tempo. É uma faixa, não uma promessa: os ganhos dependem da demanda, e só o trabalho verificado é pago."
+  },
+  "earnings": {
+    "title": "Ganhos",
+    "lede": "Os valores chegam do servidor uma vez por dia e cobrem trabalho feito há pelo menos 24 horas.",
+    "statusTitle": "Status dos pagamentos",
+    "statusSub": "Só o trabalho verificado é contado. Ganhos novos ficam retidos antes de serem pagos.",
+    "unavailable": "Os ganhos ficam disponíveis quando você está conectado e com a conta aberta. ({error})",
+    "splitLabel": "Como seus ganhos se dividem por status",
+    "empty": "Nenhum ganho ainda. O trabalho verificado aparece aqui um dia depois de feito.",
+    "onHold": "Retido",
+    "onHoldHint": "Em custódia ou em análise",
+    "paid": "Pago",
+    "paidHint": "Enviado para sua conta de recebimento",
+    "allStates": "Todos os status de pagamento",
+    "probation": "Dispositivo novo: os ganhos ficam retidos por {days, plural, one {# dia} many {# dias} other {# dias}} enquanto o trabalho é verificado.",
+    "probationUntil": "Dispositivo novo: os ganhos ficam retidos por {days, plural, one {# dia} many {# dias} other {# dias}} enquanto o trabalho é verificado (até {date}).",
+    "footer": "Verificado nesta semana: <b>{amount}</b>. Em {date}. O histórico detalhado está no <link>painel web</link>.",
+    "state": {
+      "pending": "Pendente",
+      "inEscrow": "Em custódia",
+      "inReview": "Em análise",
+      "releasable": "Pronto para pagamento",
+      "sent": "Enviado",
+      "clawedBack": "Estornado"
+    },
+    "hint": {
+      "pending": "Retido por 72 h antes da liberação",
+      "inEscrow": "Período de avaliação: retido por 21 dias",
+      "inReview": "Em análise, não perdido",
+      "releasable": "Sai no próximo pagamento semanal",
+      "sent": "Pago na sua conta de recebimento",
+      "clawedBack": "Revertido após análise"
+    }
+  },
+  "payout": {
+    "title": "Conta de recebimento",
+    "sub": "Apenas exibição. Sua conta de recebimento é configurada e alterada na web.",
+    "none": "Nenhuma conta de recebimento configurada ainda. Os ganhos continuam se acumulando; configure uma na web antes do seu primeiro pagamento.",
+    "resumes": "Os pagamentos voltam em {date}",
+    "unavailable": "Os dados da conta de recebimento ficam disponíveis quando você entra na sua conta.",
+    "manage": "Configure ou altere sua conta de recebimento na web",
+    "verify": "Verifique sua identidade",
+    "fine": "Para sua segurança, as contas de recebimento só são configuradas e alteradas na web, com seu segundo fator. Qualquer alteração pausa os pagamentos por 72 horas. Verifique sua identidade na web para receber."
+  },
+  "device": {
+    "title": "Dispositivo",
+    "lede": "Este computador, seu teste de desempenho e seus limites.",
+    "cardLabel": "Este dispositivo",
+    "thisComputer": "Este computador",
+    "headPending": "Os dados da conta aparecem quando este dispositivo estiver registrado e conectado.",
+    "state": "{connection, select, online {Conectado} other {Sem conexão}}{activity, select, idle {, ocioso} working {, trabalhando} paused {, pausado} other {}}{pausedBy, select, user {. Pausado por você.} tally {. Pausado pelo Vouch Compute.} other {}}",
+    "technical": "Detalhes técnicos",
+    "id": "ID do dispositivo",
+    "notRegistered": "Não registrado",
+    "keyTpm": "TPM 2.0 (hardware, não exportável)",
+    "keySoftware": "Chave de software (nível de desenvolvimento: limitado ao período de avaliação)",
+    "trustCeiling": "Nível máximo de confiança",
+    "sandbox": "Ambiente isolado",
+    "notUsedYet": "Ainda não usado",
+    "agentVersion": "Versão do agente",
+    "sandboxFine": "Os trabalhos rodam em um processo isolado separado, sem acesso à rede nem aos seus arquivos. Os dados de entrada ficam na memória e nunca são gravados no disco.",
+    "relUnavailable": "Disponível quando este dispositivo estiver registrado e conectado.",
+    "scheduleSub": "Modo: {mode}. Os horários abaixo valem no modo “Por horário”.",
+    "noWindows": "Nenhum intervalo de horário definido.",
+    "changeSchedule": "Alterar modo e horário",
+    "dailyLimit": "Limite diário de {hours, number} h",
+    "noDailyLimit": "Sem limite diário",
+    "limits": {
+      "title": "Limites",
+      "sub": "O Vouch Compute pausa antes que este computador esquente demais, e você escolhe o quanto ele trabalha.",
+      "pauseAbove": "Pausar acima de",
+      "tempMax": "O Vouch Compute nunca passa de 90 °C, seja qual for este ajuste.",
+      "power": "Uso de energia",
+      "battery": {
+        "title": "Nunca funcionar na bateria",
+        "hint": "Abaixo de 30% de bateria ele nunca funciona, de qualquer forma."
+      },
+      "fullscreen": {
+        "title": "Pausar durante jogos e tela cheia",
+        "hint": "Retoma quando você sair da tela cheia."
+      }
+    },
+    "account": {
+      "title": "Este dispositivo na sua conta",
+      "pause": "Pausar no servidor",
+      "manage": "Gerenciar na web",
+      "fine": "Pausar aqui funciona como pausar na web: nenhum trabalho novo chega até você retomar. Um trabalho em andamento termina e é pago se for verificado."
+    }
+  },
+  "schedule": {
+    "title": "Horário",
+    "everyDay": "Todos os dias",
+    "weekdays": "Dias úteis",
+    "weekends": "Fins de semana",
+    "noDays": "Nenhum dia",
+    "window": "{days}, {start}–{end}"
+  },
+  "reliability": {
+    "title": "Confiabilidade",
+    "empty": "Seu nível de confiabilidade aparece aqui quando o servidor tiver um para este dispositivo.",
+    "bonus": "+{pct}% sobre o trabalho verificado",
+    "noBonus": "Sem bônus de confiabilidade",
+    "since": "desde {date}",
+    "queue": "Fila",
+    "bonusLabel": "Bônus",
+    "howToImprove": "Como melhorar",
+    "nothingToImprove": "Nada a melhorar no momento.",
+    "about": "Os níveis são definidos pelo servidor com base na regularidade com que o dispositivo fica disponível e conclui o trabalho, e mudam no máximo uma vez por dia.",
+    "tier": {
+      "probation": "Dispositivo novo",
+      "premium": "Premium",
+      "stable": "Estável",
+      "lessStable": "Menos estável",
+      "unpredictable": "Imprevisível"
+    },
+    "priority": {
+      "standard": "Posição padrão na fila",
+      "higher": "Posição mais alta na fila",
+      "highest": "Posição máxima na fila"
+    },
+    "hint": {
+      "keepRegularHours": "Mantenha horários regulares: fique disponível em horários parecidos toda semana.",
+      "avoidDisconnects": "Evite desconexões: uma conexão estável ajuda.",
+      "finishAcceptedJobs": "Conclua os trabalhos que aceitar: evite parar no meio, por exemplo definindo limites de ociosidade e de horário que combinem com seu uso.",
+      "buildTenure": "Continue: a confiabilidade se constrói ao longo de semanas.",
+      "verifyIdentity": "Verifique sua identidade na web.",
+      "useHardwareKey": "Use um computador com chip de segurança de hardware (TPM)."
+    }
+  },
+  "onboarding": {
+    "step": "Etapa {current} de {total}",
+    "stepPermission": "Etapa {current} de {total} · Permissão",
+    "progress": "Progresso da configuração, etapa {current} de {total}",
+    "steps": {
+      "welcome": "Boas-vindas",
+      "signin": "Entrar",
+      "device": "Este dispositivo"
+    },
+    "welcome": {
+      "title": "Boas-vindas ao Vouch Compute",
+      "lede": "O Vouch Compute usa o tempo livre do seu computador para pequenos trabalhos de IA verificados e paga você pelo trabalho aprovado nas verificações. Leia isto primeiro.",
+      "regionLabel": "Com o que você está concordando",
+      "scrollHint": "Role até o fim para continuar.",
+      "agree": "Entendi",
+      "items": {
+        "sandbox": "<b>O que é executado.</b> Conversão de fala em texto e embeddings de texto com dados não sensíveis, dentro de um ambiente isolado sem acesso à rede e que não consegue ver seus arquivos.",
+        "inputs": "<b>Tecnicamente, seu computador consegue ver os dados de entrada dos trabalhos</b> enquanto os processa. Eles ficam só na memória e nunca são salvos no disco.",
+        "electricity": "<b>Energia elétrica.</b> O trabalho consome energia. Sua estimativa desconta um custo de energia para você avaliar se vale a pena.",
+        "provider": "<b>Seu provedor de internet</b> pode restringir o uso comercial de uma conexão residencial. Confira seu contrato.",
+        "taxes": "<b>Os impostos</b> sobre o que você ganha são sua responsabilidade.",
+        "dollars": "<b>Pagamento em dólares americanos.</b> Só os trabalhos de IA descritos aqui rodam no seu computador. Os ganhos são pagos em dólares americanos na sua conta de recebimento (banco ou carteira digital).",
+        "probation": "<b>Dispositivos novos começam em período de avaliação.</b> Os ganhos ficam em custódia por 21 dias enquanto o trabalho é verificado. Trabalho não verificado não é pago.",
+        "defaults": "<b>Os padrões são cautelosos:</b> o trabalho só começa depois de 10 minutos da sua ausência, para assim que você volta, pausa durante jogos e na bateria, e respeita um limite de temperatura."
+      }
+    },
+    "signin": {
+      "lede": "Use sua conta do Vouch Compute. O login acontece no seu navegador, com seu nome de usuário, senha e segundo fator, então esta janela nunca vê sua senha nem seus códigos.",
+      "start": "Entrar pelo navegador",
+      "doneTitle": "Você entrou",
+      "doneLede": "Agora este computador recebe a própria chave.",
+      "pendingTitle": "Confirme no seu navegador",
+      "pendingLede": "Abra a página de login, entre com seu nome de usuário, senha e segundo fator e confira se este código é o mesmo:",
+      "codeLabel": "Código do dispositivo",
+      "openPage": "Abrir página de login",
+      "waiting": "Aguardando sua aprovação…",
+      "readOnly": "O app só tem acesso de leitura aos seus ganhos e dispositivos. Alterações na conta de recebimento sempre acontecem na web.",
+      "terms": "Ao entrar e executar o app neste computador, você concorda com o Acordo de colaborador da Vouch Compute: vouchcompute.com/legal/contributor-agreement"
+    },
+    "device": {
+      "signInFirst": {
+        "title": "Entre primeiro",
+        "lede": "Este computador é registrado na sua conta, então entre antes de configurá-lo.",
+        "button": "Ir para o login"
+      },
+      "replace": {
+        "title": "Você já usou este computador antes?",
+        "lede": "{count, plural, one {Sua conta já tem um dispositivo como este.} many {Sua conta já tem dispositivos como este.} other {Sua conta já tem dispositivos como este.}} Se você reinstalou o Windows ou o app, substitua o registro antigo. O nível dele não é transferido: o substituto começa como um dispositivo novo.",
+        "item": "Substituir “{name}”",
+        "unnamed": "Dispositivo sem nome",
+        "lastSeen": "Visto pela última vez em {date}",
+        "new": "Não, este é um computador novo",
+        "newHint": "Registrar como um dispositivo novo"
+      },
+      "blocked": {
+        "title": "Este computador ainda não pode ser registrado",
+        "openDevices": "Abrir Dispositivos na web",
+        "verify": "Verificar na web",
+        "manage": "Gerenciar dispositivos",
+        "reviewPermission": "Revisar a permissão de hardware",
+        "registerNew": "Registrar como dispositivo novo"
+      },
+      "enrolling": {
+        "title": "Registrando este dispositivo…",
+        "creating": "Criando a chave deste computador"
+      },
+      "error": {
+        "title": "O registro não foi concluído",
+        "backToSignin": "Voltar ao login",
+        "tryAgain": "Tentar de novo"
+      },
+      "done": {
+        "title": "Tudo pronto",
+        "lede": "Este computador está registrado. Em seguida vem um teste de desempenho curto; depois, o Vouch Compute trabalha sozinho, dentro dos seus limites.",
+        "infoOnly": "Apenas para sua informação. O quanto você pode ganhar é decidido por um teste de desempenho, nunca pelo que o app informa.",
+        "noTpm": "Sem um chip de segurança de hardware, este dispositivo fica no nível de período de avaliação, com ganhos limitados.",
+        "summary": "Começa depois de {minutes, plural, one {# minuto} many {# minutos} other {# minutos}} de ausência e pausa acima de {temp, number} °C. Você pode mudar isso quando quiser em Configurações.",
+        "summaryBattery": "Começa depois de {minutes, plural, one {# minuto} many {# minutos} other {# minutos}} de ausência, pausa acima de {temp, number} °C e nunca funciona na bateria. Você pode mudar isso quando quiser em Configurações.",
+        "open": "Abrir o Vouch Compute"
+      }
+    }
+  },
+  "notices": {
+    "pausedByUser": "Pausado pela web ou por este app. Este dispositivo não recebe trabalho até você retomá-lo.",
+    "pausedByTally": "Pausado pelo Vouch Compute. Fale com o suporte.",
+    "recovery": "Foi solicitada a recuperação da conta. Se não foi você, cancele agora na web.",
+    "openWeb": "Abrir a web",
+    "reverify": "Verifique sua identidade novamente na web.",
+    "verify": "Verificar"
+  },
+  "clock": {
+    "minutes": "{n, plural, one {# minuto} many {# minutos} other {# minutos}}",
+    "seconds": "{n, plural, one {# segundo} many {# segundos} other {# segundos}}",
+    "behind": "O relógio do seu computador está {offset} atrasado. O Vouch Compute compensa isso, mas o ideal é ativar o horário automático nas configurações do sistema.",
+    "ahead": "O relógio do seu computador está {offset} adiantado. O Vouch Compute compensa isso, mas o ideal é ativar o horário automático nas configurações do sistema."
+  },
+  "actions": {
+    "pauseHour": "Pausar por 1 hora",
+    "resumeNow": "Retomar agora",
+    "tryAgainNow": "Tentar de novo agora",
+    "goToUpdates": "Ir para atualizações"
+  },
+  "loading": {
+    "starting": "Iniciando o Vouch Compute…"
+  },
+  "agentDown": {
+    "title": "O agente do Vouch Compute não está em execução",
+    "lede": "O agente roda em segundo plano: ele faz o trabalho e guarda a chave deste computador. Inicie-o para continuar.",
+    "start": "Iniciar"
+  },
+  "home": {
+    "status": "Status",
+    "mode": "Modo: {mode}",
+    "onlyVerified": "Só o trabalho verificado é pago",
+    "lastProblem": "Último problema: {error}",
+    "today": {
+      "title": "Trabalho de hoje",
+      "sub": "Contado neste computador. O servidor verifica cada trabalho antes de pagá-lo.",
+      "worked": "Tempo trabalhado hoje",
+      "jobsFinished": "Trabalhos concluídos nesta sessão",
+      "stoppedEarly": "Interrompidos antes do fim (não pagos)",
+      "dailyLimit": "Limite diário",
+      "capUsage": "{ratio, number, percent} de {hours, number} h",
+      "capLabel": "Parte do limite de hoje já usada",
+      "noLimit": "Sem limite diário. <link>Defina um em Configurações</link>"
+    },
+    "hardware": {
+      "title": "Hardware",
+      "sub": "O que este computador informa. O pagamento é definido pelo teste de desempenho, não por esta lista."
+    },
+    "estimate": {
+      "title": "Faixa estimada por mês",
+      "note": "já descontada a energia. Uma estimativa, não uma promessa.",
+      "noteBonus": "já descontada a energia, incluindo um bônus de lançamento temporário. Uma estimativa, não uma promessa.",
+      "seeEarnings": "Ver ganhos"
+    }
+  },
+  "controls": {
+    "none": "Os controles aparecem quando o agente estiver em execução.",
+    "daysFor": "Dias do intervalo {n}",
+    "from": "Das",
+    "to": "às",
+    "remove": "Remover",
+    "removeWindow": "Remover intervalo {n}",
+    "modeTitle": "Quando o Vouch Compute deve trabalhar?",
+    "idleOnly": {
+      "title": "Na minha ausência (recomendado)",
+      "hint": "Começa depois que você fica um tempo inativo e para em segundos quando você volta."
+    },
+    "scheduled": {
+      "title": "Por horário",
+      "hint": "Só nos horários que você escolher abaixo."
+    },
+    "alwaysOn": {
+      "title": "Sempre ligado",
+      "hint": "Só para desktops. Seu computador vai ficar mais lento enquanto trabalha."
+    },
+    "idleAfter": "Começar depois de inativo por",
+    "scheduleSub": "Usado no modo “Por horário”. Os horários são locais; um intervalo pode passar da meia-noite.",
+    "noWindowsYet": "Nenhum intervalo ainda.",
+    "addWindow": "Adicionar um intervalo de horário",
+    "capLabel": "Limite diário (horas, vazio para nenhum)"
+  },
+  "autostart": {
+    "title": "Iniciar o Vouch Compute quando eu entrar neste computador",
+    "hint": "Ele abre na bandeja do sistema (o ícone ao lado do relógio), não como janela, e segue seus limites. Você pode desativar isso aqui ou nas configurações de inicialização do sistema.",
+    "on": "O Vouch Compute vai iniciar quando você entrar",
+    "off": "O Vouch Compute não vai iniciar sozinho",
+    "failed": "Não foi possível alterar a configuração de inicialização: {error}"
+  },
+  "update": {
+    "checking": "Verificando…",
+    "available": "A versão {version} está disponível.",
+    "install": "Instalar e reiniciar",
+    "upToDate": "Você está com a versão mais recente."
+  },
+  "settings": {
+    "title": "Configurações",
+    "lede": "Como e quando o Vouch Compute trabalha neste computador.",
+    "startup": "Inicialização",
+    "language": {
+      "title": "Idioma",
+      "sub": "O idioma deste app. A mudança é imediata.",
+      "label": "Idioma do app",
+      "system": "Idioma do sistema ({name})",
+      "changed": "Idioma alterado para {name}"
+    },
+    "theme": {
+      "title": "Aparência",
+      "sub": "Segue o sistema, a menos que você escolha um tema.",
+      "group": "Tema",
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Escuro",
+      "announceSystem": "O tema segue o sistema",
+      "announceLight": "Tema claro",
+      "announceDark": "Tema escuro"
+    },
+    "privacy": {
+      "title": "Dados e privacidade",
+      "sandbox": "Os trabalhos rodam em um ambiente isolado sem acesso à rede nem aos seus arquivos. Os dados de entrada ficam na memória e nunca são gravados no disco.",
+      "inputs": "Só dados não sensíveis são processados. Tecnicamente, seu computador consegue ver os dados de entrada dos trabalhos enquanto os processa.",
+      "readOnly": "Este app tem acesso somente leitura aos seus ganhos e dispositivos. Alterações na conta de recebimento só acontecem na web.",
+      "counted": "O trabalho é contado pelo servidor, nunca pelo que este app informa. Só o trabalho verificado é pago.",
+      "consentAllowed": "Permitido",
+      "consentRefused": "Não permitido",
+      "consentNone": "Ainda sem resposta",
+      "howVerification": "Como funciona a verificação"
+    },
+    "account": {
+      "title": "Conta",
+      "signedIn": "Você entrou na conta neste computador.",
+      "notSignedIn": "Você não entrou na conta.",
+      "openDashboard": "Abrir painel web",
+      "signOut": "Sair"
+    },
+    "recover": {
+      "title": "Recuperar minha conta",
+      "hint": "Só se você iniciou uma recuperação de conta na web e ela pedir um código deste app.",
+      "codeLabel": "Código da web",
+      "sign": "Assinar com este dispositivo",
+      "start": "Tenho um código de recuperação"
+    },
+    "repair": {
+      "summary": "Avançado: reparar a identidade do dispositivo",
+      "text": "Cria uma nova chave para este computador, validada pela atual, e mantém o nível dele. Use só se o suporte pedir.",
+      "button": "Reparar identidade do dispositivo"
+    },
+    "about": {
+      "title": "Atualizações e sobre",
+      "sub": "As atualizações são assinadas; o Vouch Compute recusa qualquer atualização cuja assinatura não seja válida.",
+      "channel": "Canal do app",
+      "build": "Compilação",
+      "release": "Versão",
+      "check": "Verificar atualizações"
+    },
+    "remove": {
+      "title": "Remover este dispositivo",
+      "text": "Remove este computador da sua conta e apaga a chave dele. Os ganhos continuam na sua conta. Isso não pode ser desfeito; registrar de novo cria um dispositivo novo.",
+      "confirmLabel": "Digite {word} para confirmar"
+    }
+  },
+  "toast": {
+    "settingsSaved": "Configurações salvas",
+    "saved": "Salvo",
+    "saveFailed": "Não foi possível salvar: {error}",
+    "pausedServer": "Pausado no servidor",
+    "resumed": "Retomado",
+    "removed": "Este dispositivo foi removido",
+    "repaired": "Identidade do dispositivo reparada",
+    "pausedHour": "Pausado por uma hora",
+    "reconnecting": "Tentando reconectar"
+  }
+}

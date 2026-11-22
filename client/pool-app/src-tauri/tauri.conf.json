@@ -35,7 +35,7 @@
     "publisher": "Vouch Compute (dev build, unsigned)",
     "category": "Utility",
     "shortDescription": "Share your computer's idle time for verified AI work and get paid.",
-    "longDescription": "Vouch Compute runs small AI jobs (speech-to-text and text embeddings) in a sandbox when your computer is idle. Work is verified by the server and paid in USDC.",
+    "longDescription": "Vouch Compute runs small AI jobs (speech-to-text and text embeddings) in a sandbox when your computer is idle. Work is verified by the server and paid in US dollars.",
     "copyright": "Dev build. Not for distribution.",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
     "externalBin": ["binaries/pool-core", "binaries/pool-runner"],

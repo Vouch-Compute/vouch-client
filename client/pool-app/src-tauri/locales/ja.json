@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Vouch Compute を開く",
+    "pause": "1時間一時停止",
+    "resume": "再開",
+    "quit": "Vouch Compute のウィンドウを閉じる",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute（開発ビルド）"
+  },
+  "window": {
+    "titleDev": "Vouch Compute（開発ビルド）"
+  },
+  "error": {
+    "methodNotAllowed": "このリクエストは許可されていません：{method}",
+    "agentNotRunning": "Vouch Compute エージェントが実行されていません",
+    "agentClosed": "Vouch Compute エージェントが接続を閉じました",
+    "agentError": "Vouch Compute エージェントがエラーを報告しました",
+    "agentStartFailed": "Vouch Compute エージェントを起動できませんでした（{path}）：{detail}",
+    "agentDidNotStart": "Vouch Compute エージェントが起動しませんでした",
+    "noAppFolder": "アプリのフォルダーが見つかりませんでした",
+    "noSignin": "進行中のサインインはありません",
+    "linkUnavailable": "このリンクは現在利用できません",
+    "unknownLink": "不明なリンクです",
+    "link": {
+      "invalid": "無効なリンクのため開きません",
+      "userInfo": "ユーザー情報を含むリンクのため開きません",
+      "noHost": "ホストのないリンクのため開きません",
+      "notHttps": "https ではないリンクのため開きません",
+      "notWeb": "ウェブページではないリンクのため開きません"
+    },
+    "update": {
+      "endpoint": "アップデートのアドレスが無効です：{detail}",
+      "noKey": "このビルドにはアップデート用の鍵がありません",
+      "checkFailed": "アップデートの確認に失敗しました：{detail}",
+      "noneAvailable": "利用可能なアップデートはありません",
+      "rejected": "アップデートは受け入れられませんでした：{detail}",
+      "refused": "アップデートを拒否しました：{detail}"
+    }
+  }
+}

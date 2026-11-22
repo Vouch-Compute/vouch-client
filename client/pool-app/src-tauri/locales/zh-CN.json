@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "打开 Vouch Compute",
+    "pause": "暂停 1 小时",
+    "resume": "恢复",
+    "quit": "关闭 Vouch Compute 窗口",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute（开发版）"
+  },
+  "window": {
+    "titleDev": "Vouch Compute（开发版）"
+  },
+  "error": {
+    "methodNotAllowed": "不允许此请求：{method}",
+    "agentNotRunning": "Vouch Compute 代理程序未运行",
+    "agentClosed": "Vouch Compute 代理程序关闭了连接",
+    "agentError": "Vouch Compute 代理程序报告了一个错误",
+    "agentStartFailed": "无法启动 Vouch Compute 代理程序（{path}）：{detail}",
+    "agentDidNotStart": "Vouch Compute 代理程序未能启动",
+    "noAppFolder": "找不到应用文件夹",
+    "noSignin": "当前没有正在进行的登录",
+    "linkUnavailable": "此链接目前不可用",
+    "unknownLink": "未知链接",
+    "link": {
+      "invalid": "已拒绝无效链接",
+      "userInfo": "已拒绝包含用户信息的链接",
+      "noHost": "已拒绝没有主机名的链接",
+      "notHttps": "已拒绝非 https 链接",
+      "notWeb": "已拒绝非网页链接"
+    },
+    "update": {
+      "endpoint": "更新地址无效：{detail}",
+      "noKey": "此版本没有更新密钥",
+      "checkFailed": "检查更新失败：{detail}",
+      "noneAvailable": "没有可用的更新",
+      "rejected": "更新未被接受：{detail}",
+      "refused": "已拒绝此更新：{detail}"
+    }
+  }
+}

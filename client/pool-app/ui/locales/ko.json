@@ -1,0 +1,562 @@
+{
+  "common": {
+    "loading": "불러오는 중…",
+    "back": "뒤로",
+    "continue": "계속",
+    "resume": "재개",
+    "signIn": "로그인",
+    "range": "{low} – {high}",
+    "rangeSpoken": "{low}에서 {high}",
+    "devBuild": "개발 빌드",
+    "devBuildTitle": "개발 빌드: 개발용 키, 개발용 업데이트 채널, 테스트 네트워크를 사용합니다. 정식 릴리스가 아닙니다.",
+    "duration": {
+      "minutes": "{m}분",
+      "hoursMinutes": "{h}시간 {m}분"
+    },
+    "unit": {
+      "min": "분",
+      "celsius": "°C"
+    }
+  },
+  "shell": {
+    "skip": "본문으로 건너뛰기",
+    "tagline": "쉬고 있는 컴퓨터로 제공하는 검증된 AI 연산.",
+    "navLabel": "주 메뉴",
+    "starting": "시작하는 중…",
+    "themeToggle": "색상 테마 전환",
+    "themeToggleTitle": "테마 전환"
+  },
+  "nav": {
+    "home": "홈",
+    "earnings": "수익",
+    "device": "기기",
+    "settings": "설정"
+  },
+  "mode": {
+    "idleOnly": "자리를 비웠을 때",
+    "scheduled": "일정에 따라",
+    "alwaysOn": "항상 실행"
+  },
+  "hero": {
+    "loading": {
+      "title": "시작하는 중…",
+      "sub": "Vouch Compute 에이전트에 연결하는 중입니다."
+    },
+    "down": {
+      "title": "에이전트가 실행되고 있지 않음",
+      "sub": "작업을 수행하는 백그라운드 에이전트가 실행되고 있지 않습니다."
+    },
+    "signedOut": {
+      "title": "로그아웃됨",
+      "sub": "이 컴퓨터가 검증 대상 작업을 받으려면 로그인하세요.",
+      "authFailed": "이 기기를 인식하지 못했습니다. 다시 로그인하여 재등록하세요."
+    },
+    "offline": {
+      "title": "오프라인",
+      "connecting": "연결하는 중…",
+      "sub": "지금은 Vouch Compute 네트워크에 연결할 수 없습니다.",
+      "subRetry": "지금은 Vouch Compute 네트워크에 연결할 수 없습니다. {seconds, plural, other {#초}} 후에 다시 시도합니다."
+    },
+    "setup": {
+      "title": "이 기기를 설정하는 중",
+      "sub": "이 컴퓨터의 키를 계정에 등록하는 중입니다."
+    },
+    "updateRequired": {
+      "title": "업데이트 필요",
+      "sub": "이 버전으로는 더 이상 연결할 수 없습니다. 설정에서 업데이트를 설치하세요."
+    },
+    "revoked": {
+      "title": "기기가 일시 중지되었거나 정지됨",
+      "sub": "이 기기는 지금 작업을 받을 수 없습니다. Vouch Compute가 주기적으로 다시 시도합니다. 웹의 기기 페이지를 확인하세요."
+    },
+    "earning": {
+      "title": "수익 창출 중",
+      "sub": "샌드박스에서 작업을 실행하는 중입니다. 서버가 검증하면 지급 대상이 됩니다.",
+      "subModel": "샌드박스에서 {model} 작업을 실행하는 중입니다. 서버가 검증하면 지급 대상이 됩니다."
+    },
+    "benchmark": {
+      "title": "벤치마크 실행 중",
+      "sub": "20분 지속 벤치마크를 실행하는 중입니다. 보수가 지급되는 작업이 아닙니다."
+    },
+    "paused": {
+      "title": "일시 중지됨",
+      "until": "{time}까지 일시 중지됩니다. 일시 중지 중에는 새 작업이 시작되지 않습니다.",
+      "local": "일시 중지 중에는 새 작업이 시작되지 않습니다."
+    },
+    "idle": {
+      "title": "대기 중, 작업을 기다리는 중",
+      "sub": "작업 준비가 되었습니다. 수익은 수요에 따라 달라지므로 한동안 작업이 없을 수도 있습니다."
+    },
+    "waiting": {
+      "userActive": {
+        "title": "자리를 비우기를 기다리는 중",
+        "sub": "키보드나 마우스를 {minutes, plural, other {#분}} 동안 사용하지 않으면 시작합니다."
+      },
+      "fullscreen": {
+        "title": "게임 또는 프레젠테이션으로 일시 중지됨",
+        "sub": "전체 화면을 종료하면 다시 시작합니다."
+      },
+      "onBattery": {
+        "title": "배터리 사용 중이라 일시 중지됨",
+        "sub": "Vouch Compute는 전원이 연결되어 있을 때만 작동합니다."
+      },
+      "batteryLow": {
+        "title": "배터리 부족",
+        "sub": "배터리가 30% 미만이면 Vouch Compute는 절대 실행되지 않습니다."
+      },
+      "thermal": {
+        "title": "냉각 중",
+        "sub": "온도가 설정한 {limit, number} °C 한도 아래로 내려갈 때까지 일시 중지됩니다."
+      },
+      "outsideSchedule": {
+        "title": "일정 시간 외",
+        "sub": "Vouch Compute는 선택한 시간에만 작동합니다."
+      },
+      "dailyCap": {
+        "title": "일일 한도에 도달함",
+        "sub": "내일 다시 시작합니다."
+      }
+    }
+  },
+  "pilot": {
+    "banner": "파일럿: 테스트용 금액이며 실제 가치는 없습니다"
+  },
+  "hw": {
+    "gpu": "그래픽 카드",
+    "notDetected": "감지되지 않음",
+    "vram": ", {size}",
+    "gigabytes": "{value, number} GB",
+    "accelerated": "가속됨",
+    "cpu": "프로세서",
+    "memory": "메모리",
+    "lastBackend": "마지막 작업 실행 장치",
+    "deviceKey": "기기 키",
+    "keySoftware": "소프트웨어 키(개발용)",
+    "backend": {
+      "none": "아직 작업 없음",
+      "directml": "그래픽 카드(DirectML)",
+      "cuda": "그래픽 카드(CUDA)",
+      "metal": "그래픽 카드(Metal)",
+      "cpu": "프로세서(CPU)"
+    }
+  },
+  "bench": {
+    "title": "벤치마크",
+    "waiting": "네트워크에서 벤치마크를 보내기를 기다리는 중입니다. Vouch Compute를 열어 두고 전원을 연결해 두세요.",
+    "progressLabel": "벤치마크 진행률",
+    "progress": "{ratio, number, percent} · {rounds, plural, other {#라운드}} 완료. 가벼운 작업은 계속하셔도 됩니다. ‘지금 실행’을 선택했다면 마우스를 움직여도 취소되지 않습니다.",
+    "finished": "벤치마크가 완료되었습니다. 결과는 서버에서 확인합니다.",
+    "stopped": "벤치마크가 끝나기 전에 중지되었습니다. 나중에 다시 시작합니다.",
+    "about": "서명된 20분 지속 테스트로 이 컴퓨터의 실제 성능을 측정합니다. 보수는 지급되지 않으며 언제든지 중지할 수 있습니다.",
+    "runNow": "지금 실행",
+    "runAtIdle": "대신 처음 유휴 상태일 때 실행"
+  },
+  "consent": {
+    "title": "하드웨어 식별자",
+    "lede": "이 컴퓨터를 등록하려면 먼저 Vouch Compute에 답변해 주셔야 합니다. 전문은 다음과 같습니다.",
+    "englishBinding": "이 권한 안내문은 영어로 표시됩니다. 영어 원문이 법적 효력을 갖는 버전입니다.",
+    "sentOnly": "Vouch Compute 계정 서비스로만 전송되며 작업 네트워크로는 절대 전송되지 않습니다. 버전 {version}.",
+    "refuse": "허용 안 함",
+    "accept": "허용하고 계속"
+  },
+  "estimate": {
+    "title": "예상 수익",
+    "sub": "벤치마크와 현재 수요를 바탕으로 서버가 계산합니다.",
+    "loading": "서버에 예상 수익을 요청하는 중…",
+    "unavailable": "예상 수익을 보려면 완료된 벤치마크와 서버 연결이 필요합니다. ({error})",
+    "rangeLabel": "전기 요금 차감 후 월 예상 범위",
+    "notPromise": "예상치이며 보장되지 않습니다",
+    "base": "기본 보수",
+    "baseHint": "작업 자체로 얻는 보수입니다.",
+    "bonus": "출시 보너스",
+    "temporary": "한시적",
+    "none": "없음",
+    "bonusHint": "한시적 출시 보너스입니다. 유료 수요가 늘어나면 점차 줄어듭니다.",
+    "bonusHintEnds": "{date}에 종료되는 한시적 출시 보너스입니다. 유료 수요가 늘어나면 점차 줄어듭니다.",
+    "noBonus": "현재 출시 보너스가 없습니다.",
+    "electricity": "전기 요금",
+    "electricityHint": "{watts, number} W, {price}/kWh 기준으로 이미 차감되었습니다.",
+    "assumes": "하루 {hours, number}시간 사용 가능하고 그중 {utilization, number, percent}의 시간에 작업이 있다고 가정합니다. 이는 범위일 뿐 보장이 아닙니다. 수익은 수요에 따라 달라지며 검증된 작업만 지급됩니다."
+  },
+  "earnings": {
+    "title": "수익",
+    "lede": "수치는 하루에 한 번 서버에서 받아 오며, 최소 24시간 전에 완료된 작업을 반영합니다.",
+    "statusTitle": "지급 상태",
+    "statusSub": "검증된 작업만 집계됩니다. 새 수익은 지급 전에 보류됩니다.",
+    "unavailable": "로그인하고 온라인 상태가 되면 수익을 볼 수 있습니다. ({error})",
+    "splitLabel": "상태별 수익 내역",
+    "empty": "아직 수익이 없습니다. 검증된 작업은 완료 하루 뒤에 여기에 표시됩니다.",
+    "onHold": "보류 중",
+    "onHoldHint": "에스크로 중이거나 확인 중",
+    "paid": "지급됨",
+    "paidHint": "지급 계좌로 송금됨",
+    "allStates": "모든 지급 상태",
+    "probation": "신규 기기: 작업을 검증하는 동안 수익이 {days, plural, other {#일}} 동안 보류됩니다.",
+    "probationUntil": "신규 기기: 작업을 검증하는 동안 수익이 {days, plural, other {#일}} 동안 보류됩니다({date}까지).",
+    "footer": "이번 주 검증 금액: <b>{amount}</b>. {date} 기준. 자세한 내역은 <link>웹 대시보드</link>에서 확인하세요.",
+    "state": {
+      "pending": "대기 중",
+      "inEscrow": "에스크로 중",
+      "inReview": "검토 중",
+      "releasable": "지급 가능",
+      "sent": "송금됨",
+      "clawedBack": "회수됨"
+    },
+    "hint": {
+      "pending": "지급 전 72시간 보류",
+      "inEscrow": "수습 기간: 21일 보류",
+      "inReview": "확인 중이며 몰수된 것이 아님",
+      "releasable": "다음 주간 지급 때 송금됨",
+      "sent": "지급 계좌로 지급됨",
+      "clawedBack": "검토 후 취소됨"
+    }
+  },
+  "payout": {
+    "title": "지급 계좌",
+    "sub": "표시 전용입니다. 지급 계좌는 웹에서 설정하고 변경합니다.",
+    "none": "아직 지급 계좌가 설정되지 않았습니다. 수익은 계속 적립되니 첫 지급 전에 웹에서 설정하세요.",
+    "resumes": "{date}에 지급이 재개됩니다",
+    "unavailable": "로그인하면 지급 계좌 정보를 볼 수 있습니다.",
+    "manage": "웹에서 지급 계좌 설정 또는 변경",
+    "verify": "본인 인증하기",
+    "fine": "안전을 위해 지급 계좌는 웹에서만, 2단계 인증을 거쳐 설정하고 변경할 수 있습니다. 변경하면 지급이 72시간 동안 중지됩니다. 지급을 받으려면 웹에서 본인 인증을 하세요."
+  },
+  "device": {
+    "title": "기기",
+    "lede": "이 컴퓨터와 벤치마크, 한도.",
+    "cardLabel": "이 기기",
+    "thisComputer": "이 컴퓨터",
+    "headPending": "이 기기가 등록되고 온라인 상태가 되면 계정 정보가 표시됩니다.",
+    "state": "{connection, select, online {온라인} other {오프라인}}{activity, select, idle {, 대기 중} working {, 작업 중} paused {, 일시 중지됨} other {}}{pausedBy, select, user {. 사용자가 일시 중지함.} tally {. Vouch Compute가 일시 중지함.} other {}}",
+    "technical": "기술 정보",
+    "id": "기기 ID",
+    "notRegistered": "등록되지 않음",
+    "keyTpm": "TPM 2.0(하드웨어, 내보내기 불가)",
+    "keySoftware": "소프트웨어 키(개발용: 수습 등급으로 제한)",
+    "trustCeiling": "신뢰 상한",
+    "sandbox": "샌드박스",
+    "notUsedYet": "아직 사용되지 않음",
+    "agentVersion": "에이전트 버전",
+    "sandboxFine": "작업은 네트워크와 사용자 파일에 접근할 수 없는 별도의 샌드박스 프로세스에서 실행됩니다. 입력 데이터는 메모리에만 있고 디스크에 기록되지 않습니다.",
+    "relUnavailable": "이 기기가 등록되고 온라인 상태가 되면 볼 수 있습니다.",
+    "scheduleSub": "모드: {mode}. 아래 시간은 ‘일정에 따라’ 모드에 적용됩니다.",
+    "noWindows": "설정된 시간대가 없습니다.",
+    "changeSchedule": "모드 및 일정 변경",
+    "dailyLimit": "일일 한도 {hours, number}시간",
+    "noDailyLimit": "일일 한도 없음",
+    "limits": {
+      "title": "한도",
+      "sub": "Vouch Compute는 이 컴퓨터가 너무 뜨거워지기 전에 일시 중지하며, 얼마나 강하게 작동할지는 사용자가 정합니다.",
+      "pauseAbove": "다음 온도 초과 시 일시 중지",
+      "tempMax": "이 설정과 관계없이 Vouch Compute는 90 °C를 넘지 않습니다.",
+      "power": "전력 사용량",
+      "battery": {
+        "title": "배터리로는 실행하지 않음",
+        "hint": "배터리가 30% 미만이면 설정과 관계없이 실행하지 않습니다."
+      },
+      "fullscreen": {
+        "title": "게임 및 전체 화면 중 일시 중지",
+        "hint": "전체 화면을 종료하면 다시 시작합니다."
+      }
+    },
+    "account": {
+      "title": "계정에 등록된 이 기기",
+      "pause": "서버에서 일시 중지",
+      "manage": "웹에서 관리",
+      "fine": "여기서 일시 중지하는 것은 웹에서 일시 중지하는 것과 같습니다. 재개할 때까지 새 작업이 오지 않습니다. 실행 중인 작업은 끝까지 진행되며 검증되면 지급됩니다."
+    }
+  },
+  "schedule": {
+    "title": "일정",
+    "everyDay": "매일",
+    "weekdays": "평일",
+    "weekends": "주말",
+    "noDays": "선택한 요일 없음",
+    "window": "{days}, {start}–{end}"
+  },
+  "reliability": {
+    "title": "신뢰도",
+    "empty": "서버가 이 기기의 신뢰도 등급을 정하면 여기에 표시됩니다.",
+    "bonus": "검증된 작업에 +{pct}%",
+    "noBonus": "신뢰도 보너스 없음",
+    "since": "{date}부터",
+    "queue": "대기열",
+    "bonusLabel": "보너스",
+    "howToImprove": "개선 방법",
+    "nothingToImprove": "지금은 개선할 점이 없습니다.",
+    "about": "등급은 기기가 얼마나 꾸준히 사용 가능하고 작업을 완료하는지를 바탕으로 서버가 정하며, 하루에 최대 한 번 바뀝니다.",
+    "tier": {
+      "probation": "신규 기기",
+      "premium": "프리미엄",
+      "stable": "안정",
+      "lessStable": "다소 불안정",
+      "unpredictable": "예측 불가"
+    },
+    "priority": {
+      "standard": "대기열 순위 보통",
+      "higher": "대기열 순위 높음",
+      "highest": "대기열 순위 가장 높음"
+    },
+    "hint": {
+      "keepRegularHours": "규칙적인 시간 유지: 매주 비슷한 시간대에 사용 가능하도록 하세요.",
+      "avoidDisconnects": "연결 끊김 줄이기: 안정적인 연결이 도움이 됩니다.",
+      "finishAcceptedJobs": "받은 작업 완료하기: 작업이 중간에 멈추지 않도록 사용 패턴에 맞는 유휴 시간과 일정 한도를 설정하세요.",
+      "buildTenure": "꾸준히 이어 가기: 신뢰도는 몇 주에 걸쳐 쌓입니다.",
+      "verifyIdentity": "웹에서 본인 인증을 하세요.",
+      "useHardwareKey": "하드웨어 보안 칩(TPM)이 있는 컴퓨터를 사용하세요."
+    }
+  },
+  "onboarding": {
+    "step": "{total}단계 중 {current}단계",
+    "stepPermission": "{total}단계 중 {current}단계 · 권한",
+    "progress": "설정 진행률, {total}단계 중 {current}단계",
+    "steps": {
+      "welcome": "환영합니다",
+      "signin": "로그인",
+      "device": "이 기기"
+    },
+    "welcome": {
+      "title": "Vouch Compute에 오신 것을 환영합니다",
+      "lede": "Vouch Compute는 컴퓨터의 남는 시간을 작고 검증된 AI 작업에 사용하고, 확인을 통과한 작업에 대해 보수를 지급합니다. 먼저 아래 내용을 읽어 주세요.",
+      "regionLabel": "동의하는 내용",
+      "scrollHint": "계속하려면 끝까지 스크롤하세요.",
+      "agree": "이해했습니다",
+      "items": {
+        "sandbox": "<b>실행되는 작업:</b> 민감하지 않은 데이터의 음성 텍스트 변환과 텍스트 임베딩이며, 네트워크에 접근할 수 없고 사용자 파일을 볼 수 없는 샌드박스 안에서 실행됩니다.",
+        "inputs": "<b>처리하는 동안 컴퓨터에서 작업 입력 데이터를 기술적으로 볼 수 있습니다.</b> 입력 데이터는 메모리에만 보관되며 디스크에 저장되지 않습니다.",
+        "electricity": "<b>전기 요금:</b> 작업에는 전력이 사용됩니다. 예상 수익에서 전기 요금을 차감하므로 할 만한 가치가 있는지 판단할 수 있습니다.",
+        "provider": "<b>인터넷 서비스 제공업체</b>가 가정용 회선의 상업적 이용을 제한할 수 있습니다. 계약 내용을 확인하세요.",
+        "taxes": "<b>세금:</b> 수익에 대한 세금은 본인이 책임져야 합니다.",
+        "dollars": "<b>미국 달러로 지급:</b> 컴퓨터에서는 여기에 설명된 AI 작업만 실행됩니다. 수익은 미국 달러로 지급 계좌(은행 또는 전자지갑)에 지급됩니다.",
+        "probation": "<b>신규 기기는 수습 기간부터 시작합니다.</b> 작업을 검증하는 21일 동안 수익은 에스크로로 보류됩니다. 검증되지 않은 작업은 지급되지 않습니다.",
+        "defaults": "<b>기본 설정은 보수적입니다:</b> 10분 동안 자리를 비웠을 때만 작업을 시작하고, 돌아오는 즉시 멈추며, 게임 중이나 배터리 사용 중에는 일시 중지하고, 온도 한도를 지킵니다."
+      }
+    },
+    "signin": {
+      "lede": "Vouch Compute 계정을 사용합니다. 로그인은 브라우저에서 사용자 이름, 비밀번호, 2단계 인증으로 진행되므로 이 창에서는 비밀번호나 코드를 볼 수 없습니다.",
+      "start": "브라우저로 로그인",
+      "doneTitle": "로그인되었습니다",
+      "doneLede": "다음으로 이 컴퓨터 전용 키를 만듭니다.",
+      "pendingTitle": "브라우저에서 확인하세요",
+      "pendingLede": "로그인 페이지를 열고 사용자 이름, 비밀번호, 2단계 인증으로 로그인한 다음 이 코드가 일치하는지 확인하세요.",
+      "codeLabel": "기기 코드",
+      "openPage": "로그인 페이지 열기",
+      "waiting": "승인을 기다리는 중…",
+      "readOnly": "앱은 수익과 기기 정보에 대한 읽기 권한만 받습니다. 지급 계좌 변경은 항상 웹에서 합니다.",
+      "terms": "로그인하고 이 컴퓨터에서 앱을 실행하면 Vouch Compute 기여자 계약에 동의하는 것입니다: vouchcompute.com/legal/contributor-agreement"
+    },
+    "device": {
+      "signInFirst": {
+        "title": "먼저 로그인하세요",
+        "lede": "이 컴퓨터는 계정에 등록되므로 설정하기 전에 로그인하세요.",
+        "button": "로그인으로 이동"
+      },
+      "replace": {
+        "title": "전에 사용하던 컴퓨터인가요?",
+        "lede": "{count, plural, other {계정에 이미 이 기기와 비슷한 기기가 있습니다.}} Windows나 앱을 다시 설치했다면 이전 항목을 교체하세요. 등급은 이전되지 않으며, 교체된 기기는 신규 기기로 시작합니다.",
+        "item": "‘{name}’ 교체",
+        "unnamed": "이름 없는 기기",
+        "lastSeen": "마지막 접속: {date}",
+        "new": "아니요, 새 컴퓨터입니다",
+        "newHint": "새 기기로 등록합니다"
+      },
+      "blocked": {
+        "title": "이 컴퓨터는 아직 등록할 수 없습니다",
+        "openDevices": "웹에서 기기 페이지 열기",
+        "verify": "웹에서 인증",
+        "manage": "기기 관리",
+        "reviewPermission": "하드웨어 권한 검토",
+        "registerNew": "새 기기로 등록"
+      },
+      "enrolling": {
+        "title": "이 기기를 등록하는 중…",
+        "creating": "이 컴퓨터의 키를 만드는 중"
+      },
+      "error": {
+        "title": "등록이 완료되지 않았습니다",
+        "backToSignin": "로그인으로 돌아가기",
+        "tryAgain": "다시 시도"
+      },
+      "done": {
+        "title": "준비가 끝났습니다",
+        "lede": "이 컴퓨터가 등록되었습니다. 다음으로 짧은 벤치마크를 진행하며, 그 후에는 Vouch Compute가 설정한 한도 안에서 알아서 작동합니다.",
+        "infoOnly": "참고용 정보입니다. 받을 수 있는 금액은 앱이 보고하는 내용이 아니라 벤치마크로 결정됩니다.",
+        "noTpm": "하드웨어 보안 칩이 없으면 이 기기는 수익이 제한되는 수습 등급에 머무릅니다.",
+        "summary": "자리를 {minutes, plural, other {#분}} 비우면 시작하고 {temp, number} °C를 넘으면 일시 중지합니다. 설정에서 언제든지 변경할 수 있습니다.",
+        "summaryBattery": "자리를 {minutes, plural, other {#분}} 비우면 시작하고, {temp, number} °C를 넘으면 일시 중지하며, 배터리로는 실행하지 않습니다. 설정에서 언제든지 변경할 수 있습니다.",
+        "open": "Vouch Compute 열기"
+      }
+    }
+  },
+  "notices": {
+    "pausedByUser": "웹이나 이 앱에서 일시 중지되었습니다. 재개할 때까지 이 기기는 작업을 받지 않습니다.",
+    "pausedByTally": "Vouch Compute가 일시 중지했습니다. 고객 지원에 문의하세요.",
+    "recovery": "계정 복구가 요청되었습니다. 본인이 요청하지 않았다면 지금 웹에서 취소하세요.",
+    "openWeb": "웹 열기",
+    "reverify": "웹에서 본인 인증을 다시 해 주세요.",
+    "verify": "인증"
+  },
+  "clock": {
+    "minutes": "{n, plural, other {#분}}",
+    "seconds": "{n, plural, other {#초}}",
+    "behind": "컴퓨터 시계가 {offset} 느립니다. Vouch Compute가 이를 보정하지만, 시스템 설정에서 시간을 자동으로 설정하는 것이 가장 좋습니다.",
+    "ahead": "컴퓨터 시계가 {offset} 빠릅니다. Vouch Compute가 이를 보정하지만, 시스템 설정에서 시간을 자동으로 설정하는 것이 가장 좋습니다."
+  },
+  "actions": {
+    "pauseHour": "1시간 일시 중지",
+    "resumeNow": "지금 재개",
+    "tryAgainNow": "지금 다시 시도",
+    "goToUpdates": "업데이트로 이동"
+  },
+  "loading": {
+    "starting": "Vouch Compute를 시작하는 중…"
+  },
+  "agentDown": {
+    "title": "Vouch Compute 에이전트가 실행되고 있지 않습니다",
+    "lede": "에이전트는 백그라운드에서 실행되며 작업을 수행하고 이 컴퓨터의 키를 보관합니다. 계속하려면 에이전트를 시작하세요.",
+    "start": "시작"
+  },
+  "home": {
+    "status": "상태",
+    "mode": "모드: {mode}",
+    "onlyVerified": "검증된 작업만 지급됩니다",
+    "lastProblem": "최근 문제: {error}",
+    "today": {
+      "title": "오늘의 작업",
+      "sub": "이 컴퓨터에서 집계한 값입니다. 각 작업은 지급 전에 서버에서 검증됩니다.",
+      "worked": "오늘 작업 시간",
+      "jobsFinished": "이번 세션에서 완료한 작업",
+      "stoppedEarly": "중간에 중지됨(미지급)",
+      "dailyLimit": "일일 한도",
+      "capUsage": "{hours, number}시간 중 {ratio, number, percent}",
+      "capLabel": "오늘 한도 사용률",
+      "noLimit": "일일 한도가 없습니다. <link>설정에서 지정하기</link>"
+    },
+    "hardware": {
+      "title": "하드웨어",
+      "sub": "이 컴퓨터가 보고한 정보입니다. 보수는 이 목록이 아니라 벤치마크로 결정됩니다."
+    },
+    "estimate": {
+      "title": "월 예상 범위",
+      "note": "(전기 요금 차감 후). 예상치이며 보장되지 않습니다.",
+      "noteBonus": "(전기 요금 차감 후, 한시적 출시 보너스 포함). 예상치이며 보장되지 않습니다.",
+      "seeEarnings": "수익 보기"
+    }
+  },
+  "controls": {
+    "none": "에이전트가 실행되면 제어 항목이 표시됩니다.",
+    "daysFor": "시간대 {n}의 요일",
+    "from": "시작",
+    "to": "종료",
+    "remove": "삭제",
+    "removeWindow": "시간대 {n} 삭제",
+    "modeTitle": "Vouch Compute를 언제 작동시킬까요?",
+    "idleOnly": {
+      "title": "자리를 비웠을 때(권장)",
+      "hint": "일정 시간 사용하지 않으면 시작하고, 돌아오면 몇 초 안에 멈춥니다."
+    },
+    "scheduled": {
+      "title": "일정에 따라",
+      "hint": "아래에서 선택한 시간에만 작동합니다."
+    },
+    "alwaysOn": {
+      "title": "항상 실행",
+      "hint": "데스크톱 전용입니다. 작업하는 동안 컴퓨터가 느려질 수 있습니다."
+    },
+    "idleAfter": "다음 시간 동안 사용하지 않으면 시작",
+    "scheduleSub": "‘일정에 따라’ 모드에서 사용됩니다. 시간은 현지 시간이며, 시간대는 자정을 넘길 수 있습니다.",
+    "noWindowsYet": "아직 시간대가 없습니다.",
+    "addWindow": "시간대 추가",
+    "capLabel": "일일 한도(시간, 비워 두면 제한 없음)"
+  },
+  "autostart": {
+    "title": "이 컴퓨터에 로그인하면 Vouch Compute 시작",
+    "hint": "창이 아닌 트레이(시계 옆 아이콘)에서 열리며 설정한 한도를 따릅니다. 여기서 또는 시스템의 시작 프로그램 설정에서 끌 수 있습니다.",
+    "on": "로그인하면 Vouch Compute가 시작됩니다",
+    "off": "Vouch Compute가 자동으로 시작되지 않습니다",
+    "failed": "시작 설정을 변경하지 못했습니다: {error}"
+  },
+  "update": {
+    "checking": "확인하는 중…",
+    "available": "버전 {version}을(를) 사용할 수 있습니다.",
+    "install": "설치 후 다시 시작",
+    "upToDate": "최신 버전입니다."
+  },
+  "settings": {
+    "title": "설정",
+    "lede": "이 컴퓨터에서 Vouch Compute가 작동하는 방식과 시간.",
+    "startup": "시작",
+    "language": {
+      "title": "언어",
+      "sub": "이 앱의 언어입니다. 바로 적용됩니다.",
+      "label": "앱 언어",
+      "system": "시스템 언어({name})",
+      "changed": "언어가 {name}(으)로 변경되었습니다"
+    },
+    "theme": {
+      "title": "모양",
+      "sub": "테마를 선택하지 않으면 시스템 설정을 따릅니다.",
+      "group": "테마",
+      "system": "시스템",
+      "light": "라이트",
+      "dark": "다크",
+      "announceSystem": "테마가 시스템 설정을 따릅니다",
+      "announceLight": "라이트 테마",
+      "announceDark": "다크 테마"
+    },
+    "privacy": {
+      "title": "데이터 및 개인정보",
+      "sandbox": "작업은 네트워크와 사용자 파일에 접근할 수 없는 샌드박스에서 실행됩니다. 입력 데이터는 메모리에만 있고 디스크에 기록되지 않습니다.",
+      "inputs": "민감하지 않은 데이터만 처리합니다. 처리하는 동안 컴퓨터에서 작업 입력 데이터를 기술적으로 볼 수 있습니다.",
+      "readOnly": "이 앱은 수익과 기기 정보에 대한 읽기 전용 권한만 받습니다. 지급 계좌 변경은 웹에서만 할 수 있습니다.",
+      "counted": "작업량은 이 앱이 보고하는 내용이 아니라 서버가 집계합니다. 검증된 작업만 지급됩니다.",
+      "consentAllowed": "허용됨",
+      "consentRefused": "허용 안 됨",
+      "consentNone": "아직 답변하지 않음",
+      "howVerification": "검증 방식 알아보기"
+    },
+    "account": {
+      "title": "계정",
+      "signedIn": "이 컴퓨터에 로그인되어 있습니다.",
+      "notSignedIn": "로그인되어 있지 않습니다.",
+      "openDashboard": "웹 대시보드 열기",
+      "signOut": "로그아웃"
+    },
+    "recover": {
+      "title": "내 계정 복구",
+      "hint": "웹에서 계정 복구를 시작했고, 이 앱의 코드를 요청받은 경우에만 사용하세요.",
+      "codeLabel": "웹에 표시된 코드",
+      "sign": "이 기기로 서명",
+      "start": "복구 코드가 있습니다"
+    },
+    "repair": {
+      "summary": "고급: 기기 ID 복구",
+      "text": "현재 키가 보증하는 새 키를 이 컴퓨터용으로 만들고 등급은 유지합니다. 고객 지원에서 요청한 경우에만 사용하세요.",
+      "button": "기기 ID 복구"
+    },
+    "about": {
+      "title": "업데이트 및 정보",
+      "sub": "업데이트에는 서명이 있으며, 서명이 확인되지 않는 업데이트는 Vouch Compute가 거부합니다.",
+      "channel": "앱 채널",
+      "build": "빌드",
+      "release": "릴리스",
+      "check": "업데이트 확인"
+    },
+    "remove": {
+      "title": "이 기기 삭제",
+      "text": "계정에서 이 컴퓨터를 삭제하고 키를 지웁니다. 수익은 계정에 그대로 남습니다. 되돌릴 수 없으며, 다시 등록하면 새 기기가 됩니다.",
+      "confirmLabel": "확인하려면 {word}을(를) 입력하세요"
+    }
+  },
+  "toast": {
+    "settingsSaved": "설정이 저장되었습니다",
+    "saved": "저장되었습니다",
+    "saveFailed": "저장하지 못했습니다: {error}",
+    "pausedServer": "서버에서 일시 중지되었습니다",
+    "resumed": "재개되었습니다",
+    "removed": "이 기기가 삭제되었습니다",
+    "repaired": "기기 ID가 복구되었습니다",
+    "pausedHour": "1시간 동안 일시 중지되었습니다",
+    "reconnecting": "다시 연결하는 중"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Vouch Compute'u aç",
+    "pause": "1 saat duraklat",
+    "resume": "Sürdür",
+    "quit": "Vouch Compute penceresini kapat",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (GELİŞTİRME SÜRÜMÜ)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (GELİŞTİRME SÜRÜMÜ)"
+  },
+  "error": {
+    "methodNotAllowed": "Bu isteğe izin verilmiyor: {method}",
+    "agentNotRunning": "Vouch Compute aracısı çalışmıyor",
+    "agentClosed": "Vouch Compute aracısı bağlantıyı kapattı",
+    "agentError": "Vouch Compute aracısı bir hata bildirdi",
+    "agentStartFailed": "Vouch Compute aracısı başlatılamadı ({path}): {detail}",
+    "agentDidNotStart": "Vouch Compute aracısı başlamadı",
+    "noAppFolder": "Uygulamanın klasörü bulunamadı",
+    "noSignin": "Devam eden bir oturum açma işlemi yok",
+    "linkUnavailable": "Bu bağlantı şu anda kullanılamıyor",
+    "unknownLink": "Bilinmeyen bağlantı",
+    "link": {
+      "invalid": "Geçersiz bir bağlantı reddedildi",
+      "userInfo": "Kullanıcı bilgisi içeren bir bağlantı reddedildi",
+      "noHost": "Sunucu adı olmayan bir bağlantı reddedildi",
+      "notHttps": "HTTPS olmayan bir bağlantı reddedildi",
+      "notWeb": "Web sayfası olmayan bir bağlantı reddedildi"
+    },
+    "update": {
+      "endpoint": "Güncelleme adresi geçerli değil: {detail}",
+      "noKey": "Bu sürümde güncelleme anahtarı yok",
+      "checkFailed": "Güncelleme denetimi başarısız oldu: {detail}",
+      "noneAvailable": "Kullanılabilir güncelleme yok",
+      "rejected": "Güncelleme reddedildi: {detail}",
+      "refused": "Güncelleme kabul edilmedi: {detail}"
+    }
+  }
+}

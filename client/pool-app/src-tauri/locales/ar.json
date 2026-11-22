@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "فتح Vouch Compute",
+    "pause": "إيقاف مؤقت لمدة ساعة",
+    "resume": "استئناف",
+    "quit": "إغلاق نافذة Vouch Compute",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (نسخة تطوير)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (نسخة تطوير)"
+  },
+  "error": {
+    "methodNotAllowed": "هذا الطلب غير مسموح به: {method}",
+    "agentNotRunning": "وكيل Vouch Compute لا يعمل",
+    "agentClosed": "أغلق وكيل Vouch Compute الاتصال",
+    "agentError": "أبلغ وكيل Vouch Compute عن خطأ",
+    "agentStartFailed": "تعذّر تشغيل وكيل Vouch Compute ({path}): {detail}",
+    "agentDidNotStart": "لم يبدأ وكيل Vouch Compute",
+    "noAppFolder": "تعذّر العثور على مجلد التطبيق",
+    "noSignin": "لا يوجد تسجيل دخول قيد التقدم",
+    "linkUnavailable": "هذا الرابط غير متاح حاليًا",
+    "unknownLink": "رابط غير معروف",
+    "link": {
+      "invalid": "تم رفض رابط غير صالح",
+      "userInfo": "تم رفض رابط يتضمن معلومات مستخدم",
+      "noHost": "تم رفض رابط بلا مضيف",
+      "notHttps": "تم رفض رابط لا يستخدم https",
+      "notWeb": "تم رفض رابط ليس صفحة ويب"
+    },
+    "update": {
+      "endpoint": "عنوان التحديث غير صالح: {detail}",
+      "noKey": "لا يحتوي هذا البناء على مفتاح تحديث",
+      "checkFailed": "فشل التحقق من التحديثات: {detail}",
+      "noneAvailable": "لا يتوفر أي تحديث",
+      "rejected": "لم يُقبل التحديث: {detail}",
+      "refused": "تم رفض التحديث: {detail}"
+    }
+  }
+}

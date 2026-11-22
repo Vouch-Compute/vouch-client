@@ -8,6 +8,7 @@ const CAPS: &str = include_str!("../capabilities/default.json");
 const MAIN_RS: &str = include_str!("main.rs");
 const CONTROL_RS: &str = include_str!("../../../crates/pool-core/src/control.rs");
 const APP_JS: &str = include_str!("../../ui/app.js");
+const I18N_JS: &str = include_str!("../../ui/i18n.js");
 const INDEX_HTML: &str = include_str!("../../ui/index.html");
 
 fn conf() -> Value {
@@ -28,14 +29,14 @@ fn capability_grants_only_core_default_to_the_main_window() {
     assert_eq!(files.len(), 1, "exactly one capability file: {files:?}");
 }
 
-/// The app exposes exactly six commands. Adding one is an IPC surface change.
+/// The app exposes exactly these commands. Adding one is an IPC surface change.
 #[test]
 fn invoke_handler_lists_exactly_the_reviewed_commands() {
     let start = MAIN_RS.find("generate_handler![").expect("handler") + "generate_handler![".len();
     let end = start + MAIN_RS[start..].find(']').unwrap();
     let mut cmds: Vec<&str> = MAIN_RS[start..end].split(',').map(str::trim).filter(|s| !s.is_empty()).collect();
     cmds.sort();
-    assert_eq!(cmds, ["autostart_get", "autostart_set", "build_info", "check_update", "core", "ensure_core", "install_update", "open_link"]);
+    assert_eq!(cmds, ["autostart_get", "autostart_set", "build_info", "check_update", "core", "ensure_core", "i18n_messages", "install_update", "open_link", "set_locale"]);
     // nothing takes a path, a URL or a shell command from the page
     for c in &cmds {
         let sig = MAIN_RS.find(&format!("fn {c}(")).map(|i| &MAIN_RS[i..i + MAIN_RS[i..].find('{').unwrap()]).unwrap();
@@ -61,7 +62,7 @@ fn core_proxy_allow_list_matches_the_agent() {
     sorted.sort();
     sorted.dedup();
     assert_eq!(sorted.len(), allowed.len(), "duplicates in ALLOWED");
-    // and the UI only calls allow-listed methods and the six commands
+    // and the UI only calls allow-listed methods and the reviewed commands
     for (i, _) in APP_JS.match_indices("core(\"") {
         let rest = &APP_JS[i + 6..];
         let m = &rest[..rest.find('"').unwrap()];
@@ -70,7 +71,7 @@ fn core_proxy_allow_list_matches_the_agent() {
     for (i, _) in APP_JS.match_indices("invoke(\"") {
         let rest = &APP_JS[i + 8..];
         let c = &rest[..rest.find('"').unwrap()];
-        assert!(["core", "ensure_core", "open_link", "build_info", "check_update", "install_update", "autostart_get", "autostart_set"].contains(&c), "{c}");
+        assert!(["core", "ensure_core", "open_link", "build_info", "check_update", "install_update", "autostart_get", "autostart_set", "set_locale", "i18n_messages"].contains(&c), "{c}");
     }
 }
 
@@ -101,10 +102,30 @@ fn csp_is_strict() {
     assert!(!INDEX_HTML.contains("<script>") && !INDEX_HTML.contains(" onclick="), "inline script in index.html");
     for sink in ["eval(", "new Function(", "document.write(", "setTimeout(\"", "setInterval(\""] {
         assert!(!APP_JS.contains(sink), "{sink} in app.js");
+        assert!(!I18N_JS.contains(sink), "{sink} in i18n.js");
     }
+    // translations reach the DOM as text only: i18n.js never writes HTML itself
+    for sink in ["innerHTML", "outerHTML", "insertAdjacentHTML"] {
+        assert!(!I18N_JS.contains(sink), "{sink} in i18n.js");
+    }
+    assert!(INDEX_HTML.contains("<script src=\"i18n.js\" defer></script>"), "index.html loads i18n.js from the bundle");
     // the windows load the bundled UI only
     for w in c["app"]["windows"].as_array().unwrap() {
         assert!(w.get("url").is_none() || w["url"].as_str().unwrap().starts_with("index"), "remote window url");
+    }
+}
+
+/// The locale commands take a language tag only, and anything outside the registry becomes English: the page can
+/// neither name a file nor get anything but the embedded message catalogues.
+#[test]
+fn locale_commands_only_select_registry_entries() {
+    use crate::i18n::{resolve, ui_messages, LOCALES};
+    for bad in ["../../tauri.conf.json", "C:\\Windows\\win.ini", "en/../../x", "", "\u{202e}ar"] {
+        assert_eq!(LOCALES[resolve(bad)].code, "en", "{bad:?}");
+        assert_eq!(ui_messages(bad), LOCALES[0].ui_text(), "{bad:?}");
+    }
+    for sig in ["fn set_locale(app: AppHandle, locale: String) -> String", "fn i18n_messages(locale: String) -> String"] {
+        assert!(MAIN_RS.contains(sig), "reviewed signature changed: {sig}");
     }
 }
 

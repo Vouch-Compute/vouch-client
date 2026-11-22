@@ -1,0 +1,562 @@
+{
+  "common": {
+    "loading": "Yükleniyor…",
+    "back": "Geri",
+    "continue": "Devam",
+    "resume": "Sürdür",
+    "signIn": "Oturum aç",
+    "range": "{low} – {high}",
+    "rangeSpoken": "{low} ile {high} arası",
+    "devBuild": "GELİŞTİRME SÜRÜMÜ",
+    "devBuildTitle": "Geliştirme sürümü: geliştirme anahtarları, geliştirme güncelleme kanalı, test ağı. Yayın sürümü değildir.",
+    "duration": {
+      "minutes": "{m} dk",
+      "hoursMinutes": "{h} sa {m} dk"
+    },
+    "unit": {
+      "min": "dk",
+      "celsius": "°C"
+    }
+  },
+  "shell": {
+    "skip": "İçeriğe geç",
+    "tagline": "Boştaki bilgisayarlardan doğrulanmış yapay zekâ işlem gücü.",
+    "navLabel": "Ana menü",
+    "starting": "Başlatılıyor…",
+    "themeToggle": "Renk temasını değiştir",
+    "themeToggleTitle": "Temayı değiştir"
+  },
+  "nav": {
+    "home": "Ana sayfa",
+    "earnings": "Kazançlar",
+    "device": "Cihaz",
+    "settings": "Ayarlar"
+  },
+  "mode": {
+    "idleOnly": "Ben yokken",
+    "scheduled": "Zamanlamaya göre",
+    "alwaysOn": "Her zaman açık"
+  },
+  "hero": {
+    "loading": {
+      "title": "Başlatılıyor…",
+      "sub": "Vouch Compute aracısına bağlanılıyor."
+    },
+    "down": {
+      "title": "Aracı çalışmıyor",
+      "sub": "İşi yapan arka plan aracısı çalışmıyor."
+    },
+    "signedOut": {
+      "title": "Oturum kapalı",
+      "sub": "Bu bilgisayarın doğrulanmış iş alabilmesi için oturum açın.",
+      "authFailed": "Bu cihaz tanınmadı. Yeniden kaydetmek için tekrar oturum açın."
+    },
+    "offline": {
+      "title": "Çevrimdışı",
+      "connecting": "Bağlanılıyor…",
+      "sub": "Şu anda Vouch Compute ağına ulaşılamıyor.",
+      "subRetry": "Şu anda Vouch Compute ağına ulaşılamıyor. {seconds, plural, one {# saniye} other {# saniye}} sonra yeniden denenecek."
+    },
+    "setup": {
+      "title": "Bu cihaz hazırlanıyor",
+      "sub": "Bu bilgisayarın anahtarı hesabınıza kaydediliyor."
+    },
+    "updateRequired": {
+      "title": "Güncelleme gerekiyor",
+      "sub": "Bu sürüm artık bağlanamıyor. Güncellemeyi Ayarlar'dan yükleyin."
+    },
+    "revoked": {
+      "title": "Cihaz duraklatıldı veya askıya alındı",
+      "sub": "Bu cihaz şu anda iş alamıyor. Vouch Compute ara ara yeniden dener; web'deki Cihazlar sayfasına bakın."
+    },
+    "earning": {
+      "title": "Kazanıyor",
+      "sub": "Korumalı alanda bir iş çalışıyor. Sunucu doğruladığında ödenir.",
+      "subModel": "Korumalı alanda bir {model} işi çalışıyor. Sunucu doğruladığında ödenir."
+    },
+    "benchmark": {
+      "title": "Performans testi yapılıyor",
+      "sub": "20 dakikalık sürekli performans testi çalışıyor. Bu ücretli bir iş değildir."
+    },
+    "paused": {
+      "title": "Duraklatıldı",
+      "until": "{time} saatine kadar. Duraklatılmışken yeni iş başlamaz.",
+      "local": "Duraklatılmışken yeni iş başlamaz."
+    },
+    "idle": {
+      "title": "Boşta, iş bekleniyor",
+      "sub": "İşe hazır. Kazançlar talebe bağlıdır, bu yüzden sakin dönemler olabilir."
+    },
+    "waiting": {
+      "userActive": {
+        "title": "Bilgisayardan uzaklaşmanız bekleniyor",
+        "sub": "Klavye veya fare {minutes, plural, one {# dakika} other {# dakika}} kullanılmadığında başlar."
+      },
+      "fullscreen": {
+        "title": "Oyununuz veya sunumunuz için duraklatıldı",
+        "sub": "Tam ekrandan çıktığınızda devam eder."
+      },
+      "onBattery": {
+        "title": "Pil gücünde duraklatıldı",
+        "sub": "Vouch Compute yalnızca prize takılıyken çalışır."
+      },
+      "batteryLow": {
+        "title": "Pil düşük",
+        "sub": "Vouch Compute pil %30'un altındayken asla çalışmaz."
+      },
+      "thermal": {
+        "title": "Soğuyor",
+        "sub": "Sıcaklık belirlediğiniz {limit, number} °C sınırının altına inene kadar duraklatıldı."
+      },
+      "outsideSchedule": {
+        "title": "Zamanlamanızın dışında",
+        "sub": "Vouch Compute yalnızca seçtiğiniz saatlerde çalışır."
+      },
+      "dailyCap": {
+        "title": "Günlük sınıra ulaşıldı",
+        "sub": "Yarın devam eder."
+      }
+    }
+  },
+  "pilot": {
+    "banner": "Pilot: test parası, gerçek değeri yok"
+  },
+  "hw": {
+    "gpu": "Ekran kartı",
+    "notDetected": "Algılanmadı",
+    "vram": ", {size}",
+    "gigabytes": "{value, number} GB",
+    "accelerated": "Hızlandırılmış",
+    "cpu": "İşlemci",
+    "memory": "Bellek",
+    "lastBackend": "Son işin çalıştığı yer",
+    "deviceKey": "Cihaz anahtarı",
+    "keySoftware": "Yazılım anahtarı (geliştirme)",
+    "backend": {
+      "none": "Henüz iş yok",
+      "directml": "Ekran kartı (DirectML)",
+      "cuda": "Ekran kartı (CUDA)",
+      "metal": "Ekran kartı (Metal)",
+      "cpu": "İşlemci (CPU)"
+    }
+  },
+  "bench": {
+    "title": "Performans testi",
+    "waiting": "Ağın performans testinizi göndermesi bekleniyor. Vouch Compute'u açık ve bilgisayarı prize takılı tutun.",
+    "progressLabel": "Performans testi ilerlemesi",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# tur} other {# tur}} tamamlandı. Bilgisayarınızı hafif işler için kullanmaya devam edebilirsiniz; “Şimdi çalıştır”ı seçtiyseniz fareyi hareket ettirmek testi iptal etmez.",
+    "finished": "Performans testi tamamlandı. Sonuçlar sunucu tarafından kontrol edilir.",
+    "stopped": "Performans testi bitmeden durdu. Daha sonra yeniden başlayacak.",
+    "about": "İmzalı, 20 dakikalık sürekli bir test bu bilgisayarın gerçekte neler yapabildiğini ölçer. Bu test asla ödenmez ve istediğiniz zaman durdurabilirsiniz.",
+    "runNow": "Şimdi çalıştır",
+    "runAtIdle": "İlk boşta kalındığında çalıştır"
+  },
+  "consent": {
+    "title": "Donanım tanımlayıcıları",
+    "lede": "Bu bilgisayar kaydedilmeden önce Vouch Compute'un yanıtınıza ihtiyacı var. Metnin tamamı şöyledir:",
+    "englishBinding": "Bu izin metni İngilizce gösterilir. Bağlayıcı olan İngilizce metindir.",
+    "sentOnly": "Yalnızca Vouch Compute'un hesap hizmetine gönderilir, iş ağına asla gönderilmez. Sürüm {version}.",
+    "refuse": "İzin verme",
+    "accept": "İzin ver ve devam et"
+  },
+  "estimate": {
+    "title": "Tahmininiz",
+    "sub": "Sunucu tarafından performans testinize ve güncel talebe göre hesaplanır.",
+    "loading": "Sunucudan tahmin isteniyor…",
+    "unavailable": "Tahmin için tamamlanmış bir performans testi ve sunucuya bağlantı gerekir. ({error})",
+    "rangeLabel": "Elektrik düşüldükten sonra tahmini aylık aralık",
+    "notPromise": "Bir tahmin, söz değil",
+    "base": "Temel ödeme",
+    "baseHint": "İşin tek başına kazandırdığı tutar.",
+    "bonus": "Lansman bonusu",
+    "temporary": "Geçici",
+    "none": "Yok",
+    "bonusHint": "Geçici bir lansman bonusu. Ücretli talep arttıkça azalır.",
+    "bonusHintEnds": "Geçici bir lansman bonusu, {date} tarihinde sona erer. Ücretli talep arttıkça azalır.",
+    "noBonus": "Şu anda lansman bonusu yok.",
+    "electricity": "Elektrik",
+    "electricityHint": "{price}/kWh fiyatla {watts, number} W, zaten düşüldü.",
+    "assumes": "Günde {hours, number} saat kullanılabilir olduğu ve bu sürenin {utilization, number, percent} kadarında iş olduğu varsayılır. Bu bir aralıktır, söz değildir: kazançlar talebe bağlıdır ve yalnızca doğrulanmış iş ödenir."
+  },
+  "earnings": {
+    "title": "Kazançlar",
+    "lede": "Rakamlar sunucudan günde bir kez gelir ve en az 24 saat önce yapılan işi kapsar.",
+    "statusTitle": "Ödeme durumu",
+    "statusSub": "Yalnızca doğrulanmış iş sayılır. Yeni kazançlar ödenmeden önce bekletilir.",
+    "unavailable": "Kazançlar, oturum açıp çevrimiçi olduğunuzda görüntülenebilir. ({error})",
+    "splitLabel": "Kazançlarınızın duruma göre dağılımı",
+    "empty": "Henüz kazanç yok. Doğrulanmış iş, yapıldıktan bir gün sonra burada görünür.",
+    "onHold": "Bekletmede",
+    "onHoldHint": "Emanette veya kontrol ediliyor",
+    "paid": "Ödendi",
+    "paidHint": "Ödeme hesabınıza gönderildi",
+    "allStates": "Tüm ödeme durumları",
+    "probation": "Yeni cihaz: iş doğrulanırken kazançlar {days, plural, one {# gün} other {# gün}} bekletilir.",
+    "probationUntil": "Yeni cihaz: iş doğrulanırken kazançlar {days, plural, one {# gün} other {# gün}} bekletilir ({date} tarihine kadar).",
+    "footer": "Bu hafta doğrulanan: <b>{amount}</b>. {date} itibarıyla. Ayrıntılı geçmiş <link>web panelinde</link>.",
+    "state": {
+      "pending": "Beklemede",
+      "inEscrow": "Emanette",
+      "inReview": "İncelemede",
+      "releasable": "Ödemeye hazır",
+      "sent": "Gönderildi",
+      "clawedBack": "Geri alındı"
+    },
+    "hint": {
+      "pending": "Serbest bırakılmadan önce 72 saat bekletilir",
+      "inEscrow": "Deneme süreci: 21 gün bekletilir",
+      "inReview": "Kontrol ediliyor, kaybedilmedi",
+      "releasable": "Bir sonraki haftalık ödemeyle gönderilir",
+      "sent": "Ödeme hesabınıza ödendi",
+      "clawedBack": "İnceleme sonrası geri alındı"
+    }
+  },
+  "payout": {
+    "title": "Ödeme hesabı",
+    "sub": "Yalnızca görüntüleme. Ödeme hesabınız web'de ayarlanır ve değiştirilir.",
+    "none": "Henüz bir ödeme hesabı ayarlanmadı. Kazançlarınız birikmeye devam eder; ilk ödemenizden önce web'de bir hesap ayarlayın.",
+    "resumes": "Ödemeler {date} tarihinde yeniden başlar",
+    "unavailable": "Ödeme hesabı ayrıntıları oturum açtığınızda görüntülenebilir.",
+    "manage": "Ödeme hesabınızı web'de ayarlayın veya değiştirin",
+    "verify": "Kimliğinizi doğrulayın",
+    "fine": "Güvenliğiniz için ödeme hesapları yalnızca web'de, ikinci doğrulama adımınızla ayarlanır ve değiştirilir. Her değişiklik ödemeleri 72 saat duraklatır. Ödeme alabilmek için kimliğinizi web'de doğrulayın."
+  },
+  "device": {
+    "title": "Cihaz",
+    "lede": "Bu bilgisayar, performans testi ve sınırları.",
+    "cardLabel": "Bu cihaz",
+    "thisComputer": "Bu bilgisayar",
+    "headPending": "Hesap ayrıntıları, bu cihaz kaydedilip çevrimiçi olduğunda görünür.",
+    "state": "{connection, select, online {Çevrimiçi} other {Çevrimdışı}}{activity, select, idle {, boşta} working {, çalışıyor} paused {, duraklatıldı} other {}}{pausedBy, select, user {. Sizin tarafınızdan duraklatıldı.} tally {. Vouch Compute tarafından duraklatıldı.} other {}}",
+    "technical": "Teknik ayrıntılar",
+    "id": "Cihaz kimliği",
+    "notRegistered": "Kayıtlı değil",
+    "keyTpm": "TPM 2.0 (donanım, dışa aktarılamaz)",
+    "keySoftware": "Yazılım anahtarı (geliştirme seviyesi: Deneme seviyesiyle sınırlı)",
+    "trustCeiling": "Güven üst sınırı",
+    "sandbox": "Korumalı alan",
+    "notUsedYet": "Henüz kullanılmadı",
+    "agentVersion": "Aracı sürümü",
+    "sandboxFine": "İşler, ağ erişimi ve dosyalarınıza erişimi olmayan ayrı bir korumalı süreçte çalışır. Girdiler bellekte kalır ve asla diske yazılmaz.",
+    "relUnavailable": "Bu cihaz kaydedilip çevrimiçi olduğunda görüntülenebilir.",
+    "scheduleSub": "Mod: {mode}. Aşağıdaki saatler “Zamanlamaya göre” modunda geçerlidir.",
+    "noWindows": "Zaman aralığı ayarlanmadı.",
+    "changeSchedule": "Modu ve zamanlamayı değiştir",
+    "dailyLimit": "Günlük sınır {hours, number} sa",
+    "noDailyLimit": "Günlük sınır yok",
+    "limits": {
+      "title": "Sınırlar",
+      "sub": "Vouch Compute bu bilgisayar fazla ısınmadan önce duraklar; ne kadar yoğun çalışacağını siz seçersiniz.",
+      "pauseAbove": "Şu sıcaklığın üstünde duraklat",
+      "tempMax": "Bu ayar ne olursa olsun Vouch Compute asla 90 °C'yi aşmaz.",
+      "power": "Güç kullanımı",
+      "battery": {
+        "title": "Pil gücünde asla çalıştırma",
+        "hint": "Pil %30'un altındayken her durumda asla çalışmaz."
+      },
+      "fullscreen": {
+        "title": "Oyunlarda ve tam ekranda duraklat",
+        "hint": "Tam ekrandan çıktığınızda devam eder."
+      }
+    },
+    "account": {
+      "title": "Hesabınızdaki bu cihaz",
+      "pause": "Sunucuda duraklat",
+      "manage": "Web'de yönet",
+      "fine": "Burada duraklatmak web'de duraklatmakla aynıdır: siz sürdürene kadar yeni iş gelmez. Çalışan bir iş tamamlanır ve doğrulanırsa ödenir."
+    }
+  },
+  "schedule": {
+    "title": "Zamanlama",
+    "everyDay": "Her gün",
+    "weekdays": "Hafta içi",
+    "weekends": "Hafta sonu",
+    "noDays": "Gün seçilmedi",
+    "window": "{days}, {start}–{end}"
+  },
+  "reliability": {
+    "title": "Güvenilirlik",
+    "empty": "Sunucu bu cihaz için bir güvenilirlik seviyesi belirlediğinde burada görünür.",
+    "bonus": "Doğrulanmış işte +%{pct}",
+    "noBonus": "Güvenilirlik bonusu yok",
+    "since": "{date} tarihinden beri",
+    "queue": "Sıra",
+    "bonusLabel": "Bonus",
+    "howToImprove": "Nasıl iyileştirilir",
+    "nothingToImprove": "Şu anda iyileştirilecek bir şey yok.",
+    "about": "Seviyeleri, cihazın ne kadar düzenli kullanılabilir olduğuna ve işleri ne kadar tamamladığına göre sunucu belirler; seviyeler günde en fazla bir kez değişir.",
+    "tier": {
+      "probation": "Yeni cihaz",
+      "premium": "Premium",
+      "stable": "Kararlı",
+      "lessStable": "Daha az kararlı",
+      "unpredictable": "Öngörülemez"
+    },
+    "priority": {
+      "standard": "Sırada standart yer",
+      "higher": "Sırada daha öncelikli yer",
+      "highest": "Sırada en öncelikli yer"
+    },
+    "hint": {
+      "keepRegularHours": "Düzenli saatler: her hafta benzer saatlerde kullanılabilir olun.",
+      "avoidDisconnects": "Bağlantı kopmalarından kaçının: istikrarlı bir bağlantı yardımcı olur.",
+      "finishAcceptedJobs": "Kabul ettiğiniz işleri tamamlayın: işi yarıda kesmekten kaçının; örneğin kullanımınıza uyan boşta kalma ve zamanlama sınırları belirleyin.",
+      "buildTenure": "Devam edin: güvenilirlik haftalar içinde oluşur.",
+      "verifyIdentity": "Kimliğinizi web'de doğrulayın.",
+      "useHardwareKey": "Donanım güvenlik yongası (TPM) olan bir bilgisayar kullanın."
+    }
+  },
+  "onboarding": {
+    "step": "Adım {current}/{total}",
+    "stepPermission": "Adım {current}/{total} · İzin",
+    "progress": "Kurulum ilerlemesi, adım {current}/{total}",
+    "steps": {
+      "welcome": "Hoş geldiniz",
+      "signin": "Oturum açma",
+      "device": "Bu cihaz"
+    },
+    "welcome": {
+      "title": "Vouch Compute'a hoş geldiniz",
+      "lede": "Vouch Compute, bilgisayarınızın boş zamanını küçük ve doğrulanmış yapay zekâ işleri için kullanır ve kontrolden geçen iş için size ödeme yapar. Lütfen önce bunu okuyun.",
+      "regionLabel": "Neyi kabul ettiğiniz",
+      "scrollHint": "Devam etmek için sonuna kadar kaydırın.",
+      "agree": "Anladım",
+      "items": {
+        "sandbox": "<b>Ne çalışır?</b> Hassas olmayan verilerin konuşmadan metne dönüştürülmesi ve metin gömmeleri; ağ erişimi olmayan ve dosyalarınızı göremeyen bir korumalı alanda.",
+        "inputs": "<b>Bilgisayarınız, işlediği iş girdilerini teknik olarak görebilir.</b> Girdiler yalnızca bellekte tutulur ve asla diske kaydedilmez.",
+        "electricity": "<b>Elektrik.</b> İş elektrik tüketir. Tahmininizden bir elektrik maliyeti düşülür; böylece buna değip değmediğine karar verebilirsiniz.",
+        "provider": "<b>İnternet sağlayıcınız</b> ev bağlantısının ticari kullanımını kısıtlayabilir. Sözleşmenizi kontrol edin.",
+        "taxes": "<b>Vergiler:</b> kazancınızla ilgili vergiler sizin sorumluluğunuzdadır.",
+        "dollars": "<b>ABD doları olarak ödenir.</b> Bilgisayarınızda yalnızca burada açıklanan yapay zekâ işleri çalışır. Kazançlar ABD doları olarak ödeme hesabınıza (banka veya e-cüzdan) ödenir.",
+        "probation": "<b>Yeni cihazlar deneme süreciyle başlar.</b> İş doğrulanırken kazançlar 21 gün emanette tutulur. Doğrulanmamış iş ödenmez.",
+        "defaults": "<b>Varsayılanlar temkinlidir:</b> iş yalnızca 10 dakika bilgisayar başında olmadığınızda başlar, döndüğünüz anda durur, oyunlarda ve pil gücünde duraklar ve bir sıcaklık sınırına uyar."
+      }
+    },
+    "signin": {
+      "lede": "Vouch Compute hesabınızı kullanın. Oturum açma, tarayıcınızda kullanıcı adınız, parolanız ve ikinci doğrulama adımınızla yapılır; bu pencere parolanızı veya kodlarınızı asla görmez.",
+      "start": "Tarayıcıyla oturum aç",
+      "doneTitle": "Oturum açtınız",
+      "doneLede": "Sırada bu bilgisayarın kendi anahtarı var.",
+      "pendingTitle": "Tarayıcınızda onaylayın",
+      "pendingLede": "Oturum açma sayfasını açın, kullanıcı adınız, parolanız ve ikinci doğrulama adımınızla oturum açın, ardından bu kodun eşleştiğini kontrol edin:",
+      "codeLabel": "Cihaz kodu",
+      "openPage": "Oturum açma sayfasını aç",
+      "waiting": "Onayınız bekleniyor…",
+      "readOnly": "Uygulama kazançlarınıza ve cihazlarınıza yalnızca okuma erişimi alır. Ödeme hesabı değişiklikleri her zaman web'de yapılır.",
+      "terms": "Oturum açıp uygulamayı bu bilgisayarda çalıştırarak Vouch Compute Katkı Sağlayıcı Sözleşmesi'ni kabul etmiş olursunuz: vouchcompute.com/legal/contributor-agreement"
+    },
+    "device": {
+      "signInFirst": {
+        "title": "Önce oturum açın",
+        "lede": "Bu bilgisayar hesabınıza kaydedilir; bu yüzden kurmadan önce oturum açın.",
+        "button": "Oturum açmaya git"
+      },
+      "replace": {
+        "title": "Bu bilgisayarı daha önce kullandınız mı?",
+        "lede": "{count, plural, one {Hesabınızda buna benzer bir cihaz zaten var.} other {Hesabınızda buna benzer cihazlar zaten var.}} Windows'u veya uygulamayı yeniden yüklediyseniz eski kaydı değiştirin. Seviyesi aktarılmaz: yerine geçen cihaz yeni bir cihaz olarak başlar.",
+        "item": "“{name}” cihazını değiştir",
+        "unnamed": "Adsız cihaz",
+        "lastSeen": "Son görülme: {date}",
+        "new": "Hayır, bu yeni bir bilgisayar",
+        "newHint": "Yeni bir cihaz olarak kaydedin"
+      },
+      "blocked": {
+        "title": "Bu bilgisayar henüz kaydedilemiyor",
+        "openDevices": "Web'de Cihazlar'ı aç",
+        "verify": "Web'de doğrulayın",
+        "manage": "Cihazları yönet",
+        "reviewPermission": "Donanım iznini gözden geçir",
+        "registerNew": "Yeni bir cihaz olarak kaydet"
+      },
+      "enrolling": {
+        "title": "Bu cihaz kaydediliyor…",
+        "creating": "Bu bilgisayarın anahtarı oluşturuluyor"
+      },
+      "error": {
+        "title": "Kayıt tamamlanmadı",
+        "backToSignin": "Oturum açmaya dön",
+        "tryAgain": "Yeniden dene"
+      },
+      "done": {
+        "title": "Her şey hazır",
+        "lede": "Bu bilgisayar kaydedildi. Sırada kısa bir performans testi var; ardından Vouch Compute, sınırlarınız içinde kendi kendine çalışır.",
+        "infoOnly": "Yalnızca bilginiz için. Ne kazanabileceğinizi uygulamanın bildirdikleri değil, performans testi belirler.",
+        "noTpm": "Donanım güvenlik yongası olmadan bu cihaz, kazançları sınırlı olan Deneme seviyesinde kalır.",
+        "summary": "{minutes, plural, one {# dakika} other {# dakika}} boyunca uzakta kaldığınızda başlar ve {temp, number} °C'nin üstünde duraklar. Bunu istediğiniz zaman Ayarlar'dan değiştirebilirsiniz.",
+        "summaryBattery": "{minutes, plural, one {# dakika} other {# dakika}} boyunca uzakta kaldığınızda başlar, {temp, number} °C'nin üstünde duraklar ve pil gücünde asla çalışmaz. Bunu istediğiniz zaman Ayarlar'dan değiştirebilirsiniz.",
+        "open": "Vouch Compute'u aç"
+      }
+    }
+  },
+  "notices": {
+    "pausedByUser": "Web'den veya bu uygulamadan duraklatıldı. Siz sürdürene kadar bu cihaz iş almaz.",
+    "pausedByTally": "Vouch Compute tarafından duraklatıldı. Destek ekibiyle iletişime geçin.",
+    "recovery": "Hesap kurtarma istendi. Bu siz değilseniz hemen web'de iptal edin.",
+    "openWeb": "Web'i aç",
+    "reverify": "Lütfen kimliğinizi web'de yeniden doğrulayın.",
+    "verify": "Doğrula"
+  },
+  "clock": {
+    "minutes": "{n, plural, one {# dakika} other {# dakika}}",
+    "seconds": "{n, plural, one {# saniye} other {# saniye}}",
+    "behind": "Bilgisayarınızın saati {offset} geride. Vouch Compute bunu hesaba katar, ancak en iyisi sistem ayarlarınızda saati otomatik ayarlamaktır.",
+    "ahead": "Bilgisayarınızın saati {offset} ileride. Vouch Compute bunu hesaba katar, ancak en iyisi sistem ayarlarınızda saati otomatik ayarlamaktır."
+  },
+  "actions": {
+    "pauseHour": "1 saat duraklat",
+    "resumeNow": "Şimdi sürdür",
+    "tryAgainNow": "Şimdi yeniden dene",
+    "goToUpdates": "Güncellemelere git"
+  },
+  "loading": {
+    "starting": "Vouch Compute başlatılıyor…"
+  },
+  "agentDown": {
+    "title": "Vouch Compute aracısı çalışmıyor",
+    "lede": "Aracı arka planda çalışır: işi yapar ve bu bilgisayarın anahtarını saklar. Devam etmek için başlatın.",
+    "start": "Başlat"
+  },
+  "home": {
+    "status": "Durum",
+    "mode": "Mod: {mode}",
+    "onlyVerified": "Yalnızca doğrulanmış iş ödenir",
+    "lastProblem": "Son sorun: {error}",
+    "today": {
+      "title": "Bugünkü iş",
+      "sub": "Bu bilgisayarda sayılır. Sunucu her işi ödemeden önce doğrular.",
+      "worked": "Bugün çalışılan süre",
+      "jobsFinished": "Bu oturumda tamamlanan işler",
+      "stoppedEarly": "Erken durdurulan (ödenmez)",
+      "dailyLimit": "Günlük sınır",
+      "capUsage": "{hours, number} saatin {ratio, number, percent} kadarı",
+      "capLabel": "Bugünkü sınırın kullanılan kısmı",
+      "noLimit": "Günlük sınır yok. <link>Ayarlar'dan bir sınır belirleyin</link>"
+    },
+    "hardware": {
+      "title": "Donanım",
+      "sub": "Bu bilgisayarın bildirdikleri. Ödemeyi bu liste değil, performans testi belirler."
+    },
+    "estimate": {
+      "title": "Tahmini aylık aralık",
+      "note": "elektrik düşüldükten sonra. Bir tahmin, söz değil.",
+      "noteBonus": "elektrik düşüldükten sonra, geçici lansman bonusu dahil. Bir tahmin, söz değil.",
+      "seeEarnings": "Kazançları gör"
+    }
+  },
+  "controls": {
+    "none": "Denetimler, aracı çalıştığında görünür.",
+    "daysFor": "{n}. aralığın günleri",
+    "from": "Başlangıç",
+    "to": "bitiş",
+    "remove": "Kaldır",
+    "removeWindow": "{n}. aralığı kaldır",
+    "modeTitle": "Vouch Compute ne zaman çalışsın?",
+    "idleOnly": {
+      "title": "Ben yokken (önerilen)",
+      "hint": "Bir süre boşta kaldığınızda başlar, döndüğünüzde saniyeler içinde durur."
+    },
+    "scheduled": {
+      "title": "Zamanlamaya göre",
+      "hint": "Yalnızca aşağıda seçtiğiniz saatlerde."
+    },
+    "alwaysOn": {
+      "title": "Her zaman açık",
+      "hint": "Yalnızca masaüstü bilgisayarlar için. Çalışırken bilgisayarınız daha yavaş hissedilir."
+    },
+    "idleAfter": "Şu kadar boşta kaldıktan sonra başlat",
+    "scheduleSub": "“Zamanlamaya göre” modunda kullanılır. Saatler yereldir; bir aralık gece yarısını geçebilir.",
+    "noWindowsYet": "Henüz aralık yok.",
+    "addWindow": "Zaman aralığı ekle",
+    "capLabel": "Günlük sınır (saat, sınırsız için boş bırakın)"
+  },
+  "autostart": {
+    "title": "Bu bilgisayarda oturum açtığımda Vouch Compute'u başlat",
+    "hint": "Pencere olarak değil, sistem tepsisinde (saatin yanındaki simge) açılır ve sınırlarınıza uyar. Bunu buradan veya sisteminizin başlangıç ayarlarından kapatabilirsiniz.",
+    "on": "Vouch Compute oturum açtığınızda başlayacak",
+    "off": "Vouch Compute kendiliğinden başlamayacak",
+    "failed": "Başlangıç ayarı değiştirilemedi: {error}"
+  },
+  "update": {
+    "checking": "Denetleniyor…",
+    "available": "{version} sürümü kullanılabilir.",
+    "install": "Yükle ve yeniden başlat",
+    "upToDate": "Güncelsiniz."
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "lede": "Vouch Compute'un bu bilgisayarda nasıl ve ne zaman çalışacağı.",
+    "startup": "Başlangıç",
+    "language": {
+      "title": "Dil",
+      "sub": "Bu uygulamanın dili. Hemen değişir.",
+      "label": "Uygulama dili",
+      "system": "Sistem dili ({name})",
+      "changed": "Dil {name} olarak değiştirildi"
+    },
+    "theme": {
+      "title": "Görünüm",
+      "sub": "Bir tema seçmediğiniz sürece sisteminizi izler.",
+      "group": "Tema",
+      "system": "Sistem",
+      "light": "Açık",
+      "dark": "Koyu",
+      "announceSystem": "Tema sisteminizi izliyor",
+      "announceLight": "Açık tema",
+      "announceDark": "Koyu tema"
+    },
+    "privacy": {
+      "title": "Veri ve gizlilik",
+      "sandbox": "İşler, ağ erişimi ve dosyalarınıza erişimi olmayan bir korumalı alanda çalışır. Girdiler bellekte kalır ve asla diske yazılmaz.",
+      "inputs": "Yalnızca hassas olmayan veriler işlenir. Bilgisayarınız, üzerinde çalışırken iş girdilerini teknik olarak görebilir.",
+      "readOnly": "Bu uygulama kazançlarınıza ve cihazlarınıza yalnızca okuma erişimi alır. Ödeme hesabı değişiklikleri yalnızca web'de yapılır.",
+      "counted": "İş, bu uygulamanın bildirdiklerine göre değil, sunucu tarafından sayılır. Yalnızca doğrulanmış iş ödenir.",
+      "consentAllowed": "İzin verildi",
+      "consentRefused": "İzin verilmedi",
+      "consentNone": "Henüz yanıtlanmadı",
+      "howVerification": "Doğrulama nasıl çalışır"
+    },
+    "account": {
+      "title": "Hesap",
+      "signedIn": "Bu bilgisayarda oturum açık.",
+      "notSignedIn": "Oturum açık değil.",
+      "openDashboard": "Web panelini aç",
+      "signOut": "Oturumu kapat"
+    },
+    "recover": {
+      "title": "Hesabımı kurtar",
+      "hint": "Yalnızca web'de bir hesap kurtarma başlattıysanız ve bu uygulamadan bir kod isteniyorsa.",
+      "codeLabel": "Web'deki kod",
+      "sign": "Bu cihazla imzala",
+      "start": "Kurtarma kodum var"
+    },
+    "repair": {
+      "summary": "Gelişmiş: cihaz kimliğini onar",
+      "text": "Bu bilgisayar için, mevcut anahtarın onayladığı yeni bir anahtar oluşturur ve seviyesini korur. Yalnızca destek ekibi isterse kullanın.",
+      "button": "Cihaz kimliğini onar"
+    },
+    "about": {
+      "title": "Güncellemeler ve hakkında",
+      "sub": "Güncellemeler imzalıdır; Vouch Compute imzası doğrulanmayan hiçbir güncellemeyi kabul etmez.",
+      "channel": "Uygulama kanalı",
+      "build": "Derleme",
+      "release": "Yayın sürümü",
+      "check": "Güncellemeleri denetle"
+    },
+    "remove": {
+      "title": "Bu cihazı kaldır",
+      "text": "Bu bilgisayarı hesabınızdan kaldırır ve anahtarını siler. Kazançlar hesabınızda kalır. Bu işlem geri alınamaz; yeniden kaydetmek onu yeni bir cihaz yapar.",
+      "confirmLabel": "Onaylamak için {word} yazın"
+    }
+  },
+  "toast": {
+    "settingsSaved": "Ayarlar kaydedildi",
+    "saved": "Kaydedildi",
+    "saveFailed": "Kaydedilemedi: {error}",
+    "pausedServer": "Sunucuda duraklatıldı",
+    "resumed": "Sürdürüldü",
+    "removed": "Bu cihaz kaldırıldı",
+    "repaired": "Cihaz kimliği onarıldı",
+    "pausedHour": "Bir saatliğine duraklatıldı",
+    "reconnecting": "Yeniden bağlanılmaya çalışılıyor"
+  }
+}

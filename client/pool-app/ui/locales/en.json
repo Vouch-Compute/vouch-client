@@ -1,0 +1,562 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "back": "Back",
+    "continue": "Continue",
+    "resume": "Resume",
+    "signIn": "Sign in",
+    "range": "{low} – {high}",
+    "rangeSpoken": "{low} to {high}",
+    "devBuild": "DEV BUILD",
+    "devBuildTitle": "Development build: dev keys, dev update channel, test network. Not a release.",
+    "duration": {
+      "minutes": "{m} min",
+      "hoursMinutes": "{h} h {m} min"
+    },
+    "unit": {
+      "min": "min",
+      "celsius": "°C"
+    }
+  },
+  "shell": {
+    "skip": "Skip to content",
+    "tagline": "Verified AI compute from spare machines.",
+    "navLabel": "Main",
+    "starting": "Starting…",
+    "themeToggle": "Switch colour theme",
+    "themeToggleTitle": "Switch theme"
+  },
+  "nav": {
+    "home": "Home",
+    "earnings": "Earnings",
+    "device": "Device",
+    "settings": "Settings"
+  },
+  "mode": {
+    "idleOnly": "When I'm away",
+    "scheduled": "On a schedule",
+    "alwaysOn": "Always on"
+  },
+  "hero": {
+    "loading": {
+      "title": "Starting…",
+      "sub": "Connecting to the Vouch Compute agent."
+    },
+    "down": {
+      "title": "Agent not running",
+      "sub": "The background agent that does the work isn't running."
+    },
+    "signedOut": {
+      "title": "Signed out",
+      "sub": "Sign in so this computer can take verified work.",
+      "authFailed": "This device was not recognised. Sign in again to re-register it."
+    },
+    "offline": {
+      "title": "Offline",
+      "connecting": "Connecting…",
+      "sub": "Can't reach the Vouch Compute network right now.",
+      "subRetry": "Can't reach the Vouch Compute network right now. Retrying in {seconds, plural, one {# second} other {# seconds}}."
+    },
+    "setup": {
+      "title": "Setting up this device",
+      "sub": "Registering this computer's key with your account."
+    },
+    "updateRequired": {
+      "title": "Update needed",
+      "sub": "This version can no longer connect. Install the update from Settings."
+    },
+    "revoked": {
+      "title": "Device paused or suspended",
+      "sub": "This device can't take work right now. Vouch Compute retries now and then; check Devices on the web."
+    },
+    "earning": {
+      "title": "Earning",
+      "sub": "Running a job in the sandbox. It is paid once the server verifies it.",
+      "subModel": "Running a {model} job in the sandbox. It is paid once the server verifies it."
+    },
+    "benchmark": {
+      "title": "Benchmarking",
+      "sub": "Running the 20-minute sustained benchmark. It is not paid work."
+    },
+    "paused": {
+      "title": "Paused",
+      "until": "Until {time}. No new work starts while paused.",
+      "local": "No new work starts while paused."
+    },
+    "idle": {
+      "title": "Idle, waiting for jobs",
+      "sub": "Ready for work. Earnings depend on demand, so there may be quiet periods."
+    },
+    "waiting": {
+      "userActive": {
+        "title": "Waiting for you to step away",
+        "sub": "Starts after {minutes, plural, one {# minute} other {# minutes}} without keyboard or mouse use."
+      },
+      "fullscreen": {
+        "title": "Paused for your game or presentation",
+        "sub": "Resumes when you leave fullscreen."
+      },
+      "onBattery": {
+        "title": "Paused on battery",
+        "sub": "Vouch Compute only works while plugged in."
+      },
+      "batteryLow": {
+        "title": "Battery low",
+        "sub": "Vouch Compute never runs on battery below 30%."
+      },
+      "thermal": {
+        "title": "Cooling down",
+        "sub": "Paused until the temperature drops below your {limit, number} °C limit."
+      },
+      "outsideSchedule": {
+        "title": "Outside your schedule",
+        "sub": "Vouch Compute works only in the hours you chose."
+      },
+      "dailyCap": {
+        "title": "Daily limit reached",
+        "sub": "Resumes tomorrow."
+      }
+    }
+  },
+  "pilot": {
+    "banner": "Pilot: test money, no real value"
+  },
+  "hw": {
+    "gpu": "Graphics card",
+    "notDetected": "Not detected",
+    "vram": ", {size}",
+    "gigabytes": "{value, number} GB",
+    "accelerated": "Accelerated",
+    "cpu": "Processor",
+    "memory": "Memory",
+    "lastBackend": "Last job ran on",
+    "deviceKey": "Device key",
+    "keySoftware": "Software key (dev)",
+    "backend": {
+      "none": "No job yet",
+      "directml": "Graphics card (DirectML)",
+      "cuda": "Graphics card (CUDA)",
+      "metal": "Graphics card (Metal)",
+      "cpu": "Processor (CPU)"
+    }
+  },
+  "bench": {
+    "title": "Benchmark",
+    "waiting": "Waiting for the network to send your benchmark. Keep Vouch Compute open and plugged in.",
+    "progressLabel": "Benchmark progress",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# round} other {# rounds}} done. You can keep using your computer lightly; moving the mouse doesn't cancel it if you chose “Run now”.",
+    "finished": "Benchmark finished. Results are checked by the server.",
+    "stopped": "The benchmark stopped before it finished. It will start again later.",
+    "about": "A signed, 20-minute sustained test measures what this computer can really do. It is never paid, and you can stop it at any time.",
+    "runNow": "Run now",
+    "runAtIdle": "Run at first idle instead"
+  },
+  "consent": {
+    "title": "Hardware identifiers",
+    "lede": "Before this computer can be registered, Vouch Compute needs your answer. This is the full text:",
+    "englishBinding": "This permission text is shown in English. The English text is the binding version.",
+    "sentOnly": "Sent only to Vouch Compute's account service, never to the job network. Version {version}.",
+    "refuse": "Don't allow",
+    "accept": "Allow and continue"
+  },
+  "estimate": {
+    "title": "Your estimate",
+    "sub": "Computed by the server from your benchmark and current demand.",
+    "loading": "Asking the server for an estimate…",
+    "unavailable": "An estimate needs a finished benchmark and a connection to the server. ({error})",
+    "rangeLabel": "Estimated range per month, after electricity",
+    "notPromise": "An estimate, not a promise",
+    "base": "Base pay",
+    "baseHint": "What the work earns on its own.",
+    "bonus": "Launch bonus",
+    "temporary": "Temporary",
+    "none": "None",
+    "bonusHint": "A temporary launch bonus. It tapers as paid demand grows.",
+    "bonusHintEnds": "A temporary launch bonus, ends {date}. It tapers as paid demand grows.",
+    "noBonus": "No launch bonus right now.",
+    "electricity": "Electricity",
+    "electricityHint": "{watts, number} W at {price}/kWh, already subtracted.",
+    "assumes": "Assumes {hours, number} h/day available and {utilization, number, percent} of that time with work. This is a range, not a promise: earnings depend on demand, and only verified work is paid."
+  },
+  "earnings": {
+    "title": "Earnings",
+    "lede": "Figures come from the server once a day and cover work from at least 24 hours ago.",
+    "statusTitle": "Payout status",
+    "statusSub": "Only verified work is counted. New earnings are held before they are paid.",
+    "unavailable": "Earnings are available once you're signed in and online. ({error})",
+    "splitLabel": "How your earnings split by status",
+    "empty": "Nothing earned yet. Verified work shows up here a day after it is done.",
+    "onHold": "On hold",
+    "onHoldHint": "In escrow or being checked",
+    "paid": "Paid",
+    "paidHint": "Sent to your payout account",
+    "allStates": "All payout states",
+    "probation": "New device: earnings are held for {days, plural, one {# day} other {# days}} while work is verified.",
+    "probationUntil": "New device: earnings are held for {days, plural, one {# day} other {# days}} while work is verified (until {date}).",
+    "footer": "Verified this week: <b>{amount}</b>. As of {date}. Detailed history is on the <link>web dashboard</link>.",
+    "state": {
+      "pending": "Pending",
+      "inEscrow": "In escrow",
+      "inReview": "In review",
+      "releasable": "Releasable",
+      "sent": "Sent",
+      "clawedBack": "Clawed back"
+    },
+    "hint": {
+      "pending": "Held 72 h before release",
+      "inEscrow": "Probation: held 21 days",
+      "inReview": "Being checked, not forfeited",
+      "releasable": "Goes out with the next weekly payout",
+      "sent": "Paid to your payout account",
+      "clawedBack": "Reversed after review"
+    }
+  },
+  "payout": {
+    "title": "Payout account",
+    "sub": "Display only. Your payout account is set up and changed on the web.",
+    "none": "No payout account set up yet. Earnings keep accruing; set one up on the web before your first payout.",
+    "resumes": "Payouts resume {date}",
+    "unavailable": "Payout account details are available once you're signed in.",
+    "manage": "Set up or change your payout account on the web",
+    "verify": "Verify your identity",
+    "fine": "For your safety, payout accounts are set up and changed only on the web, with your second factor. Any change pauses payouts for 72 hours. Verify your identity on the web to get paid."
+  },
+  "device": {
+    "title": "Device",
+    "lede": "This computer, its benchmark and its limits.",
+    "cardLabel": "This device",
+    "thisComputer": "This computer",
+    "headPending": "Account details appear once this device is registered and online.",
+    "state": "{connection, select, online {Online} other {Offline}}{activity, select, idle {, idle} working {, working} paused {, paused} other {}}{pausedBy, select, user {. Paused by you.} tally {. Paused by Vouch Compute.} other {}}",
+    "technical": "Technical details",
+    "id": "Device ID",
+    "notRegistered": "Not registered",
+    "keyTpm": "TPM 2.0 (hardware, non-exportable)",
+    "keySoftware": "Software key (dev tier: capped at Probation)",
+    "trustCeiling": "Trust ceiling",
+    "sandbox": "Sandbox",
+    "notUsedYet": "Not used yet",
+    "agentVersion": "Agent version",
+    "sandboxFine": "Jobs run in a separate sandboxed process with no network access and no access to your files. Inputs stay in memory and are never written to disk.",
+    "relUnavailable": "Available once this device is registered and online.",
+    "scheduleSub": "Mode: {mode}. The hours below apply in “On a schedule” mode.",
+    "noWindows": "No time windows set.",
+    "changeSchedule": "Change mode and schedule",
+    "dailyLimit": "Daily limit {hours, number} h",
+    "noDailyLimit": "No daily limit",
+    "limits": {
+      "title": "Limits",
+      "sub": "Vouch Compute pauses before this computer gets too hot, and you choose how hard it works.",
+      "pauseAbove": "Pause above",
+      "tempMax": "Vouch Compute never exceeds 90 °C, whatever this is set to.",
+      "power": "Power use",
+      "battery": {
+        "title": "Never run on battery",
+        "hint": "Below 30% battery it never runs, regardless."
+      },
+      "fullscreen": {
+        "title": "Pause during games and fullscreen",
+        "hint": "Resumes when you leave fullscreen."
+      }
+    },
+    "account": {
+      "title": "This device on your account",
+      "pause": "Pause on the server",
+      "manage": "Manage on the web",
+      "fine": "Pausing here works like pausing on the web: no new work arrives until you resume. A running job finishes and is paid if it verifies."
+    }
+  },
+  "schedule": {
+    "title": "Schedule",
+    "everyDay": "Every day",
+    "weekdays": "Weekdays",
+    "weekends": "Weekends",
+    "noDays": "No days",
+    "window": "{days}, {start}–{end}"
+  },
+  "reliability": {
+    "title": "Reliability",
+    "empty": "Your reliability tier appears here once the server has one for this device.",
+    "bonus": "+{pct}% on verified work",
+    "noBonus": "No reliability bonus",
+    "since": "since {date}",
+    "queue": "Queue",
+    "bonusLabel": "Bonus",
+    "howToImprove": "How to improve",
+    "nothingToImprove": "Nothing to improve right now.",
+    "about": "Tiers are decided by the server from how reliably the device is available and finishes work, and change at most once a day.",
+    "tier": {
+      "probation": "New device",
+      "premium": "Premium",
+      "stable": "Stable",
+      "lessStable": "Less stable",
+      "unpredictable": "Unpredictable"
+    },
+    "priority": {
+      "standard": "Standard place in the queue",
+      "higher": "Higher place in the queue",
+      "highest": "Highest place in the queue"
+    },
+    "hint": {
+      "keepRegularHours": "Keep regular hours: be available at similar times each week.",
+      "avoidDisconnects": "Avoid disconnects: a steady connection helps.",
+      "finishAcceptedJobs": "Finish the jobs you accept: avoid stopping work midway, for example by setting idle and schedule limits that fit your use.",
+      "buildTenure": "Keep going: reliability builds up over weeks.",
+      "verifyIdentity": "Verify your identity on the web.",
+      "useHardwareKey": "Use a computer with a hardware security chip (TPM)."
+    }
+  },
+  "onboarding": {
+    "step": "Step {current} of {total}",
+    "stepPermission": "Step {current} of {total} · Permission",
+    "progress": "Setup progress, step {current} of {total}",
+    "steps": {
+      "welcome": "Welcome",
+      "signin": "Sign in",
+      "device": "This device"
+    },
+    "welcome": {
+      "title": "Welcome to Vouch Compute",
+      "lede": "Vouch Compute uses your computer's spare time for small, verified AI jobs and pays you for the work that checks out. Please read this first.",
+      "regionLabel": "What you are agreeing to",
+      "scrollHint": "Scroll to the end to continue.",
+      "agree": "I understand",
+      "items": {
+        "sandbox": "<b>What runs.</b> Speech-to-text and text embeddings of non-sensitive data, inside a sandbox that has no network access and cannot see your files.",
+        "inputs": "<b>Your computer can technically see job inputs</b> while it processes them. Inputs are kept in memory only and are never saved to disk.",
+        "electricity": "<b>Electricity.</b> Work uses power. Your estimate subtracts an electricity cost so you can judge whether it is worth it.",
+        "provider": "<b>Your internet provider</b> may restrict commercial use of a home connection. Check your contract.",
+        "taxes": "<b>Taxes</b> on what you earn are your responsibility.",
+        "dollars": "<b>Paid in US dollars.</b> Only the AI jobs described here run on your computer. Earnings are paid in US dollars to your payout account (bank or e-wallet).",
+        "probation": "<b>New devices start on probation.</b> Earnings are held in escrow for 21 days while work is verified. Unverified work is not paid.",
+        "defaults": "<b>Defaults are conservative:</b> work starts only when you've been away for 10 minutes, stops the moment you're back, pauses for games and on battery, and respects a temperature limit."
+      }
+    },
+    "signin": {
+      "lede": "Use your Vouch Compute account. Sign-in happens in your browser with your username, password and second factor, so this window never sees your password or codes.",
+      "start": "Sign in with the browser",
+      "doneTitle": "You're signed in",
+      "doneLede": "Next, this computer gets its own key.",
+      "pendingTitle": "Confirm in your browser",
+      "pendingLede": "Open the sign-in page, sign in with your username, password and second factor, then check that this code matches:",
+      "codeLabel": "Device code",
+      "openPage": "Open sign-in page",
+      "waiting": "Waiting for you to approve…",
+      "readOnly": "The app only gets read access to your earnings and devices. Payout account changes always happen on the web.",
+      "terms": "By signing in and running the app on this computer, you agree to the Vouch Compute Contributor Agreement: vouchcompute.com/legal/contributor-agreement"
+    },
+    "device": {
+      "signInFirst": {
+        "title": "Sign in first",
+        "lede": "This computer is registered to your account, so sign in before setting it up.",
+        "button": "Go to sign-in"
+      },
+      "replace": {
+        "title": "Is this a computer you used before?",
+        "lede": "{count, plural, one {Your account already has a device like this one.} other {Your account already has devices like this one.}} If you reinstalled Windows or the app, replace the old entry. Its tier is not carried over: the replacement starts as a new device.",
+        "item": "Replace “{name}”",
+        "unnamed": "Unnamed device",
+        "lastSeen": "Last seen {date}",
+        "new": "No, this is a new computer",
+        "newHint": "Register it as a new device"
+      },
+      "blocked": {
+        "title": "This computer can't be registered yet",
+        "openDevices": "Open Devices on the web",
+        "verify": "Verify on the web",
+        "manage": "Manage devices",
+        "reviewPermission": "Review the hardware permission",
+        "registerNew": "Register as a new device"
+      },
+      "enrolling": {
+        "title": "Registering this device…",
+        "creating": "Creating this computer's key"
+      },
+      "error": {
+        "title": "Registration didn't finish",
+        "backToSignin": "Back to sign-in",
+        "tryAgain": "Try again"
+      },
+      "done": {
+        "title": "You're set",
+        "lede": "This computer is registered. A short benchmark comes next; then Vouch Compute works on its own, within your limits.",
+        "infoOnly": "For your information only. What you can earn is decided by a benchmark, never by what the app reports.",
+        "noTpm": "Without a hardware security chip this device stays in the Probation tier, with capped earnings.",
+        "summary": "Starts after {minutes, plural, one {# minute} other {# minutes}} away and pauses above {temp, number} °C. You can change this any time in Settings.",
+        "summaryBattery": "Starts after {minutes, plural, one {# minute} other {# minutes}} away, pauses above {temp, number} °C and never runs on battery. You can change this any time in Settings.",
+        "open": "Open Vouch Compute"
+      }
+    }
+  },
+  "notices": {
+    "pausedByUser": "Paused from the web or this app. This device gets no work until you resume it.",
+    "pausedByTally": "Paused by Vouch Compute. Contact support.",
+    "recovery": "Account recovery requested. If this wasn't you, cancel it on the web now.",
+    "openWeb": "Open the web",
+    "reverify": "Please verify your identity again on the web.",
+    "verify": "Verify"
+  },
+  "clock": {
+    "minutes": "{n, plural, one {# minute} other {# minutes}}",
+    "seconds": "{n, plural, one {# second} other {# seconds}}",
+    "behind": "Your computer's clock is {offset} behind. Vouch Compute corrects for it, but setting the time automatically in your system settings is best.",
+    "ahead": "Your computer's clock is {offset} ahead. Vouch Compute corrects for it, but setting the time automatically in your system settings is best."
+  },
+  "actions": {
+    "pauseHour": "Pause for 1 hour",
+    "resumeNow": "Resume now",
+    "tryAgainNow": "Try again now",
+    "goToUpdates": "Go to updates"
+  },
+  "loading": {
+    "starting": "Starting Vouch Compute…"
+  },
+  "agentDown": {
+    "title": "The Vouch Compute agent isn't running",
+    "lede": "The agent runs in the background: it does the work and keeps this computer's key. Start it to continue.",
+    "start": "Start it"
+  },
+  "home": {
+    "status": "Status",
+    "mode": "Mode: {mode}",
+    "onlyVerified": "Only verified work is paid",
+    "lastProblem": "Last problem: {error}",
+    "today": {
+      "title": "Today's work",
+      "sub": "Counted on this computer. The server verifies each job before it is paid.",
+      "worked": "Worked today",
+      "jobsFinished": "Jobs finished this session",
+      "stoppedEarly": "Stopped early (not paid)",
+      "dailyLimit": "Daily limit",
+      "capUsage": "{ratio, number, percent} of {hours, number} h",
+      "capLabel": "Share of today's limit used",
+      "noLimit": "No daily limit. <link>Set one in Settings</link>"
+    },
+    "hardware": {
+      "title": "Hardware",
+      "sub": "What this computer reports. Pay is set by the benchmark, not by this list."
+    },
+    "estimate": {
+      "title": "Estimated range per month",
+      "note": "after electricity. An estimate, not a promise.",
+      "noteBonus": "after electricity, including a temporary launch bonus. An estimate, not a promise.",
+      "seeEarnings": "See earnings"
+    }
+  },
+  "controls": {
+    "none": "Controls appear once the agent is running.",
+    "daysFor": "Days for window {n}",
+    "from": "From",
+    "to": "to",
+    "remove": "Remove",
+    "removeWindow": "Remove window {n}",
+    "modeTitle": "When should Vouch Compute work?",
+    "idleOnly": {
+      "title": "When I'm away (recommended)",
+      "hint": "Starts after you've been idle, stops within seconds when you're back."
+    },
+    "scheduled": {
+      "title": "On a schedule",
+      "hint": "Only in the hours you pick below."
+    },
+    "alwaysOn": {
+      "title": "Always on",
+      "hint": "Desktops only. Your computer will feel slower while it works."
+    },
+    "idleAfter": "Start after being idle for",
+    "scheduleSub": "Used in “On a schedule” mode. Times are local; a window can run past midnight.",
+    "noWindowsYet": "No windows yet.",
+    "addWindow": "Add a time window",
+    "capLabel": "Daily limit (hours, empty for none)"
+  },
+  "autostart": {
+    "title": "Start Vouch Compute when I sign in to this computer",
+    "hint": "It opens in the tray (the icon next to the clock), not as a window, and follows your limits. You can turn this off here or in your system's startup settings.",
+    "on": "Vouch Compute will start when you sign in",
+    "off": "Vouch Compute will not start by itself",
+    "failed": "Could not change the startup setting: {error}"
+  },
+  "update": {
+    "checking": "Checking…",
+    "available": "Version {version} is available.",
+    "install": "Install and restart",
+    "upToDate": "You're up to date."
+  },
+  "settings": {
+    "title": "Settings",
+    "lede": "How and when Vouch Compute works on this computer.",
+    "startup": "Startup",
+    "language": {
+      "title": "Language",
+      "sub": "The language of this app. It changes right away.",
+      "label": "App language",
+      "system": "System language ({name})",
+      "changed": "Language changed to {name}"
+    },
+    "theme": {
+      "title": "Appearance",
+      "sub": "Follows your system unless you pick a theme.",
+      "group": "Theme",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark",
+      "announceSystem": "Theme follows your system",
+      "announceLight": "Light theme",
+      "announceDark": "Dark theme"
+    },
+    "privacy": {
+      "title": "Data and privacy",
+      "sandbox": "Jobs run in a sandbox with no network access and no access to your files. Inputs stay in memory and are never written to disk.",
+      "inputs": "Only non-sensitive data is processed. Your computer can technically see job inputs while it works on them.",
+      "readOnly": "This app gets read-only access to your earnings and devices. Payout account changes happen only on the web.",
+      "counted": "Work is counted by the server, never from what this app reports. Only verified work is paid.",
+      "consentAllowed": "Allowed",
+      "consentRefused": "Not allowed",
+      "consentNone": "Not answered yet",
+      "howVerification": "How verification works"
+    },
+    "account": {
+      "title": "Account",
+      "signedIn": "Signed in on this computer.",
+      "notSignedIn": "Not signed in.",
+      "openDashboard": "Open web dashboard",
+      "signOut": "Sign out"
+    },
+    "recover": {
+      "title": "Recover my account",
+      "hint": "Only if you started an account recovery on the web and it asks for a code from this app.",
+      "codeLabel": "Code from the web",
+      "sign": "Sign with this device",
+      "start": "I have a recovery code"
+    },
+    "repair": {
+      "summary": "Advanced: repair device identity",
+      "text": "Creates a new key for this computer, vouched for by the current one, and keeps its tier. Use it only if support asks you to.",
+      "button": "Repair device identity"
+    },
+    "about": {
+      "title": "Updates and about",
+      "sub": "Updates are signed; Vouch Compute refuses any update whose signature doesn't verify.",
+      "channel": "App channel",
+      "build": "Build",
+      "release": "Release",
+      "check": "Check for updates"
+    },
+    "remove": {
+      "title": "Remove this device",
+      "text": "Removes this computer from your account and deletes its key. Earnings stay with your account. This can't be undone; registering again makes it a new device.",
+      "confirmLabel": "Type {word} to confirm"
+    }
+  },
+  "toast": {
+    "settingsSaved": "Settings saved",
+    "saved": "Saved",
+    "saveFailed": "Could not save: {error}",
+    "pausedServer": "Paused on the server",
+    "resumed": "Resumed",
+    "removed": "This device was removed",
+    "repaired": "Device identity repaired",
+    "pausedHour": "Paused for one hour",
+    "reconnecting": "Trying to reconnect"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Abrir Vouch Compute",
+    "pause": "Pausar 1 hora",
+    "resume": "Reanudar",
+    "quit": "Cerrar la ventana de Vouch Compute",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (VERSIÓN DE DESARROLLO)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (VERSIÓN DE DESARROLLO)"
+  },
+  "error": {
+    "methodNotAllowed": "Esta solicitud no está permitida: {method}",
+    "agentNotRunning": "El agente de Vouch Compute no está en ejecución",
+    "agentClosed": "El agente de Vouch Compute cerró la conexión",
+    "agentError": "El agente de Vouch Compute informó de un error",
+    "agentStartFailed": "No se pudo iniciar el agente de Vouch Compute ({path}): {detail}",
+    "agentDidNotStart": "El agente de Vouch Compute no se inició",
+    "noAppFolder": "No se encontró la carpeta de la app",
+    "noSignin": "No hay ningún inicio de sesión en curso",
+    "linkUnavailable": "Este enlace no está disponible ahora mismo",
+    "unknownLink": "Enlace desconocido",
+    "link": {
+      "invalid": "Se rechazó un enlace no válido",
+      "userInfo": "Se rechazó un enlace con datos de usuario",
+      "noHost": "Se rechazó un enlace sin servidor",
+      "notHttps": "Se rechazó un enlace que no es https",
+      "notWeb": "Se rechazó un enlace que no es una página web"
+    },
+    "update": {
+      "endpoint": "La dirección de actualización no es válida: {detail}",
+      "noKey": "Esta versión no tiene clave de actualización",
+      "checkFailed": "Falló la búsqueda de actualizaciones: {detail}",
+      "noneAvailable": "No hay ninguna actualización disponible",
+      "rejected": "Se rechazó la actualización: {detail}",
+      "refused": "Se denegó la actualización: {detail}"
+    }
+  }
+}

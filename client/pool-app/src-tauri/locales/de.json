@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Vouch Compute öffnen",
+    "pause": "1 Stunde pausieren",
+    "resume": "Fortsetzen",
+    "quit": "Vouch Compute-Fenster schließen",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (ENTWICKLERVERSION)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (ENTWICKLERVERSION)"
+  },
+  "error": {
+    "methodNotAllowed": "Diese Anfrage ist nicht erlaubt: {method}",
+    "agentNotRunning": "Der Vouch Compute-Agent läuft nicht",
+    "agentClosed": "Der Vouch Compute-Agent hat die Verbindung getrennt",
+    "agentError": "Der Vouch Compute-Agent hat einen Fehler gemeldet",
+    "agentStartFailed": "Der Vouch Compute-Agent konnte nicht gestartet werden ({path}): {detail}",
+    "agentDidNotStart": "Der Vouch Compute-Agent ist nicht gestartet",
+    "noAppFolder": "Der Ordner der App wurde nicht gefunden",
+    "noSignin": "Es läuft keine Anmeldung",
+    "linkUnavailable": "Dieser Link ist gerade nicht verfügbar",
+    "unknownLink": "Unbekannter Link",
+    "link": {
+      "invalid": "Ungültiger Link abgelehnt",
+      "userInfo": "Link mit Benutzerdaten abgelehnt",
+      "noHost": "Link ohne Host abgelehnt",
+      "notHttps": "Link ohne https abgelehnt",
+      "notWeb": "Link abgelehnt, da er keine Webseite ist"
+    },
+    "update": {
+      "endpoint": "Die Update-Adresse ist ungültig: {detail}",
+      "noKey": "Diese Version hat keinen Update-Schlüssel",
+      "checkFailed": "Die Suche nach Updates ist fehlgeschlagen: {detail}",
+      "noneAvailable": "Kein Update verfügbar",
+      "rejected": "Das Update wurde zurückgewiesen: {detail}",
+      "refused": "Das Update wurde abgelehnt: {detail}"
+    }
+  }
+}

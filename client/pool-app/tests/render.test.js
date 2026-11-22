@@ -1,13 +1,9 @@
 // Rendering checks for app.js (hero status, escaping, pilot banner, estimate, consent). Run: node pool-app/tests/render.test.js
-// Loads the DOM-free "pure" section of app.js, the same way the other UI tests load their sections.
-const fs = require("fs");
-const path = require("path");
-const src = fs.readFileSync(path.join(__dirname, "..", "ui", "app.js"), "utf8");
-const start = src.indexOf("// ---- pure (start)");
-const end = src.indexOf("// ---- pure (end)");
-if (start < 0 || end < 0) throw new Error("pure-section markers missing in app.js");
+// Loads the DOM-free "pure" section of app.js, the same way the other UI tests load their sections, in English.
+const { useLocale, loadSection } = require("./ui-loader.js");
 const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "benchHtml", "sumUsd", "duration"];
-const api = new Function(src.slice(start, end) + `; return { ${names.join(", ")} };`)();
+useLocale("en");
+const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
 
 let bad = 0;
 const fail = (m) => { bad++; console.log("FAIL", m); };

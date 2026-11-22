@@ -63,7 +63,7 @@ fn endpoint(channel: Channel) -> String {
 }
 
 fn updater(app: &AppHandle, key: &str) -> Result<tauri_plugin_updater::Updater, String> {
-    let url = endpoint(CHANNEL).parse().map_err(|e| format!("update endpoint: {e}"))?;
+    let url = endpoint(CHANNEL).parse::<tauri::Url>().map_err(|e| crate::i18n::tv("error.update.endpoint", &[("detail", &e.to_string())]))?;
     let mut b = app
         .updater_builder()
         .pubkey(key)
@@ -83,25 +83,28 @@ pub fn info() -> Value {
 
 /// Downgrade/rollback policy (`update_policy.rs`), applied before anything is downloaded.
 fn policy(u: &tauri_plugin_updater::Update) -> Result<(), String> {
-    crate::update_policy::precheck(&u.signature, &u.version, &u.current_version, crate::update_policy::build_unix_s()).map(|_| ())
+    // the policy's own reason stays as written (a security diagnostic); the sentence around it is translated
+    crate::update_policy::precheck(&u.signature, &u.version, &u.current_version, crate::update_policy::build_unix_s())
+        .map(|_| ())
+        .map_err(|e| crate::i18n::tv("error.update.refused", &[("detail", &e)]))
 }
 
 pub async fn check(app: &AppHandle) -> Result<Value, String> {
     let keys = channel_pubkeys(CHANNEL);
-    let key = keys.first().ok_or("no update key in this build")?;
+    let key = keys.first().ok_or_else(|| crate::i18n::t("error.update.noKey"))?;
     match updater(app, key)?.check().await {
         Ok(Some(u)) => {
             policy(&u)?;
             Ok(json!({ "available": true, "version": u.version, "notes": u.body, "channel": info()["channel"] }))
         }
         Ok(None) => Ok(json!({ "available": false, "channel": info()["channel"] })),
-        Err(e) => Err(format!("update check failed: {e}")),
+        Err(e) => Err(crate::i18n::tv("error.update.checkFailed", &[("detail", &e.to_string())])),
     }
 }
 
 /// Download and install, verifying the signature with each of this channel's keys in turn.
 pub async fn install(app: &AppHandle) -> Result<(), String> {
-    let mut last = String::from("no update available");
+    let mut last = crate::i18n::t("error.update.noneAvailable");
     for key in channel_pubkeys(CHANNEL) {
         let Some(update) = updater(app, &key)?.check().await.map_err(|e| e.to_string())? else {
             return Err(last);
@@ -111,7 +114,7 @@ pub async fn install(app: &AppHandle) -> Result<(), String> {
             Ok(()) => {
                 app.restart();
             }
-            Err(e) => last = format!("update rejected: {e}"),
+            Err(e) => last = crate::i18n::tv("error.update.rejected", &[("detail", &e.to_string())]),
         }
     }
     Err(last)

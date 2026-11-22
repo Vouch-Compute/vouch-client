@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Vouch Compute खोलें",
+    "pause": "1 घंटे के लिए रोकें",
+    "resume": "फिर शुरू करें",
+    "quit": "Vouch Compute विंडो बंद करें",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (डेवलपमेंट बिल्ड)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (डेवलपमेंट बिल्ड)"
+  },
+  "error": {
+    "methodNotAllowed": "इस अनुरोध की अनुमति नहीं है: {method}",
+    "agentNotRunning": "Vouch Compute एजेंट नहीं चल रहा है",
+    "agentClosed": "Vouch Compute एजेंट ने कनेक्शन बंद कर दिया",
+    "agentError": "Vouch Compute एजेंट ने एक त्रुटि बताई",
+    "agentStartFailed": "Vouch Compute एजेंट शुरू नहीं हो सका ({path}): {detail}",
+    "agentDidNotStart": "Vouch Compute एजेंट शुरू नहीं हुआ",
+    "noAppFolder": "ऐप का फ़ोल्डर नहीं मिला",
+    "noSignin": "कोई साइन इन प्रक्रिया जारी नहीं है",
+    "linkUnavailable": "यह लिंक अभी उपलब्ध नहीं है",
+    "unknownLink": "अज्ञात लिंक",
+    "link": {
+      "invalid": "अमान्य लिंक अस्वीकार किया गया",
+      "userInfo": "उपयोगकर्ता जानकारी वाला लिंक अस्वीकार किया गया",
+      "noHost": "बिना होस्ट वाला लिंक अस्वीकार किया गया",
+      "notHttps": "https के बिना वाला लिंक अस्वीकार किया गया",
+      "notWeb": "वेब पेज न होने वाला लिंक अस्वीकार किया गया"
+    },
+    "update": {
+      "endpoint": "अपडेट का पता मान्य नहीं है: {detail}",
+      "noKey": "इस बिल्ड में अपडेट कुंजी नहीं है",
+      "checkFailed": "अपडेट की जाँच विफल रही: {detail}",
+      "noneAvailable": "कोई अपडेट उपलब्ध नहीं है",
+      "rejected": "अपडेट स्वीकार नहीं किया गया: {detail}",
+      "refused": "अपडेट अस्वीकार कर दिया गया: {detail}"
+    }
+  }
+}

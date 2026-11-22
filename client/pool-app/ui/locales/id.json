@@ -1,0 +1,562 @@
+{
+  "common": {
+    "loading": "Memuat…",
+    "back": "Kembali",
+    "continue": "Lanjutkan",
+    "resume": "Lanjutkan",
+    "signIn": "Masuk",
+    "range": "{low} – {high}",
+    "rangeSpoken": "{low} hingga {high}",
+    "devBuild": "VERSI PENGEMBANGAN",
+    "devBuildTitle": "Versi pengembangan: kunci pengembangan, kanal pembaruan pengembangan, jaringan uji. Bukan versi rilis.",
+    "duration": {
+      "minutes": "{m} mnt",
+      "hoursMinutes": "{h} jam {m} mnt"
+    },
+    "unit": {
+      "min": "mnt",
+      "celsius": "°C"
+    }
+  },
+  "shell": {
+    "skip": "Langsung ke konten",
+    "tagline": "Komputasi AI terverifikasi dari komputer yang sedang menganggur.",
+    "navLabel": "Navigasi utama",
+    "starting": "Memulai…",
+    "themeToggle": "Ganti tema warna",
+    "themeToggleTitle": "Ganti tema"
+  },
+  "nav": {
+    "home": "Beranda",
+    "earnings": "Pendapatan",
+    "device": "Perangkat",
+    "settings": "Pengaturan"
+  },
+  "mode": {
+    "idleOnly": "Saat saya tidak ada",
+    "scheduled": "Sesuai jadwal",
+    "alwaysOn": "Selalu aktif"
+  },
+  "hero": {
+    "loading": {
+      "title": "Memulai…",
+      "sub": "Menghubungkan ke agen Vouch Compute."
+    },
+    "down": {
+      "title": "Agen tidak berjalan",
+      "sub": "Agen latar belakang yang mengerjakan tugas tidak sedang berjalan."
+    },
+    "signedOut": {
+      "title": "Tidak masuk",
+      "sub": "Masuk agar komputer ini bisa menerima pekerjaan terverifikasi.",
+      "authFailed": "Perangkat ini tidak dikenali. Masuk lagi untuk mendaftarkannya ulang."
+    },
+    "offline": {
+      "title": "Tidak terhubung",
+      "connecting": "Menghubungkan…",
+      "sub": "Jaringan Vouch Compute tidak dapat dijangkau saat ini.",
+      "subRetry": "Jaringan Vouch Compute tidak dapat dijangkau saat ini. Mencoba lagi dalam {seconds, plural, other {# detik}}."
+    },
+    "setup": {
+      "title": "Menyiapkan perangkat ini",
+      "sub": "Mendaftarkan kunci komputer ini ke akun Anda."
+    },
+    "updateRequired": {
+      "title": "Perlu pembaruan",
+      "sub": "Versi ini tidak bisa terhubung lagi. Instal pembaruan dari Pengaturan."
+    },
+    "revoked": {
+      "title": "Perangkat dijeda atau ditangguhkan",
+      "sub": "Perangkat ini tidak bisa menerima pekerjaan saat ini. Vouch Compute mencoba lagi sesekali; periksa Perangkat di web."
+    },
+    "earning": {
+      "title": "Menghasilkan",
+      "sub": "Menjalankan tugas di sandbox. Tugas dibayar setelah server memverifikasinya.",
+      "subModel": "Menjalankan tugas {model} di sandbox. Tugas dibayar setelah server memverifikasinya."
+    },
+    "benchmark": {
+      "title": "Uji kinerja",
+      "sub": "Menjalankan uji kinerja berkelanjutan selama 20 menit. Ini bukan pekerjaan berbayar."
+    },
+    "paused": {
+      "title": "Dijeda",
+      "until": "Hingga {time}. Tidak ada pekerjaan baru yang dimulai selama dijeda.",
+      "local": "Tidak ada pekerjaan baru yang dimulai selama dijeda."
+    },
+    "idle": {
+      "title": "Siaga, menunggu tugas",
+      "sub": "Siap bekerja. Pendapatan bergantung pada permintaan, jadi mungkin ada masa sepi."
+    },
+    "waiting": {
+      "userActive": {
+        "title": "Menunggu Anda meninggalkan komputer",
+        "sub": "Dimulai setelah {minutes, plural, other {# menit}} tanpa penggunaan keyboard atau mouse."
+      },
+      "fullscreen": {
+        "title": "Dijeda untuk game atau presentasi Anda",
+        "sub": "Dilanjutkan saat Anda keluar dari layar penuh."
+      },
+      "onBattery": {
+        "title": "Dijeda saat memakai baterai",
+        "sub": "Vouch Compute hanya bekerja saat tersambung ke listrik."
+      },
+      "batteryLow": {
+        "title": "Baterai lemah",
+        "sub": "Vouch Compute tidak pernah berjalan dengan baterai di bawah 30%."
+      },
+      "thermal": {
+        "title": "Mendingin",
+        "sub": "Dijeda hingga suhu turun di bawah batas {limit, number} °C Anda."
+      },
+      "outsideSchedule": {
+        "title": "Di luar jadwal Anda",
+        "sub": "Vouch Compute hanya bekerja pada jam yang Anda pilih."
+      },
+      "dailyCap": {
+        "title": "Batas harian tercapai",
+        "sub": "Dilanjutkan besok."
+      }
+    }
+  },
+  "pilot": {
+    "banner": "Uji coba: uang uji, tanpa nilai nyata"
+  },
+  "hw": {
+    "gpu": "Kartu grafis",
+    "notDetected": "Tidak terdeteksi",
+    "vram": ", {size}",
+    "gigabytes": "{value, number} GB",
+    "accelerated": "Dipercepat",
+    "cpu": "Prosesor",
+    "memory": "Memori",
+    "lastBackend": "Tugas terakhir berjalan di",
+    "deviceKey": "Kunci perangkat",
+    "keySoftware": "Kunci perangkat lunak (pengembangan)",
+    "backend": {
+      "none": "Belum ada tugas",
+      "directml": "Kartu grafis (DirectML)",
+      "cuda": "Kartu grafis (CUDA)",
+      "metal": "Kartu grafis (Metal)",
+      "cpu": "Prosesor (CPU)"
+    }
+  },
+  "bench": {
+    "title": "Uji kinerja",
+    "waiting": "Menunggu jaringan mengirim uji kinerja Anda. Biarkan Vouch Compute tetap terbuka dan tersambung ke listrik.",
+    "progressLabel": "Kemajuan uji kinerja",
+    "progress": "{ratio, number, percent} · {rounds, plural, other {# putaran}} selesai. Anda tetap bisa memakai komputer untuk hal ringan; jika Anda memilih “Jalankan sekarang”, menggerakkan mouse tidak membatalkannya.",
+    "finished": "Uji kinerja selesai. Hasilnya diperiksa oleh server.",
+    "stopped": "Uji kinerja berhenti sebelum selesai. Uji ini akan dimulai lagi nanti.",
+    "about": "Uji berkelanjutan bertanda tangan selama 20 menit mengukur kemampuan nyata komputer ini. Uji ini tidak pernah dibayar, dan Anda bisa menghentikannya kapan saja.",
+    "runNow": "Jalankan sekarang",
+    "runAtIdle": "Jalankan saat pertama kali menganggur"
+  },
+  "consent": {
+    "title": "Pengenal perangkat keras",
+    "lede": "Sebelum komputer ini bisa didaftarkan, Vouch Compute memerlukan jawaban Anda. Ini teks lengkapnya:",
+    "englishBinding": "Teks izin ini ditampilkan dalam bahasa Inggris. Teks bahasa Inggris adalah versi yang mengikat.",
+    "sentOnly": "Hanya dikirim ke layanan akun Vouch Compute, tidak pernah ke jaringan tugas. Versi {version}.",
+    "refuse": "Jangan izinkan",
+    "accept": "Izinkan dan lanjutkan"
+  },
+  "estimate": {
+    "title": "Perkiraan Anda",
+    "sub": "Dihitung oleh server dari uji kinerja Anda dan permintaan saat ini.",
+    "loading": "Meminta perkiraan dari server…",
+    "unavailable": "Perkiraan memerlukan uji kinerja yang sudah selesai dan koneksi ke server. ({error})",
+    "rangeLabel": "Perkiraan kisaran per bulan, setelah biaya listrik",
+    "notPromise": "Perkiraan, bukan janji",
+    "base": "Bayaran dasar",
+    "baseHint": "Penghasilan dari pekerjaan itu sendiri.",
+    "bonus": "Bonus peluncuran",
+    "temporary": "Sementara",
+    "none": "Tidak ada",
+    "bonusHint": "Bonus peluncuran sementara. Bonus ini berkurang seiring tumbuhnya permintaan berbayar.",
+    "bonusHintEnds": "Bonus peluncuran sementara, berakhir {date}. Bonus ini berkurang seiring tumbuhnya permintaan berbayar.",
+    "noBonus": "Saat ini tidak ada bonus peluncuran.",
+    "electricity": "Listrik",
+    "electricityHint": "{watts, number} W dengan tarif {price}/kWh, sudah dikurangkan.",
+    "assumes": "Mengasumsikan {hours, number} jam/hari tersedia dan ada pekerjaan selama {utilization, number, percent} dari waktu itu. Ini kisaran, bukan janji: pendapatan bergantung pada permintaan, dan hanya pekerjaan terverifikasi yang dibayar."
+  },
+  "earnings": {
+    "title": "Pendapatan",
+    "lede": "Angka diperoleh dari server sekali sehari dan mencakup pekerjaan yang dilakukan setidaknya 24 jam lalu.",
+    "statusTitle": "Status pembayaran",
+    "statusSub": "Hanya pekerjaan terverifikasi yang dihitung. Pendapatan baru ditahan sebelum dibayarkan.",
+    "unavailable": "Pendapatan tersedia setelah Anda masuk dan terhubung. ({error})",
+    "splitLabel": "Rincian pendapatan Anda menurut status",
+    "empty": "Belum ada pendapatan. Pekerjaan terverifikasi muncul di sini sehari setelah selesai.",
+    "onHold": "Ditahan",
+    "onHoldHint": "Di escrow atau sedang diperiksa",
+    "paid": "Dibayar",
+    "paidHint": "Dikirim ke akun pembayaran Anda",
+    "allStates": "Semua status pembayaran",
+    "probation": "Perangkat baru: pendapatan ditahan selama {days, plural, other {# hari}} sementara pekerjaan diverifikasi.",
+    "probationUntil": "Perangkat baru: pendapatan ditahan selama {days, plural, other {# hari}} sementara pekerjaan diverifikasi (hingga {date}).",
+    "footer": "Terverifikasi minggu ini: <b>{amount}</b>. Per {date}. Riwayat lengkap ada di <link>dasbor web</link>.",
+    "state": {
+      "pending": "Tertunda",
+      "inEscrow": "Di escrow",
+      "inReview": "Sedang ditinjau",
+      "releasable": "Siap dibayarkan",
+      "sent": "Terkirim",
+      "clawedBack": "Ditarik kembali"
+    },
+    "hint": {
+      "pending": "Ditahan 72 jam sebelum dicairkan",
+      "inEscrow": "Masa percobaan: ditahan 21 hari",
+      "inReview": "Sedang diperiksa, tidak hangus",
+      "releasable": "Dikirim bersama pembayaran mingguan berikutnya",
+      "sent": "Dibayarkan ke akun pembayaran Anda",
+      "clawedBack": "Dibatalkan setelah peninjauan"
+    }
+  },
+  "payout": {
+    "title": "Akun pembayaran",
+    "sub": "Hanya tampilan. Akun pembayaran Anda diatur dan diubah di web.",
+    "none": "Belum ada akun pembayaran. Pendapatan tetap terkumpul; atur akun di web sebelum pembayaran pertama Anda.",
+    "resumes": "Pembayaran dilanjutkan {date}",
+    "unavailable": "Detail akun pembayaran tersedia setelah Anda masuk.",
+    "manage": "Atur atau ubah akun pembayaran Anda di web",
+    "verify": "Verifikasi identitas Anda",
+    "fine": "Demi keamanan Anda, akun pembayaran hanya diatur dan diubah di web, dengan faktor kedua Anda. Setiap perubahan menjeda pembayaran selama 72 jam. Verifikasi identitas Anda di web agar bisa dibayar."
+  },
+  "device": {
+    "title": "Perangkat",
+    "lede": "Komputer ini, uji kinerjanya, dan batasannya.",
+    "cardLabel": "Perangkat ini",
+    "thisComputer": "Komputer ini",
+    "headPending": "Detail akun muncul setelah perangkat ini terdaftar dan terhubung.",
+    "state": "{connection, select, online {Terhubung} other {Tidak terhubung}}{activity, select, idle {, siaga} working {, bekerja} paused {, dijeda} other {}}{pausedBy, select, user {. Dijeda oleh Anda.} tally {. Dijeda oleh Vouch Compute.} other {}}",
+    "technical": "Detail teknis",
+    "id": "ID perangkat",
+    "notRegistered": "Belum terdaftar",
+    "keyTpm": "TPM 2.0 (perangkat keras, tidak dapat diekspor)",
+    "keySoftware": "Kunci perangkat lunak (tingkat pengembangan: dibatasi pada masa percobaan)",
+    "trustCeiling": "Batas kepercayaan",
+    "sandbox": "Sandbox",
+    "notUsedYet": "Belum digunakan",
+    "agentVersion": "Versi agen",
+    "sandboxFine": "Tugas berjalan dalam proses sandbox terpisah tanpa akses jaringan dan tanpa akses ke file Anda. Data input tetap di memori dan tidak pernah ditulis ke disk.",
+    "relUnavailable": "Tersedia setelah perangkat ini terdaftar dan terhubung.",
+    "scheduleSub": "Mode: {mode}. Jam di bawah berlaku dalam mode “Sesuai jadwal”.",
+    "noWindows": "Belum ada rentang waktu.",
+    "changeSchedule": "Ubah mode dan jadwal",
+    "dailyLimit": "Batas harian {hours, number} jam",
+    "noDailyLimit": "Tanpa batas harian",
+    "limits": {
+      "title": "Batasan",
+      "sub": "Vouch Compute menjeda sebelum komputer ini terlalu panas, dan Anda yang menentukan seberapa keras komputer bekerja.",
+      "pauseAbove": "Jeda di atas",
+      "tempMax": "Vouch Compute tidak pernah melebihi 90 °C, berapa pun pengaturan ini.",
+      "power": "Penggunaan daya",
+      "battery": {
+        "title": "Jangan pernah berjalan dengan baterai",
+        "hint": "Di bawah 30% baterai, aplikasi tidak pernah berjalan, apa pun pengaturannya."
+      },
+      "fullscreen": {
+        "title": "Jeda saat bermain game dan layar penuh",
+        "hint": "Dilanjutkan saat Anda keluar dari layar penuh."
+      }
+    },
+    "account": {
+      "title": "Perangkat ini di akun Anda",
+      "pause": "Jeda di server",
+      "manage": "Kelola di web",
+      "fine": "Menjeda di sini sama dengan menjeda di web: tidak ada pekerjaan baru hingga Anda melanjutkan. Tugas yang sedang berjalan tetap selesai dan dibayar jika lolos verifikasi."
+    }
+  },
+  "schedule": {
+    "title": "Jadwal",
+    "everyDay": "Setiap hari",
+    "weekdays": "Hari kerja",
+    "weekends": "Akhir pekan",
+    "noDays": "Tidak ada hari",
+    "window": "{days}, {start}–{end}"
+  },
+  "reliability": {
+    "title": "Keandalan",
+    "empty": "Tingkat keandalan Anda muncul di sini setelah server menetapkannya untuk perangkat ini.",
+    "bonus": "+{pct}% untuk pekerjaan terverifikasi",
+    "noBonus": "Tanpa bonus keandalan",
+    "since": "sejak {date}",
+    "queue": "Antrean",
+    "bonusLabel": "Bonus",
+    "howToImprove": "Cara meningkatkan",
+    "nothingToImprove": "Tidak ada yang perlu ditingkatkan saat ini.",
+    "about": "Tingkat ditentukan oleh server berdasarkan seberapa andal perangkat tersedia dan menyelesaikan pekerjaan, dan berubah paling banyak sekali sehari.",
+    "tier": {
+      "probation": "Perangkat baru",
+      "premium": "Premium",
+      "stable": "Stabil",
+      "lessStable": "Kurang stabil",
+      "unpredictable": "Tidak dapat diprediksi"
+    },
+    "priority": {
+      "standard": "Posisi standar dalam antrean",
+      "higher": "Posisi lebih tinggi dalam antrean",
+      "highest": "Posisi tertinggi dalam antrean"
+    },
+    "hint": {
+      "keepRegularHours": "Jaga jam yang teratur: tersedialah pada waktu yang mirip setiap minggu.",
+      "avoidDisconnects": "Hindari terputus: koneksi yang stabil membantu.",
+      "finishAcceptedJobs": "Selesaikan tugas yang Anda terima: hindari menghentikan pekerjaan di tengah jalan, misalnya dengan mengatur batas menganggur dan jadwal yang sesuai dengan pemakaian Anda.",
+      "buildTenure": "Teruskan: keandalan terbentuk selama beberapa minggu.",
+      "verifyIdentity": "Verifikasi identitas Anda di web.",
+      "useHardwareKey": "Gunakan komputer dengan cip keamanan perangkat keras (TPM)."
+    }
+  },
+  "onboarding": {
+    "step": "Langkah {current} dari {total}",
+    "stepPermission": "Langkah {current} dari {total} · Izin",
+    "progress": "Kemajuan penyiapan, langkah {current} dari {total}",
+    "steps": {
+      "welcome": "Selamat datang",
+      "signin": "Masuk",
+      "device": "Perangkat ini"
+    },
+    "welcome": {
+      "title": "Selamat datang di Vouch Compute",
+      "lede": "Vouch Compute memanfaatkan waktu luang komputer Anda untuk tugas AI kecil yang terverifikasi dan membayar Anda untuk pekerjaan yang lolos pemeriksaan. Harap baca ini terlebih dahulu.",
+      "regionLabel": "Hal yang Anda setujui",
+      "scrollHint": "Gulir sampai akhir untuk melanjutkan.",
+      "agree": "Saya mengerti",
+      "items": {
+        "sandbox": "<b>Apa yang dijalankan.</b> Ucapan-ke-teks dan embedding teks dari data yang tidak sensitif, di dalam sandbox yang tidak memiliki akses jaringan dan tidak dapat melihat file Anda.",
+        "inputs": "<b>Secara teknis, komputer Anda dapat melihat data input tugas</b> selama memprosesnya. Data input hanya disimpan di memori dan tidak pernah disimpan ke disk.",
+        "electricity": "<b>Listrik.</b> Pekerjaan memakai daya. Perkiraan Anda sudah dikurangi biaya listrik agar Anda bisa menilai apakah ini sepadan.",
+        "provider": "<b>Penyedia internet Anda</b> mungkin membatasi penggunaan komersial koneksi rumah. Periksa kontrak Anda.",
+        "taxes": "<b>Pajak</b> atas penghasilan Anda adalah tanggung jawab Anda.",
+        "dollars": "<b>Dibayar dalam dolar AS.</b> Hanya tugas AI yang dijelaskan di sini yang berjalan di komputer Anda. Pendapatan dibayarkan dalam dolar AS ke akun pembayaran Anda (bank atau dompet digital).",
+        "probation": "<b>Perangkat baru dimulai dengan masa percobaan.</b> Pendapatan ditahan di escrow selama 21 hari sementara pekerjaan diverifikasi. Pekerjaan yang tidak terverifikasi tidak dibayar.",
+        "defaults": "<b>Pengaturan bawaan dibuat hati-hati:</b> pekerjaan hanya dimulai setelah Anda meninggalkan komputer selama 10 menit, berhenti begitu Anda kembali, dijeda saat bermain game dan saat memakai baterai, serta mematuhi batas suhu."
+      }
+    },
+    "signin": {
+      "lede": "Gunakan akun Vouch Compute Anda. Proses masuk dilakukan di browser dengan nama pengguna, kata sandi, dan faktor kedua Anda, sehingga jendela ini tidak pernah melihat kata sandi atau kode Anda.",
+      "start": "Masuk lewat browser",
+      "doneTitle": "Anda sudah masuk",
+      "doneLede": "Selanjutnya, komputer ini mendapatkan kuncinya sendiri.",
+      "pendingTitle": "Konfirmasi di browser Anda",
+      "pendingLede": "Buka halaman masuk, masuk dengan nama pengguna, kata sandi, dan faktor kedua Anda, lalu pastikan kode ini cocok:",
+      "codeLabel": "Kode perangkat",
+      "openPage": "Buka halaman masuk",
+      "waiting": "Menunggu persetujuan Anda…",
+      "readOnly": "Aplikasi ini hanya mendapat akses baca ke pendapatan dan perangkat Anda. Perubahan akun pembayaran selalu dilakukan di web.",
+      "terms": "Dengan masuk dan menjalankan aplikasi di komputer ini, Anda menyetujui Perjanjian Kontributor Vouch Compute: vouchcompute.com/legal/contributor-agreement"
+    },
+    "device": {
+      "signInFirst": {
+        "title": "Masuk terlebih dahulu",
+        "lede": "Komputer ini didaftarkan ke akun Anda, jadi masuklah sebelum menyiapkannya.",
+        "button": "Ke halaman masuk"
+      },
+      "replace": {
+        "title": "Apakah ini komputer yang pernah Anda gunakan?",
+        "lede": "{count, plural, other {Akun Anda sudah memiliki perangkat seperti ini.}} Jika Anda menginstal ulang Windows atau aplikasi ini, ganti entri yang lama. Tingkatnya tidak dibawa: penggantinya dimulai sebagai perangkat baru.",
+        "item": "Ganti “{name}”",
+        "unnamed": "Perangkat tanpa nama",
+        "lastSeen": "Terakhir terlihat {date}",
+        "new": "Bukan, ini komputer baru",
+        "newHint": "Daftarkan sebagai perangkat baru"
+      },
+      "blocked": {
+        "title": "Komputer ini belum dapat didaftarkan",
+        "openDevices": "Buka Perangkat di web",
+        "verify": "Verifikasi di web",
+        "manage": "Kelola perangkat",
+        "reviewPermission": "Tinjau izin perangkat keras",
+        "registerNew": "Daftarkan sebagai perangkat baru"
+      },
+      "enrolling": {
+        "title": "Mendaftarkan perangkat ini…",
+        "creating": "Membuat kunci komputer ini"
+      },
+      "error": {
+        "title": "Pendaftaran belum selesai",
+        "backToSignin": "Kembali ke halaman masuk",
+        "tryAgain": "Coba lagi"
+      },
+      "done": {
+        "title": "Semua siap",
+        "lede": "Komputer ini sudah terdaftar. Berikutnya ada uji kinerja singkat; setelah itu Vouch Compute bekerja sendiri, sesuai batasan Anda.",
+        "infoOnly": "Hanya sebagai informasi. Penghasilan yang bisa Anda peroleh ditentukan oleh uji kinerja, tidak pernah oleh laporan aplikasi.",
+        "noTpm": "Tanpa cip keamanan perangkat keras, perangkat ini tetap di tingkat masa percobaan, dengan pendapatan yang dibatasi.",
+        "summary": "Dimulai setelah Anda pergi selama {minutes, plural, other {# menit}} dan dijeda di atas {temp, number} °C. Anda bisa mengubahnya kapan saja di Pengaturan.",
+        "summaryBattery": "Dimulai setelah Anda pergi selama {minutes, plural, other {# menit}}, dijeda di atas {temp, number} °C, dan tidak pernah berjalan dengan baterai. Anda bisa mengubahnya kapan saja di Pengaturan.",
+        "open": "Buka Vouch Compute"
+      }
+    }
+  },
+  "notices": {
+    "pausedByUser": "Dijeda dari web atau aplikasi ini. Perangkat ini tidak menerima pekerjaan hingga Anda melanjutkannya.",
+    "pausedByTally": "Dijeda oleh Vouch Compute. Hubungi dukungan.",
+    "recovery": "Pemulihan akun telah diminta. Jika ini bukan Anda, batalkan sekarang di web.",
+    "openWeb": "Buka web",
+    "reverify": "Harap verifikasi ulang identitas Anda di web.",
+    "verify": "Verifikasi"
+  },
+  "clock": {
+    "minutes": "{n, plural, other {# menit}}",
+    "seconds": "{n, plural, other {# detik}}",
+    "behind": "Jam komputer Anda terlambat {offset}. Vouch Compute memperhitungkan selisihnya, tetapi sebaiknya atur waktu otomatis di pengaturan sistem Anda.",
+    "ahead": "Jam komputer Anda lebih cepat {offset}. Vouch Compute memperhitungkan selisihnya, tetapi sebaiknya atur waktu otomatis di pengaturan sistem Anda."
+  },
+  "actions": {
+    "pauseHour": "Jeda 1 jam",
+    "resumeNow": "Lanjutkan sekarang",
+    "tryAgainNow": "Coba lagi sekarang",
+    "goToUpdates": "Ke pembaruan"
+  },
+  "loading": {
+    "starting": "Memulai Vouch Compute…"
+  },
+  "agentDown": {
+    "title": "Agen Vouch Compute tidak berjalan",
+    "lede": "Agen berjalan di latar belakang: agen mengerjakan tugas dan menyimpan kunci komputer ini. Jalankan agen untuk melanjutkan.",
+    "start": "Jalankan"
+  },
+  "home": {
+    "status": "Status",
+    "mode": "Mode: {mode}",
+    "onlyVerified": "Hanya pekerjaan terverifikasi yang dibayar",
+    "lastProblem": "Masalah terakhir: {error}",
+    "today": {
+      "title": "Pekerjaan hari ini",
+      "sub": "Dihitung di komputer ini. Server memverifikasi setiap tugas sebelum dibayar.",
+      "worked": "Waktu kerja hari ini",
+      "jobsFinished": "Tugas selesai di sesi ini",
+      "stoppedEarly": "Dihentikan lebih awal (tidak dibayar)",
+      "dailyLimit": "Batas harian",
+      "capUsage": "{ratio, number, percent} dari {hours, number} jam",
+      "capLabel": "Bagian batas hari ini yang terpakai",
+      "noLimit": "Tanpa batas harian. <link>Atur di Pengaturan</link>"
+    },
+    "hardware": {
+      "title": "Perangkat keras",
+      "sub": "Yang dilaporkan komputer ini. Bayaran ditentukan oleh uji kinerja, bukan oleh daftar ini."
+    },
+    "estimate": {
+      "title": "Perkiraan kisaran per bulan",
+      "note": "setelah biaya listrik. Perkiraan, bukan janji.",
+      "noteBonus": "setelah biaya listrik, termasuk bonus peluncuran sementara. Perkiraan, bukan janji.",
+      "seeEarnings": "Lihat pendapatan"
+    }
+  },
+  "controls": {
+    "none": "Kontrol muncul setelah agen berjalan.",
+    "daysFor": "Hari untuk rentang {n}",
+    "from": "Dari",
+    "to": "sampai",
+    "remove": "Hapus",
+    "removeWindow": "Hapus rentang {n}",
+    "modeTitle": "Kapan Vouch Compute sebaiknya bekerja?",
+    "idleOnly": {
+      "title": "Saat saya tidak ada (disarankan)",
+      "hint": "Dimulai setelah komputer menganggur, berhenti dalam hitungan detik saat Anda kembali."
+    },
+    "scheduled": {
+      "title": "Sesuai jadwal",
+      "hint": "Hanya pada jam yang Anda pilih di bawah."
+    },
+    "alwaysOn": {
+      "title": "Selalu aktif",
+      "hint": "Hanya untuk komputer desktop. Komputer Anda akan terasa lebih lambat saat bekerja."
+    },
+    "idleAfter": "Mulai setelah menganggur selama",
+    "scheduleSub": "Dipakai dalam mode “Sesuai jadwal”. Waktu mengikuti zona lokal; rentang bisa melewati tengah malam.",
+    "noWindowsYet": "Belum ada rentang.",
+    "addWindow": "Tambah rentang waktu",
+    "capLabel": "Batas harian (jam, kosongkan jika tanpa batas)"
+  },
+  "autostart": {
+    "title": "Jalankan Vouch Compute saat saya masuk ke komputer ini",
+    "hint": "Aplikasi terbuka di baki sistem (ikon di samping jam), bukan sebagai jendela, dan mengikuti batasan Anda. Anda bisa mematikannya di sini atau di pengaturan startup sistem Anda.",
+    "on": "Vouch Compute akan berjalan saat Anda masuk",
+    "off": "Vouch Compute tidak akan berjalan sendiri",
+    "failed": "Tidak dapat mengubah pengaturan startup: {error}"
+  },
+  "update": {
+    "checking": "Memeriksa…",
+    "available": "Versi {version} tersedia.",
+    "install": "Instal dan mulai ulang",
+    "upToDate": "Aplikasi Anda sudah versi terbaru."
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "lede": "Bagaimana dan kapan Vouch Compute bekerja di komputer ini.",
+    "startup": "Mulai otomatis",
+    "language": {
+      "title": "Bahasa",
+      "sub": "Bahasa aplikasi ini. Langsung berubah.",
+      "label": "Bahasa aplikasi",
+      "system": "Bahasa sistem ({name})",
+      "changed": "Bahasa diubah ke {name}"
+    },
+    "theme": {
+      "title": "Tampilan",
+      "sub": "Mengikuti sistem Anda kecuali Anda memilih tema.",
+      "group": "Tema",
+      "system": "Sistem",
+      "light": "Terang",
+      "dark": "Gelap",
+      "announceSystem": "Tema mengikuti sistem Anda",
+      "announceLight": "Tema terang",
+      "announceDark": "Tema gelap"
+    },
+    "privacy": {
+      "title": "Data dan privasi",
+      "sandbox": "Tugas berjalan di sandbox tanpa akses jaringan dan tanpa akses ke file Anda. Data input tetap di memori dan tidak pernah ditulis ke disk.",
+      "inputs": "Hanya data yang tidak sensitif yang diproses. Secara teknis, komputer Anda dapat melihat data input tugas selama memprosesnya.",
+      "readOnly": "Aplikasi ini hanya punya akses baca ke pendapatan dan perangkat Anda. Perubahan akun pembayaran hanya dilakukan di web.",
+      "counted": "Pekerjaan dihitung oleh server, tidak pernah dari laporan aplikasi ini. Hanya pekerjaan terverifikasi yang dibayar.",
+      "consentAllowed": "Diizinkan",
+      "consentRefused": "Tidak diizinkan",
+      "consentNone": "Belum dijawab",
+      "howVerification": "Cara kerja verifikasi"
+    },
+    "account": {
+      "title": "Akun",
+      "signedIn": "Sudah masuk di komputer ini.",
+      "notSignedIn": "Belum masuk.",
+      "openDashboard": "Buka dasbor web",
+      "signOut": "Keluar"
+    },
+    "recover": {
+      "title": "Pulihkan akun saya",
+      "hint": "Hanya jika Anda memulai pemulihan akun di web dan diminta kode dari aplikasi ini.",
+      "codeLabel": "Kode dari web",
+      "sign": "Tanda tangani dengan perangkat ini",
+      "start": "Saya punya kode pemulihan"
+    },
+    "repair": {
+      "summary": "Lanjutan: perbaiki identitas perangkat",
+      "text": "Membuat kunci baru untuk komputer ini, dijamin oleh kunci saat ini, dan mempertahankan tingkatnya. Gunakan hanya jika diminta oleh tim dukungan.",
+      "button": "Perbaiki identitas perangkat"
+    },
+    "about": {
+      "title": "Pembaruan dan tentang",
+      "sub": "Pembaruan ditandatangani; Vouch Compute menolak pembaruan apa pun yang tanda tangannya tidak valid.",
+      "channel": "Kanal aplikasi",
+      "build": "Nomor build",
+      "release": "Rilis",
+      "check": "Periksa pembaruan"
+    },
+    "remove": {
+      "title": "Hapus perangkat ini",
+      "text": "Menghapus komputer ini dari akun Anda dan menghapus kuncinya. Pendapatan tetap ada di akun Anda. Tindakan ini tidak dapat dibatalkan; jika didaftarkan lagi, komputer ini menjadi perangkat baru.",
+      "confirmLabel": "Ketik {word} untuk mengonfirmasi"
+    }
+  },
+  "toast": {
+    "settingsSaved": "Pengaturan disimpan",
+    "saved": "Disimpan",
+    "saveFailed": "Tidak dapat menyimpan: {error}",
+    "pausedServer": "Dijeda di server",
+    "resumed": "Dilanjutkan",
+    "removed": "Perangkat ini telah dihapus",
+    "repaired": "Identitas perangkat diperbaiki",
+    "pausedHour": "Dijeda selama satu jam",
+    "reconnecting": "Mencoba menghubungkan kembali"
+  }
+}

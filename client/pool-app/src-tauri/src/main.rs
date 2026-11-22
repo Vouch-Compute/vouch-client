@@ -6,6 +6,7 @@
 //! opened in the browser. Earnings views show server snapshots only.
 
 mod core_client;
+mod i18n;
 #[cfg(test)]
 mod ipc_review;
 mod links;
@@ -14,6 +15,7 @@ mod updater;
 
 use serde_json::Value;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::Wry;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WindowEvent};
 use tauri_plugin_opener::OpenerExt;
@@ -22,7 +24,7 @@ use tauri_plugin_opener::OpenerExt;
 #[tauri::command]
 async fn core(method: String, params: Option<Value>) -> Result<Value, String> {
     if !core_client::ALLOWED.contains(&method.as_str()) {
-        return Err(format!("method not allowed: {method}"));
+        return Err(i18n::tv("error.methodNotAllowed", &[("method", &method)]));
     }
     core_client::call(&method, params.unwrap_or(Value::Null)).await
 }
@@ -39,13 +41,13 @@ async fn open_link(app: AppHandle, kind: String) -> Result<(), String> {
     let url = match kind.as_str() {
         "signin" => {
             let s = core_client::call("signin.status", Value::Null).await?;
-            s.get("verification_uri_complete").and_then(Value::as_str).map(String::from).ok_or("no sign-in in progress")?
+            s.get("verification_uri_complete").and_then(Value::as_str).map(String::from).ok_or_else(|| i18n::t("error.noSignin"))?
         }
         "wallet" | "dashboard" | "earn" | "trust" | "devices" | "recover" | "verify" => {
             let s = core_client::call("status", Value::Null).await?;
-            s.pointer(&format!("/links/{kind}")).and_then(Value::as_str).map(String::from).ok_or("link unavailable")?
+            s.pointer(&format!("/links/{kind}")).and_then(Value::as_str).map(String::from).ok_or_else(|| i18n::t("error.linkUnavailable"))?
         }
-        _ => return Err("unknown link".into()),
+        _ => return Err(i18n::t("error.unknownLink")),
     };
     // Parsed check (the old prefix check accepted http://127.0.0.1.evil.example/); plain http only in dev builds
     let url = links::check(&url, updater::CHANNEL == updater::Channel::Dev)?;
@@ -84,6 +86,51 @@ fn autostart_set(app: AppHandle, enabled: bool) -> Result<bool, String> {
     a.is_enabled().map_err(|e| e.to_string())
 }
 
+/// The page's language for native strings (tray menu, window title, errors). Anything outside the registry is English;
+/// returns the registry code in use.
+#[tauri::command]
+fn set_locale(app: AppHandle, locale: String) -> String {
+    let code = i18n::set(&locale);
+    relabel(&app);
+    code.to_string()
+}
+
+/// The UI's messages for a language, as JSON text (English for anything outside the registry). Embedded in the app,
+/// so the page needs no fetch permission in its CSP.
+#[tauri::command]
+fn i18n_messages(locale: String) -> String {
+    i18n::ui_messages(&locale).to_string()
+}
+
+/// The tray menu items, kept so they can be relabelled when the language changes.
+struct TrayItems {
+    open: MenuItem<Wry>,
+    pause: MenuItem<Wry>,
+    resume: MenuItem<Wry>,
+    quit: MenuItem<Wry>,
+}
+
+fn dev_build() -> bool {
+    updater::CHANNEL == updater::Channel::Dev
+}
+
+fn relabel(app: &AppHandle) {
+    if let Some(items) = app.try_state::<TrayItems>() {
+        let _ = items.open.set_text(i18n::t("tray.open"));
+        let _ = items.pause.set_text(i18n::t("tray.pause"));
+        let _ = items.resume.set_text(i18n::t("tray.resume"));
+        let _ = items.quit.set_text(i18n::t("tray.quit"));
+    }
+    if let Some(tray) = app.tray_by_id("vouchcompute") {
+        let _ = tray.set_tooltip(Some(i18n::t(if dev_build() { "tray.tooltipDev" } else { "tray.tooltip" })));
+    }
+    if dev_build() {
+        if let Some(w) = app.get_webview_window("main") {
+            let _ = w.set_title(&i18n::t("window.titleDev"));
+        }
+    }
+}
+
 /// Started by the login item: stay in the tray instead of opening the window.
 const BACKGROUND_ARG: &str = "--background";
 
@@ -109,28 +156,32 @@ fn main() {
             check_update,
             install_update,
             autostart_get,
-            autostart_set
+            autostart_set,
+            set_locale,
+            i18n_messages
         ])
         .setup(|app| {
             // the window starts hidden (tauri.conf.json); show it unless the login item started the app
             if !std::env::args().any(|a| a == BACKGROUND_ARG) {
                 show_main(app.handle());
             }
-            let open = MenuItem::with_id(app, "open", "Open Vouch Compute", true, None::<&str>)?;
-            let pause = MenuItem::with_id(app, "pause", "Pause for 1 hour", true, None::<&str>)?;
-            let resume = MenuItem::with_id(app, "resume", "Resume", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Close the Vouch Compute window", true, None::<&str>)?;
+            // English until the page reports its language (set_locale, called as soon as the page has loaded)
+            let open = MenuItem::with_id(app, "open", i18n::t("tray.open"), true, None::<&str>)?;
+            let pause = MenuItem::with_id(app, "pause", i18n::t("tray.pause"), true, None::<&str>)?;
+            let resume = MenuItem::with_id(app, "resume", i18n::t("tray.resume"), true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", i18n::t("tray.quit"), true, None::<&str>)?;
             let sep = PredefinedMenuItem::separator(app)?;
             let menu = Menu::with_items(app, &[&open, &pause, &resume, &sep, &quit])?;
-            let dev = updater::CHANNEL == updater::Channel::Dev;
+            let dev = dev_build();
             if dev {
                 if let Some(w) = app.get_webview_window("main") {
-                    let _ = w.set_title("Vouch Compute (DEV BUILD)");
+                    let _ = w.set_title(&i18n::t("window.titleDev"));
                 }
             }
+            app.manage(TrayItems { open, pause, resume, quit });
             TrayIconBuilder::with_id("vouchcompute")
                 .icon(app.default_window_icon().cloned().ok_or("no icon")?)
-                .tooltip(if dev { "Vouch Compute (DEV BUILD)" } else { "Vouch Compute" })
+                .tooltip(i18n::t(if dev { "tray.tooltipDev" } else { "tray.tooltip" }))
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, ev| match ev.id().as_ref() {
