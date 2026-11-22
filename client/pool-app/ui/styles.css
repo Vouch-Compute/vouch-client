@@ -140,6 +140,8 @@ strong { font-weight: 650; }
 .i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 /* direction-bound icons point the other way in right-to-left layouts */
 [dir="rtl"] .i-arrow, [dir="rtl"] .i-external { transform: scaleX(-1); }
+/* ...but not inside an element forced left-to-right, such as the English legal titles */
+[dir="rtl"] [dir="ltr"] .i-arrow, [dir="rtl"] [dir="ltr"] .i-external { transform: none; }
 .mark { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ------------------------------------------------------------------ layout: sidebar + content */

@@ -1182,6 +1182,7 @@ if (!TAURI && location.hash) {
   if (PREVIEW.get("theme")) document.documentElement.dataset.theme = PREVIEW.get("theme");
 }
 let ticks = 0;
+let localeRetry = false;
 (async () => {
   await applyLocale((!TAURI && I18N.match([PREVIEW.get("lang")])) || savedLocale() || systemLocale());
   booted = true;
@@ -1200,6 +1201,11 @@ let ticks = 0;
   } catch (e) { /* keep the marker */ }
   render({ force: true });
   setInterval(() => {
+    // the English messages are the fallback for every locale: if they did not arrive at start, keep asking
+    if (!enMessages && !localeRetry) {
+      localeRetry = true;
+      applyLocale(savedLocale() || systemLocale()).then(() => { if (enMessages) render({ force: true }); }).finally(() => { localeRetry = false; });
+    }
     refresh();
     if (++ticks % 20 === 0) loadFor(view); // server figures again every 30 s while a view is open
   }, 1500);
