@@ -1,7 +1,7 @@
 // Rendering checks for app.js (hero status, escaping, pilot banner, estimate, consent). Run: node pool-app/tests/render.test.js
 // Loads the DOM-free "pure" section of app.js, the same way the other UI tests load their sections, in English.
 const { useLocale, loadSection } = require("./ui-loader.js");
-const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "legalAcceptHtml", "benchHtml", "sumUsd", "duration"];
+const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "legalAcceptHtml", "signinTermsHtml", "benchHtml", "sumUsd", "duration"];
 useLocale("en");
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
 
@@ -93,6 +93,13 @@ for (const h of [c, legal]) {
   if (/href=|https?:/.test(h)) fail("the page must not carry legal URLs");
   if (h.includes("binding version")) fail("binding note shown in English");
 }
+// 5a'. the sign-in step names the same two documents, with its own lead-in, in the same English-title form
+const signin = api.signinTermsHtml();
+if (!signin.includes("By signing in and running the app on this computer, you agree to:")) fail("sign-in lead-in");
+if (signin.includes("By continuing, you link")) fail("sign-in must not reuse the device-link lead-in");
+if (signin.replace(/<p[^>]*>[^<]*<\/p>/, "") !== legal.replace(/<p[^>]*>[^<]*<\/p>/, "")) fail("sign-in and device-link name the same documents");
+if ((signin.match(/data-link="[a-z_]+" lang="en" dir="ltr">Vouch Compute /g) || []).length !== 2) fail("sign-in titles marked as English");
+if (/href=|https?:|vouchcompute\.com/.test(signin)) fail("the sign-in line must not carry legal URLs");
 // every link kind the page asks for is one open_link allows (status.links kinds, plus the sign-in page)
 {
   const fs = require("fs"), path = require("path");

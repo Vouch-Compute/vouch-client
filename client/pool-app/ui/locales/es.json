@@ -343,7 +343,7 @@
       "openPage": "Abrir página de inicio de sesión",
       "waiting": "Esperando tu aprobación…",
       "readOnly": "La app solo obtiene acceso de lectura a tus ganancias y dispositivos. Los cambios en la cuenta de cobro siempre se hacen en la web.",
-      "terms": "Al iniciar sesión y ejecutar la app en este equipo, aceptas el Acuerdo de colaborador de Vouch Compute: vouchcompute.com/legal/contributor-agreement"
+      "terms": "Al iniciar sesión y ejecutar la app en este equipo, aceptas:"
     },
     "device": {
       "signInFirst": {

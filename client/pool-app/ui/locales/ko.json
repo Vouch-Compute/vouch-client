@@ -343,7 +343,7 @@
       "openPage": "로그인 페이지 열기",
       "waiting": "승인을 기다리는 중…",
       "readOnly": "앱은 수익과 기기 정보에 대한 읽기 권한만 받습니다. 지급 계좌 변경은 항상 웹에서 합니다.",
-      "terms": "로그인하고 이 컴퓨터에서 앱을 실행하면 Vouch Compute 기여자 계약에 동의하는 것입니다: vouchcompute.com/legal/contributor-agreement"
+      "terms": "로그인하고 이 컴퓨터에서 앱을 실행하면 다음 사항에 동의하는 것입니다:"
     },
     "device": {
       "signInFirst": {

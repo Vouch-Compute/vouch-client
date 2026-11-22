@@ -343,7 +343,7 @@
       "openPage": "Abrir página de login",
       "waiting": "Aguardando sua aprovação…",
       "readOnly": "O app só tem acesso de leitura aos seus ganhos e dispositivos. Alterações na conta de recebimento sempre acontecem na web.",
-      "terms": "Ao entrar e executar o app neste computador, você concorda com o Acordo de colaborador da Vouch Compute: vouchcompute.com/legal/contributor-agreement"
+      "terms": "Ao entrar e executar o app neste computador, você concorda com:"
     },
     "device": {
       "signInFirst": {

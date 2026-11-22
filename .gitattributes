@@ -7,3 +7,5 @@
 *.der binary
 *.bin binary
 *.dll binary
+*.onnx binary
+*.onnx_data binary

@@ -15,7 +15,7 @@ default = ["candle", "dev-trust"]
 candle = ["dep:candle-core", "dep:candle-nn", "dep:candle-transformers", "dep:claxon"]
 # ONNX Runtime embeddings (manifest runtime "onnxruntime"). `load-dynamic`: onnxruntime.dll/.so/.dylib comes
 # from a signed backend pack at runtime; no prebuilt static library is needed at build time.
-onnx = ["dep:ort", "dep:claxon"]
+onnx = ["dep:ort", "dep:claxon", "dep:tokenizers"]
 # whisper.cpp transcription via whisper-rs (manifest runtime "whisper.cpp"); needs cmake + a C++ compiler.
 whisper = ["dep:whisper-rs", "dep:claxon"]
 dev-trust = ["pool-proto/dev-trust"]
@@ -45,6 +45,9 @@ candle-transformers = { workspace = true, optional = true }
 claxon = { workspace = true, optional = true }
 ort = { version = "=2.0.0-rc.10", default-features = false, features = ["load-dynamic", "ndarray"], optional = true }
 whisper-rs = { version = "0.15", optional = true }
+# `tokenizer.json` pipelines (XLM-R SentencePiece-Unigram for bge-m3): the library the reference worker uses from
+# Python. Pure Rust (fancy-regex, no oniguruma C build); no `http` feature, so it cannot download anything.
+tokenizers = { version = "0.23", default-features = false, features = ["fancy-regex"], optional = true }
 tempfile = { version = "3", optional = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -56,6 +59,7 @@ seccompiler = "0.5"
 libc = "0.2"
 
 [dev-dependencies]
+tokenizers = { version = "0.23", default-features = false, features = ["fancy-regex"] }
 pool-sandbox = { workspace = true, features = ["dev-trust"] }
 # self dev-dependency: integration tests see the `testkit` fixtures
 pool-runner = { path = ".", features = ["testkit"] }

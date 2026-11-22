@@ -343,7 +343,7 @@
       "openPage": "Ouvrir la page de connexion",
       "waiting": "En attente de votre approbation…",
       "readOnly": "L’application n’obtient qu’un accès en lecture à vos revenus et à vos appareils. Les modifications du compte de versement se font toujours sur le web.",
-      "terms": "En vous connectant et en exécutant l’application sur cet ordinateur, vous acceptez le Contrat de contributeur Vouch Compute : vouchcompute.com/legal/contributor-agreement"
+      "terms": "En vous connectant et en exécutant l’application sur cet ordinateur, vous acceptez :"
     },
     "device": {
       "signInFirst": {

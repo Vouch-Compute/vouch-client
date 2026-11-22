@@ -343,7 +343,7 @@
       "openPage": "打开登录页面",
       "waiting": "正在等待您批准…",
       "readOnly": "本应用只能读取您的收益和设备信息。收款账户的更改始终在网页上进行。",
-      "terms": "登录并在此电脑上运行本应用，即表示您同意《Vouch Compute 贡献者协议》：vouchcompute.com/legal/contributor-agreement"
+      "terms": "登录并在此电脑上运行本应用，即表示您同意以下条款："
     },
     "device": {
       "signInFirst": {

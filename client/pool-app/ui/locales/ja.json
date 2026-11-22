@@ -343,7 +343,7 @@
       "openPage": "サインインページを開く",
       "waiting": "承認を待っています…",
       "readOnly": "アプリが取得するのは、収益とデバイスの読み取り権限のみです。受取口座の変更は常にウェブで行います。",
-      "terms": "サインインしてこのコンピューターでアプリを実行すると、Vouch Compute コントリビューター契約に同意したことになります：vouchcompute.com/legal/contributor-agreement"
+      "terms": "サインインしてこのコンピューターでアプリを実行すると、以下に同意したことになります："
     },
     "device": {
       "signInFirst": {
