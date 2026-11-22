@@ -32,7 +32,7 @@ import onnx
 from onnx import TensorProto, helper, numpy_helper
 
 HERE = Path(__file__).resolve().parent
-REAL_TOKENIZER_SHA256 = "6710678b12670bc442b99edc952c4d996ae309a7020c1fa0096dd245c2faf790"
+PINNED_BGE_M3_FILE_SHA256 = "6710678b12670bc442b99edc952c4d996ae309a7020c1fa0096dd245c2faf790"
 VOCAB = 3000
 HIDDEN = 16
 MAX_LEN = 16
@@ -101,7 +101,7 @@ def main() -> None:
     real_dir = Path(sys.argv[1])
     real_path = real_dir / "onnx" / "tokenizer.json" if (real_dir / "onnx").is_dir() else real_dir / "tokenizer.json"
     raw = real_path.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != REAL_TOKENIZER_SHA256:
+    if hashlib.sha256(raw).hexdigest() != PINNED_BGE_M3_FILE_SHA256:
         sys.exit("tokenizer.json is not bge-m3's pinned file")
     out = HERE / "onnx"
     out.mkdir(exist_ok=True)
