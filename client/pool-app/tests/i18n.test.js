@@ -129,6 +129,9 @@ for (const [tags, want] of [[["pt-PT"], "pt-BR"], [["zh-TW"], "zh-CN"], [["zh"],
 
 // keys used in the sources exist, and every key is used
 const INDEX = fs.readFileSync(path.join(UI, "index.html"), "utf8");
+// the page loads the formatter first and then the app (both deferred, so in document order)
+if (JSON.stringify([...INDEX.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map((m) => m[1])) !== '["i18n.js","app.js"]'
+  || (INDEX.match(/<script/g) || []).length !== 2) fail("index.html must load i18n.js and then app.js");
 const SRC = path.join(__dirname, "..", "src-tauri", "src");
 const RUST = fs.readdirSync(SRC).filter((f) => f.endsWith(".rs")).map((f) => fs.readFileSync(path.join(SRC, f), "utf8")).join("\n");
 for (const k of uiKeys) if (!APP_JS.includes(`"${k}"`) && !INDEX.includes(`"${k}"`) && !INDEX.includes(`:${k}`)) fail(`ui key ${k} is not used in app.js or index.html`);

@@ -108,7 +108,9 @@ fn csp_is_strict() {
     for sink in ["innerHTML", "outerHTML", "insertAdjacentHTML"] {
         assert!(!I18N_JS.contains(sink), "{sink} in i18n.js");
     }
-    assert!(INDEX_HTML.contains("<script src=\"i18n.js\" defer></script>"), "index.html loads i18n.js from the bundle");
+    // exactly two bundled scripts, deferred, in this order: app.js reads I18N at its top
+    let scripts: Vec<&str> = INDEX_HTML.match_indices("<script").map(|(i, _)| &INDEX_HTML[i..INDEX_HTML[i..].find("</script>").map_or(INDEX_HTML.len(), |e| i + e)]).collect();
+    assert_eq!(scripts, ["<script src=\"i18n.js\" defer>", "<script src=\"app.js\" defer>"], "index.html loads i18n.js, then app.js");
     // the windows load the bundled UI only
     for w in c["app"]["windows"].as_array().unwrap() {
         assert!(w.get("url").is_none() || w["url"].as_str().unwrap().starts_with("index"), "remote window url");
