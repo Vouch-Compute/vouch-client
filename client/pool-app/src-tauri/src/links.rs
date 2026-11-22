@@ -9,26 +9,39 @@
 //! * `http://` only in dev builds, and only to the exact loopback hosts `127.0.0.1`, `localhost` and `[::1]`;
 //! * nothing else (`file:`, `javascript:`, `data:`, custom schemes, ...).
 
+/// The `open_link` kinds whose URL is read from the agent's `status.links` (built from the configured web base URL).
+/// `contributor_agreement` and `acceptable_use` are the legal documents a contributor accepts when linking a device.
+pub const STATUS_KINDS: &[&str] = &["wallet", "dashboard", "earn", "trust", "devices", "recover", "verify", "contributor_agreement", "acceptable_use"];
+
 pub fn check(url: &str, dev_build: bool) -> Result<String, String> {
-    let u = tauri::Url::parse(url.trim()).map_err(|_| "refusing an invalid link".to_string())?;
+    let u = tauri::Url::parse(url.trim()).map_err(|_| crate::i18n::t("error.link.invalid"))?;
     if !u.username().is_empty() || u.password().is_some() {
-        return Err("refusing a link with user info".into());
+        return Err(crate::i18n::t("error.link.userInfo"));
     }
     let host = u.host_str().unwrap_or_default();
     if host.is_empty() {
-        return Err("refusing a link without a host".into());
+        return Err(crate::i18n::t("error.link.noHost"));
     }
     match u.scheme() {
         "https" => Ok(u.into()),
         "http" if dev_build && matches!(host, "127.0.0.1" | "localhost" | "[::1]") => Ok(u.into()),
-        "http" => Err("refusing a non-https link".into()),
-        _ => Err("refusing a link that is not a web page".into()),
+        "http" => Err(crate::i18n::t("error.link.notHttps")),
+        _ => Err(crate::i18n::t("error.link.notWeb")),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::check;
+    use super::{check, STATUS_KINDS};
+
+    #[test]
+    fn status_kinds_are_plain_names_and_include_the_legal_documents() {
+        for k in STATUS_KINDS {
+            assert!(!k.is_empty() && k.bytes().all(|b| b.is_ascii_lowercase() || b == b'_'), "{k}");
+        }
+        assert!(STATUS_KINDS.contains(&"contributor_agreement") && STATUS_KINDS.contains(&"acceptable_use"));
+        assert!(!STATUS_KINDS.contains(&"signin"), "the sign-in URL comes from signin.status, not status.links");
+    }
 
     #[test]
     fn https_links_pass_and_are_normalised() {

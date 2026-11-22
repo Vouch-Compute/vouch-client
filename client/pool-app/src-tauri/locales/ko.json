@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Vouch Compute 열기",
+    "pause": "1시간 일시 중지",
+    "resume": "재개",
+    "quit": "Vouch Compute 창 닫기",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute(개발 빌드)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute(개발 빌드)"
+  },
+  "error": {
+    "methodNotAllowed": "허용되지 않는 요청입니다: {method}",
+    "agentNotRunning": "Vouch Compute 에이전트가 실행되고 있지 않습니다",
+    "agentClosed": "Vouch Compute 에이전트가 연결을 종료했습니다",
+    "agentError": "Vouch Compute 에이전트에서 오류가 발생했습니다",
+    "agentStartFailed": "Vouch Compute 에이전트를 시작하지 못했습니다({path}): {detail}",
+    "agentDidNotStart": "Vouch Compute 에이전트가 시작되지 않았습니다",
+    "noAppFolder": "앱 폴더를 찾을 수 없습니다",
+    "noSignin": "진행 중인 로그인이 없습니다",
+    "linkUnavailable": "지금은 이 링크를 사용할 수 없습니다",
+    "unknownLink": "알 수 없는 링크",
+    "link": {
+      "invalid": "잘못된 링크라서 열지 않습니다",
+      "userInfo": "사용자 정보가 포함된 링크라서 열지 않습니다",
+      "noHost": "호스트가 없는 링크라서 열지 않습니다",
+      "notHttps": "https가 아닌 링크라서 열지 않습니다",
+      "notWeb": "웹 페이지가 아닌 링크라서 열지 않습니다"
+    },
+    "update": {
+      "endpoint": "업데이트 주소가 올바르지 않습니다: {detail}",
+      "noKey": "이 빌드에는 업데이트 키가 없습니다",
+      "checkFailed": "업데이트 확인에 실패했습니다: {detail}",
+      "noneAvailable": "사용 가능한 업데이트가 없습니다",
+      "rejected": "업데이트가 승인되지 않았습니다: {detail}",
+      "refused": "업데이트를 거부했습니다: {detail}"
+    }
+  }
+}

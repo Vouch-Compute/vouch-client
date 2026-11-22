@@ -3,7 +3,7 @@
   <img src=".github/assets/logo-dark.svg#gh-dark-mode-only" height="64" alt="Vouch Compute">
 </p>
 
-<h3 align="center">Earn USDC by lending your idle PC to verified AI jobs</h3>
+<h3 align="center">Earn US dollars by lending your idle PC to verified AI jobs</h3>
 
 <p align="center">
   <a href="https://github.com/MetehanAydemir/vouch-client/actions/workflows/client.yml"><img src="https://github.com/MetehanAydemir/vouch-client/actions/workflows/client.yml/badge.svg" alt="CI"></a>
@@ -14,7 +14,7 @@
 </p>
 
 Vouch Compute is a desktop app that runs small AI jobs (speech-to-text and text embeddings) on your computer while
-you're away, and pays you in USDC for every job that passes verification. It runs only when the machine is idle,
+you're away, and pays you in US dollars for every job that passes verification. It runs only when the machine is idle,
 inside a locked-down sandbox, and it shows earnings as honest estimates, never as promises.
 
 <p align="center">
@@ -49,9 +49,9 @@ never an older version.
 
 - **Runs only when you're away.** Jobs start when the computer is idle and stop as soon as you come back. You set
   limits for CPU, GPU, temperature and battery.
-- **Paid for verified work only.** The server meters and checks every job, and pays in USDC for work that passes.
+- **Paid for verified work only.** The server meters and checks every job, and pays in US dollars for work that passes.
   Earnings are shown as estimated ranges, never as guaranteed income.
-- **No token, no points, no mining.** Just small AI jobs and stablecoin payouts.
+- **No token, no points, no mining.** Just small AI jobs and US dollar payouts. We don't pay or accept cryptocurrency.
 - **Signed, tamper-evident updates.** Release builds trust only release keys, and refuse to downgrade.
 
 ## 🛡️ What the sandbox protects

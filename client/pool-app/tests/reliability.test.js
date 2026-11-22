@@ -3,17 +3,13 @@
 // * the card renders the server's object; unknown tiers or hints are not shown; no score/threshold/verification detail/
 //   latency/speed wording appears anywhere in the card or its fixed texts;
 // * the app never computes or caches a tier: app.js has no browser-storage write of reliability or tier data.
-const fs = require("fs");
-const path = require("path");
-const src = fs.readFileSync(path.join(__dirname, "..", "ui", "app.js"), "utf8");
-const start = src.indexOf("// ---- reliability (start)");
-const end = src.indexOf("// ---- reliability (end)");
-if (start < 0 || end < 0) throw new Error("reliability markers missing in app.js");
+const { I18N, APP_JS: src, useLocale, loadSection } = require("./ui-loader.js");
 const esc = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const day = (s) => s;
-const { reliabilityHtml, HINTS, TIER_LABELS, PRIORITY_WORDS } = new Function("esc", "day",
-  src.slice(start, end) + "; return { reliabilityHtml, HINTS, TIER_LABELS, PRIORITY_WORDS };")(esc, day);
-
+useLocale("en");
+const t = I18N.t;
+const { reliabilityHtml, HINTS, TIER_LABELS, PRIORITY_WORDS } = loadSection("// ---- reliability (start)", "// ---- reliability (end)",
+  ["reliabilityHtml", "HINTS", "TIER_LABELS", "PRIORITY_WORDS"], { esc, day });
 let bad = 0;
 const fail = (m) => { bad++; console.log("FAIL", m); };
 const BANNED = /score|threshold|canar|spot.?check|latency|speed|percentile|window|rank/i;
@@ -23,11 +19,11 @@ const html = reliabilityHtml({ tier: "stable", since_day: "2026-11-12", benefits
 if (!html.includes("Stable")) fail("tier label");
 if (!html.includes("+5% on verified work")) fail("bonus");
 if (!html.includes("Higher place in the queue")) fail("queue priority");
-if (!html.includes(HINTS.keep_regular_hours) || !html.includes(HINTS.avoid_disconnects)) fail("hints");
+if (!html.includes(t(HINTS.keep_regular_hours)) || !html.includes(t(HINTS.avoid_disconnects))) fail("hints");
 if (html.includes("made_up_hint")) fail("unknown hint shown");
 if (BANNED.test(html)) fail("banned wording in the card: " + html.match(BANNED)[0]);
-for (const t of [...Object.values(HINTS), ...Object.values(TIER_LABELS), ...Object.values(PRIORITY_WORDS)]) {
-  if (BANNED.test(t)) fail("banned wording in fixed text: " + t);
+for (const key of [...Object.values(HINTS), ...Object.values(TIER_LABELS), ...Object.values(PRIORITY_WORDS)]) {
+  if (BANNED.test(t(key))) fail("banned wording in fixed text: " + t(key));
 }
 if (reliabilityHtml({ tier: "gold" }).includes("gold")) fail("unknown tier shown");
 if (!reliabilityHtml(null).includes("appears here")) fail("empty state");

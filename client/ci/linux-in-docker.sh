@@ -26,9 +26,12 @@ echo "== release decoding rules (pool-proto without dev-trust)"
 cargo test -p pool-proto --no-default-features 2>&1 | grep -E "^test result|FAILED|panicked"
 echo "== native runtimes (whisper.cpp + onnxruntime features, clippy -D warnings)"
 cargo clippy -p pool-runner --features whisper,onnx -- -D warnings 2>&1 | tail -n 5
-echo "== app money display + reliability card"
+echo "== app money display + reliability card + rendering + languages"
 node pool-app/tests/usd.test.js
 node pool-app/tests/reliability.test.js
+node pool-app/tests/render.test.js
+node pool-app/tests/i18n.test.js
+node pool-app/tests/i18n-render.test.js
 echo "== release hygiene: guard + marker check"
 bash ci/release-guard.sh
 POOL_RELEASE=1 cargo build -p pool-core --bin pool-core --no-default-features --features nvml,release 2>&1 | tail -n 2

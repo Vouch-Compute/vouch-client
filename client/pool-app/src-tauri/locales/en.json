@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Open Vouch Compute",
+    "pause": "Pause for 1 hour",
+    "resume": "Resume",
+    "quit": "Close the Vouch Compute window",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (DEV BUILD)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (DEV BUILD)"
+  },
+  "error": {
+    "methodNotAllowed": "This request is not allowed: {method}",
+    "agentNotRunning": "The Vouch Compute agent is not running",
+    "agentClosed": "The Vouch Compute agent closed the connection",
+    "agentError": "The Vouch Compute agent reported an error",
+    "agentStartFailed": "Could not start the Vouch Compute agent ({path}): {detail}",
+    "agentDidNotStart": "The Vouch Compute agent did not start",
+    "noAppFolder": "The app's folder could not be found",
+    "noSignin": "No sign-in is in progress",
+    "linkUnavailable": "This link is not available right now",
+    "unknownLink": "Unknown link",
+    "link": {
+      "invalid": "Refusing an invalid link",
+      "userInfo": "Refusing a link with user info",
+      "noHost": "Refusing a link without a host",
+      "notHttps": "Refusing a non-https link",
+      "notWeb": "Refusing a link that is not a web page"
+    },
+    "update": {
+      "endpoint": "The update address is not valid: {detail}",
+      "noKey": "This build has no update key",
+      "checkFailed": "The update check failed: {detail}",
+      "noneAvailable": "No update is available",
+      "rejected": "The update was rejected: {detail}",
+      "refused": "The update was refused: {detail}"
+    }
+  }
+}

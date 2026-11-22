@@ -77,6 +77,10 @@ jobs:
         run: node client/pool-app/tests/reliability.test.js
       - name: App rendering (hero status, escaping, backend labels incl. Metal)
         run: node client/pool-app/tests/render.test.js
+      - name: App languages (keys, ICU arguments, glossary, every locale)
+        run: node client/pool-app/tests/i18n.test.js
+      - name: App languages rendered (no raw keys or leftovers, lang and dir per locale)
+        run: node client/pool-app/tests/i18n-render.test.js
       - name: cargo audit
         working-directory: client
         run: |

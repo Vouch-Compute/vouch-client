@@ -54,31 +54,31 @@ where
     let (r, mut w) = tokio::io::split(stream);
     w.write_all(line.as_bytes()).await.map_err(|e| e.to_string())?;
     let mut lines = BufReader::new(r).lines();
-    let resp = lines.next_line().await.map_err(|e| e.to_string())?.ok_or("agent closed the connection")?;
+    let resp = lines.next_line().await.map_err(|e| e.to_string())?.ok_or_else(|| crate::i18n::t("error.agentClosed"))?;
     let v: Value = serde_json::from_str(&resp).map_err(|e| e.to_string())?;
     if v.get("ok").and_then(Value::as_bool) == Some(true) {
         Ok(v.get("result").cloned().unwrap_or(Value::Null))
     } else {
-        Err(v.get("error").and_then(Value::as_str).unwrap_or("agent error").to_string())
+        Err(v.get("error").and_then(Value::as_str).map(String::from).unwrap_or_else(|| crate::i18n::t("error.agentError")))
     }
 }
 
 pub async fn call(method: &str, params: Value) -> Result<Value, String> {
-    let token = std::fs::read_to_string(data_dir().join("control.token")).map_err(|_| "agent not running".to_string())?;
+    let token = std::fs::read_to_string(data_dir().join("control.token")).map_err(|_| crate::i18n::t("error.agentNotRunning"))?;
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let line = format!("{}\n", json!({ "id": id, "token": token.trim(), "method": method, "params": params }));
     #[cfg(windows)]
     {
         let pipe = tokio::net::windows::named_pipe::ClientOptions::new()
             .open(endpoint_name())
-            .map_err(|_| "agent not running".to_string())?;
+            .map_err(|_| crate::i18n::t("error.agentNotRunning"))?;
         roundtrip(pipe, line).await
     }
     #[cfg(unix)]
     {
         let s = tokio::net::UnixStream::connect(data_dir().join(endpoint_name()))
             .await
-            .map_err(|_| "agent not running".to_string())?;
+            .map_err(|_| crate::i18n::t("error.agentNotRunning"))?;
         roundtrip(s, line).await
     }
 }
@@ -92,7 +92,7 @@ pub async fn ensure_running() -> Result<(), String> {
         return Ok(());
     }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let dir = exe.parent().ok_or("no exe dir")?;
+    let dir = exe.parent().ok_or_else(|| crate::i18n::t("error.noAppFolder"))?;
     let core = dir.join(if cfg!(windows) { "pool-core.exe" } else { "pool-core" });
     let mut cmd = std::process::Command::new(&core);
     cmd.stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
@@ -102,12 +102,12 @@ pub async fn ensure_running() -> Result<(), String> {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
-    cmd.spawn().map_err(|e| format!("could not start the Vouch Compute agent ({}): {e}", core.display()))?;
+    cmd.spawn().map_err(|e| crate::i18n::tv("error.agentStartFailed", &[("path", &core.display().to_string()), ("detail", &e.to_string())]))?;
     for _ in 0..50 {
         tokio::time::sleep(std::time::Duration::from_millis(200)).await;
         if call("status", Value::Null).await.is_ok() {
             return Ok(());
         }
     }
-    Err("the Vouch Compute agent did not start".into())
+    Err(crate::i18n::t("error.agentDidNotStart"))
 }

@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Buka Vouch Compute",
+    "pause": "Jeda 1 jam",
+    "resume": "Lanjutkan",
+    "quit": "Tutup jendela Vouch Compute",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (VERSI PENGEMBANGAN)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (VERSI PENGEMBANGAN)"
+  },
+  "error": {
+    "methodNotAllowed": "Permintaan ini tidak diizinkan: {method}",
+    "agentNotRunning": "Agen Vouch Compute tidak berjalan",
+    "agentClosed": "Agen Vouch Compute menutup koneksi",
+    "agentError": "Agen Vouch Compute melaporkan kesalahan",
+    "agentStartFailed": "Tidak dapat menjalankan agen Vouch Compute ({path}): {detail}",
+    "agentDidNotStart": "Agen Vouch Compute gagal dimulai",
+    "noAppFolder": "Folder aplikasi tidak ditemukan",
+    "noSignin": "Tidak ada proses masuk yang sedang berlangsung",
+    "linkUnavailable": "Tautan ini tidak tersedia saat ini",
+    "unknownLink": "Tautan tidak dikenal",
+    "link": {
+      "invalid": "Menolak tautan yang tidak valid",
+      "userInfo": "Menolak tautan yang berisi info pengguna",
+      "noHost": "Menolak tautan tanpa host",
+      "notHttps": "Menolak tautan non-https",
+      "notWeb": "Menolak tautan yang bukan halaman web"
+    },
+    "update": {
+      "endpoint": "Alamat pembaruan tidak valid: {detail}",
+      "noKey": "Versi ini tidak memiliki kunci pembaruan",
+      "checkFailed": "Pemeriksaan pembaruan gagal: {detail}",
+      "noneAvailable": "Tidak ada pembaruan yang tersedia",
+      "rejected": "Pembaruan ditolak: {detail}",
+      "refused": "Pembaruan tidak diterima: {detail}"
+    }
+  }
+}

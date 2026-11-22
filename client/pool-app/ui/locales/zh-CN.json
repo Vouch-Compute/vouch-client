@@ -1,0 +1,566 @@
+{
+  "common": {
+    "loading": "加载中…",
+    "back": "返回",
+    "continue": "继续",
+    "resume": "恢复",
+    "signIn": "登录",
+    "range": "{low} – {high}",
+    "rangeSpoken": "{low} 至 {high}",
+    "devBuild": "开发版",
+    "devBuildTitle": "开发版本：开发密钥、开发更新渠道、测试网络。并非正式发布版本。",
+    "duration": {
+      "minutes": "{m} 分钟",
+      "hoursMinutes": "{h} 小时 {m} 分钟"
+    },
+    "unit": {
+      "min": "分钟",
+      "celsius": "°C"
+    }
+  },
+  "shell": {
+    "skip": "跳到主要内容",
+    "tagline": "利用闲置电脑提供经过验证的 AI 算力。",
+    "navLabel": "主导航",
+    "starting": "正在启动…",
+    "themeToggle": "切换颜色主题",
+    "themeToggleTitle": "切换主题"
+  },
+  "nav": {
+    "home": "首页",
+    "earnings": "收益",
+    "device": "设备",
+    "settings": "设置"
+  },
+  "mode": {
+    "idleOnly": "我离开时",
+    "scheduled": "按计划",
+    "alwaysOn": "始终运行"
+  },
+  "hero": {
+    "loading": {
+      "title": "正在启动…",
+      "sub": "正在连接 Vouch Compute 代理程序。"
+    },
+    "down": {
+      "title": "代理程序未运行",
+      "sub": "负责执行工作的后台代理程序没有运行。"
+    },
+    "signedOut": {
+      "title": "已退出登录",
+      "sub": "登录后，这台电脑即可接收经过验证的工作。",
+      "authFailed": "无法识别此设备。请重新登录以重新注册。"
+    },
+    "offline": {
+      "title": "离线",
+      "connecting": "正在连接…",
+      "sub": "目前无法连接到 Vouch Compute 网络。",
+      "subRetry": "目前无法连接到 Vouch Compute 网络。将在 {seconds, plural, other {# 秒}}后重试。"
+    },
+    "setup": {
+      "title": "正在设置此设备",
+      "sub": "正在将这台电脑的密钥注册到您的账户。"
+    },
+    "updateRequired": {
+      "title": "需要更新",
+      "sub": "此版本已无法连接。请在“设置”中安装更新。"
+    },
+    "revoked": {
+      "title": "设备已暂停或被停用",
+      "sub": "此设备目前无法接收工作。Vouch Compute 会不时重试；请在网页上查看“设备”页面。"
+    },
+    "earning": {
+      "title": "正在赚取收益",
+      "sub": "正在沙盒中运行任务。服务器验证通过后即可获得报酬。",
+      "subModel": "正在沙盒中运行 {model} 任务。服务器验证通过后即可获得报酬。"
+    },
+    "benchmark": {
+      "title": "正在进行基准测试",
+      "sub": "正在运行 20 分钟的持续基准测试。这不是有报酬的工作。"
+    },
+    "paused": {
+      "title": "已暂停",
+      "until": "暂停至 {time}。暂停期间不会开始新工作。",
+      "local": "暂停期间不会开始新工作。"
+    },
+    "idle": {
+      "title": "空闲，等待任务",
+      "sub": "已准备好接收工作。收益取决于需求，因此可能会有空闲期。"
+    },
+    "waiting": {
+      "userActive": {
+        "title": "等待您离开电脑",
+        "sub": "键盘和鼠标闲置 {minutes, plural, other {# 分钟}}后开始。"
+      },
+      "fullscreen": {
+        "title": "因游戏或演示而暂停",
+        "sub": "退出全屏后恢复。"
+      },
+      "onBattery": {
+        "title": "使用电池时已暂停",
+        "sub": "Vouch Compute 仅在接通电源时工作。"
+      },
+      "batteryLow": {
+        "title": "电量低",
+        "sub": "电量低于 30% 时，Vouch Compute 绝不会运行。"
+      },
+      "thermal": {
+        "title": "正在降温",
+        "sub": "已暂停，直到温度降至您设置的 {limit, number} °C 上限以下。"
+      },
+      "outsideSchedule": {
+        "title": "不在计划时间内",
+        "sub": "Vouch Compute 仅在您选择的时段内工作。"
+      },
+      "dailyCap": {
+        "title": "已达到每日上限",
+        "sub": "明天恢复。"
+      }
+    }
+  },
+  "pilot": {
+    "banner": "试点阶段：测试资金，无实际价值"
+  },
+  "hw": {
+    "gpu": "显卡",
+    "notDetected": "未检测到",
+    "vram": ", {size}",
+    "gigabytes": "{value, number} GB",
+    "accelerated": "已加速",
+    "cpu": "处理器",
+    "memory": "内存",
+    "lastBackend": "上次任务运行于",
+    "deviceKey": "设备密钥",
+    "keySoftware": "软件密钥（开发）",
+    "backend": {
+      "none": "尚无任务",
+      "directml": "显卡（DirectML）",
+      "cuda": "显卡（CUDA）",
+      "metal": "显卡（Metal）",
+      "cpu": "处理器（CPU）"
+    }
+  },
+  "bench": {
+    "title": "基准测试",
+    "waiting": "正在等待网络下发您的基准测试。请保持 Vouch Compute 处于打开状态并接通电源。",
+    "progressLabel": "基准测试进度",
+    "progress": "{ratio, number, percent} · 已完成 {rounds, plural, other {# 轮}}。您可以继续轻度使用电脑；如果您选择了“立即运行”，移动鼠标不会取消测试。",
+    "finished": "基准测试已完成。结果由服务器检查。",
+    "stopped": "基准测试在完成前停止了。稍后会重新开始。",
+    "about": "一项经过签名的 20 分钟持续测试，用于衡量这台电脑的真实能力。此测试从不计报酬，您可以随时停止。",
+    "runNow": "立即运行",
+    "runAtIdle": "改为在首次空闲时运行"
+  },
+  "consent": {
+    "title": "硬件标识符",
+    "lede": "在注册这台电脑之前，Vouch Compute 需要您的答复。以下是完整文本：",
+    "englishBinding": "此许可文本以英文显示。英文文本为具有约束力的版本。",
+    "sentOnly": "仅发送至 Vouch Compute 的账户服务，绝不会发送至任务网络。版本 {version}。",
+    "refuse": "不允许",
+    "accept": "允许并继续"
+  },
+  "estimate": {
+    "title": "您的预估",
+    "sub": "由服务器根据您的基准测试和当前需求计算。",
+    "loading": "正在向服务器请求预估…",
+    "unavailable": "预估需要已完成的基准测试以及与服务器的连接。（{error}）",
+    "rangeLabel": "扣除电费后的每月预估范围",
+    "notPromise": "仅为预估，并非承诺",
+    "base": "基础报酬",
+    "baseHint": "工作本身所得的报酬。",
+    "bonus": "上线奖励",
+    "temporary": "临时",
+    "none": "无",
+    "bonusHint": "临时上线奖励，会随付费需求增长而逐步减少。",
+    "bonusHintEnds": "临时上线奖励，于 {date} 结束，会随付费需求增长而逐步减少。",
+    "noBonus": "目前没有上线奖励。",
+    "electricity": "电费",
+    "electricityHint": "{watts, number} W，电价 {price}/kWh，已扣除。",
+    "assumes": "假设每天可用 {hours, number} 小时，其中 {utilization, number, percent} 的时间有工作。这是一个范围，并非承诺：收益取决于需求，且只有经过验证的工作才会获得报酬。"
+  },
+  "earnings": {
+    "title": "收益",
+    "lede": "数据每天从服务器获取一次，涵盖至少 24 小时前完成的工作。",
+    "statusTitle": "付款状态",
+    "statusSub": "只计算经过验证的工作。新收益在付款前会先暂缓发放。",
+    "unavailable": "登录并联网后即可查看收益。（{error}）",
+    "splitLabel": "按状态划分的收益",
+    "empty": "尚无收益。经过验证的工作会在完成一天后显示在这里。",
+    "onHold": "暂缓发放",
+    "onHoldHint": "托管中或审核中",
+    "paid": "已付款",
+    "paidHint": "已发送至您的收款账户",
+    "allStates": "所有付款状态",
+    "probation": "新设备：在验证工作期间，收益将暂缓发放 {days, plural, other {# 天}}。",
+    "probationUntil": "新设备：在验证工作期间，收益将暂缓发放 {days, plural, other {# 天}}（至 {date}）。",
+    "footer": "本周已验证：<b>{amount}</b>。数据截至 {date}。详细记录请查看<link>网页控制面板</link>。",
+    "state": {
+      "pending": "待处理",
+      "inEscrow": "托管中",
+      "inReview": "审核中",
+      "releasable": "可发放",
+      "sent": "已发送",
+      "clawedBack": "已追回"
+    },
+    "hint": {
+      "pending": "发放前暂缓 72 小时",
+      "inEscrow": "考察期：暂缓 21 天",
+      "inReview": "正在审核，并未没收",
+      "releasable": "将随下一次每周付款发出",
+      "sent": "已支付至您的收款账户",
+      "clawedBack": "经审核后已撤销"
+    }
+  },
+  "payout": {
+    "title": "收款账户",
+    "sub": "仅供查看。收款账户需在网页上设置和更改。",
+    "none": "尚未设置收款账户。收益会继续累积；请在首次付款前在网页上设置。",
+    "resumes": "付款将于 {date} 恢复",
+    "unavailable": "登录后即可查看收款账户详情。",
+    "manage": "在网页上设置或更改收款账户",
+    "verify": "验证您的身份",
+    "fine": "为保障您的安全，收款账户只能在网页上通过第二重验证进行设置和更改。任何更改都会使付款暂停 72 小时。请在网页上验证您的身份以接收付款。"
+  },
+  "device": {
+    "title": "设备",
+    "lede": "这台电脑、它的基准测试和限制。",
+    "cardLabel": "此设备",
+    "thisComputer": "这台电脑",
+    "headPending": "此设备注册并联网后将显示账户详情。",
+    "state": "{connection, select, online {在线} other {离线}}{activity, select, idle {，空闲} working {，工作中} paused {，已暂停} other {}}{pausedBy, select, user {。已由您暂停。} tally {。已由 Vouch Compute 暂停。} other {}}",
+    "technical": "技术详情",
+    "id": "设备 ID",
+    "notRegistered": "未注册",
+    "keyTpm": "TPM 2.0（硬件，不可导出）",
+    "keySoftware": "软件密钥（开发级别：最高为考察期等级）",
+    "trustCeiling": "信任上限",
+    "sandbox": "沙盒",
+    "notUsedYet": "尚未使用",
+    "agentVersion": "代理程序版本",
+    "sandboxFine": "任务在独立的沙盒进程中运行，无法访问网络，也无法访问您的文件。输入数据只保存在内存中，绝不会写入磁盘。",
+    "relUnavailable": "此设备注册并联网后可用。",
+    "scheduleSub": "模式：{mode}。以下时段适用于“按计划”模式。",
+    "noWindows": "未设置时段。",
+    "changeSchedule": "更改模式和计划",
+    "dailyLimit": "每日上限 {hours, number} 小时",
+    "noDailyLimit": "无每日上限",
+    "limits": {
+      "title": "限制",
+      "sub": "Vouch Compute 会在这台电脑过热之前暂停，工作强度由您决定。",
+      "pauseAbove": "高于此温度时暂停",
+      "tempMax": "无论此处如何设置，Vouch Compute 都绝不会超过 90 °C。",
+      "power": "功耗",
+      "battery": {
+        "title": "绝不使用电池运行",
+        "hint": "无论如何设置，电量低于 30% 时都不会运行。"
+      },
+      "fullscreen": {
+        "title": "游戏和全屏时暂停",
+        "hint": "退出全屏后恢复。"
+      }
+    },
+    "account": {
+      "title": "您账户中的此设备",
+      "pause": "在服务器上暂停",
+      "manage": "在网页上管理",
+      "fine": "在这里暂停与在网页上暂停效果相同：在您恢复之前不会收到新工作。正在运行的任务会继续完成，验证通过后即可获得报酬。"
+    }
+  },
+  "schedule": {
+    "title": "计划",
+    "everyDay": "每天",
+    "weekdays": "工作日",
+    "weekends": "周末",
+    "noDays": "未选择日期",
+    "window": "{days}，{start}–{end}"
+  },
+  "reliability": {
+    "title": "可靠性",
+    "empty": "服务器为此设备评定可靠性等级后，等级将显示在这里。",
+    "bonus": "已验证工作 +{pct}%",
+    "noBonus": "无可靠性奖励",
+    "since": "自 {date} 起",
+    "queue": "队列",
+    "bonusLabel": "奖励",
+    "howToImprove": "如何提升",
+    "nothingToImprove": "目前没有需要改进的地方。",
+    "about": "等级由服务器根据设备在线的稳定程度和完成工作的可靠程度评定，每天最多变化一次。",
+    "tier": {
+      "probation": "新设备",
+      "premium": "高级",
+      "stable": "稳定",
+      "lessStable": "较不稳定",
+      "unpredictable": "不可预测"
+    },
+    "priority": {
+      "standard": "队列中的标准位置",
+      "higher": "队列中的较高位置",
+      "highest": "队列中的最高位置"
+    },
+    "hint": {
+      "keepRegularHours": "保持规律时间：每周在相近的时段保持可用。",
+      "avoidDisconnects": "避免断线：稳定的连接很有帮助。",
+      "finishAcceptedJobs": "完成您接受的任务：避免中途停止工作，例如设置符合您使用习惯的空闲和计划限制。",
+      "buildTenure": "坚持下去：可靠性需要数周时间积累。",
+      "verifyIdentity": "在网页上验证您的身份。",
+      "useHardwareKey": "使用带有硬件安全芯片（TPM）的电脑。"
+    }
+  },
+  "onboarding": {
+    "step": "第 {current} 步，共 {total} 步",
+    "stepPermission": "第 {current} 步，共 {total} 步 · 许可",
+    "progress": "设置进度：第 {current} 步，共 {total} 步",
+    "steps": {
+      "welcome": "欢迎",
+      "signin": "登录",
+      "device": "此设备"
+    },
+    "welcome": {
+      "title": "欢迎使用 Vouch Compute",
+      "lede": "Vouch Compute 利用您电脑的空闲时间执行经过验证的小型 AI 任务，并为通过检查的工作向您付款。请先阅读以下内容。",
+      "regionLabel": "您同意的内容",
+      "scrollHint": "滚动到底部以继续。",
+      "agree": "我已了解",
+      "items": {
+        "sandbox": "<b>运行的内容。</b>对非敏感数据进行语音转文字和文本嵌入，运行在无法访问网络、也看不到您文件的沙盒中。",
+        "inputs": "<b>您的电脑在处理任务时，技术上可以看到任务输入。</b>输入只保存在内存中，绝不会保存到磁盘。",
+        "electricity": "<b>电费。</b>工作会耗电。您的预估已扣除电费成本，便于您判断是否值得。",
+        "provider": "<b>您的网络服务商</b>可能限制家庭宽带的商业用途。请查看您的合同。",
+        "taxes": "<b>税费：</b>您所得收入的相关税费由您自行负责。",
+        "dollars": "<b>以美元支付。</b>您的电脑上只会运行此处所述的 AI 任务。收益以美元支付至您的收款账户（银行账户或电子钱包）。",
+        "probation": "<b>新设备从考察期开始。</b>在验证工作期间，收益将托管 21 天。未经验证的工作不予支付。",
+        "defaults": "<b>默认设置较为保守：</b>只有在您离开 10 分钟后才开始工作，您一回来就立即停止，在游戏中和使用电池时暂停，并遵守温度上限。"
+      }
+    },
+    "signin": {
+      "lede": "使用您的 Vouch Compute 账户。登录在浏览器中通过用户名、密码和第二重验证完成，因此此窗口永远不会看到您的密码或验证码。",
+      "start": "使用浏览器登录",
+      "doneTitle": "您已登录",
+      "doneLede": "接下来，这台电脑将获得自己的密钥。",
+      "pendingTitle": "请在浏览器中确认",
+      "pendingLede": "打开登录页面，使用用户名、密码和第二重验证登录，然后核对此代码是否一致：",
+      "codeLabel": "设备代码",
+      "openPage": "打开登录页面",
+      "waiting": "正在等待您批准…",
+      "readOnly": "本应用只能读取您的收益和设备信息。收款账户的更改始终在网页上进行。",
+      "terms": "登录并在此电脑上运行本应用，即表示您同意《Vouch Compute 贡献者协议》：vouchcompute.com/legal/contributor-agreement"
+    },
+    "device": {
+      "signInFirst": {
+        "title": "请先登录",
+        "lede": "这台电脑会注册到您的账户，因此请先登录再进行设置。",
+        "button": "前往登录"
+      },
+      "replace": {
+        "title": "这是您以前用过的电脑吗？",
+        "lede": "{count, plural, other {您的账户中已有与此类似的设备。}}如果您重装了 Windows 或本应用，请替换旧记录。其等级不会保留：替换后的设备将作为新设备开始。",
+        "item": "替换“{name}”",
+        "unnamed": "未命名设备",
+        "lastSeen": "上次在线：{date}",
+        "new": "不，这是一台新电脑",
+        "newHint": "将其注册为新设备"
+      },
+      "blocked": {
+        "title": "这台电脑暂时无法注册",
+        "openDevices": "在网页上打开“设备”",
+        "verify": "在网页上验证",
+        "manage": "管理设备",
+        "reviewPermission": "查看硬件许可",
+        "registerNew": "注册为新设备"
+      },
+      "enrolling": {
+        "title": "正在注册此设备…",
+        "creating": "正在创建这台电脑的密钥"
+      },
+      "error": {
+        "title": "注册未完成",
+        "backToSignin": "返回登录",
+        "tryAgain": "重试"
+      },
+      "done": {
+        "title": "设置完成",
+        "lede": "这台电脑已注册。接下来将进行一次简短的基准测试；之后 Vouch Compute 会在您设定的限制内自动工作。",
+        "infoOnly": "仅供参考。您能获得多少收益由基准测试决定，而不是由应用报告的信息决定。",
+        "noTpm": "没有硬件安全芯片，此设备将停留在考察期等级，收益受到限制。",
+        "summary": "离开 {minutes, plural, other {# 分钟}}后开始，高于 {temp, number} °C 时暂停。您可以随时在“设置”中更改。",
+        "summaryBattery": "离开 {minutes, plural, other {# 分钟}}后开始，高于 {temp, number} °C 时暂停，且绝不使用电池运行。您可以随时在“设置”中更改。",
+        "open": "打开 Vouch Compute"
+      }
+    }
+  },
+  "notices": {
+    "pausedByUser": "已通过网页或本应用暂停。在您恢复之前，此设备不会收到工作。",
+    "pausedByTally": "已被 Vouch Compute 暂停。请联系支持团队。",
+    "recovery": "有人请求恢复您的账户。如果不是您本人操作，请立即在网页上取消。",
+    "openWeb": "打开网页",
+    "reverify": "请在网页上重新验证您的身份。",
+    "verify": "验证"
+  },
+  "clock": {
+    "minutes": "{n, plural, other {# 分钟}}",
+    "seconds": "{n, plural, other {# 秒}}",
+    "behind": "您电脑的时钟慢了 {offset}。Vouch Compute 会进行校正，但最好在系统设置中开启自动设置时间。",
+    "ahead": "您电脑的时钟快了 {offset}。Vouch Compute 会进行校正，但最好在系统设置中开启自动设置时间。"
+  },
+  "actions": {
+    "pauseHour": "暂停 1 小时",
+    "resumeNow": "立即恢复",
+    "tryAgainNow": "立即重试",
+    "goToUpdates": "前往更新"
+  },
+  "loading": {
+    "starting": "正在启动 Vouch Compute…"
+  },
+  "agentDown": {
+    "title": "Vouch Compute 代理程序未运行",
+    "lede": "代理程序在后台运行：它负责执行工作并保管这台电脑的密钥。请启动它以继续。",
+    "start": "启动"
+  },
+  "home": {
+    "status": "状态",
+    "mode": "模式：{mode}",
+    "onlyVerified": "只有经过验证的工作才会获得报酬",
+    "lastProblem": "最近的问题：{error}",
+    "today": {
+      "title": "今日工作",
+      "sub": "在这台电脑上统计。每项任务在付款前都会经过服务器验证。",
+      "worked": "今日工作时长",
+      "jobsFinished": "本次会话完成的任务",
+      "stoppedEarly": "提前停止（不计报酬）",
+      "dailyLimit": "每日上限",
+      "capUsage": "{hours, number} 小时中的 {ratio, number, percent}",
+      "capLabel": "今日上限已用比例",
+      "noLimit": "无每日上限。<link>在“设置”中设置</link>"
+    },
+    "hardware": {
+      "title": "硬件",
+      "sub": "这台电脑报告的信息。报酬由基准测试决定，而非此列表。"
+    },
+    "estimate": {
+      "title": "每月预估范围",
+      "note": "（扣除电费后）。仅为预估，并非承诺。",
+      "noteBonus": "（扣除电费后，含临时上线奖励）。仅为预估，并非承诺。",
+      "seeEarnings": "查看收益"
+    }
+  },
+  "controls": {
+    "none": "代理程序运行后将显示控制选项。",
+    "daysFor": "时段 {n} 的日期",
+    "from": "从",
+    "to": "到",
+    "remove": "移除",
+    "removeWindow": "移除时段 {n}",
+    "modeTitle": "Vouch Compute 应在何时工作？",
+    "idleOnly": {
+      "title": "我离开时（推荐）",
+      "hint": "在您空闲一段时间后开始，您回来后几秒内停止。"
+    },
+    "scheduled": {
+      "title": "按计划",
+      "hint": "仅在您于下方选择的时段内运行。"
+    },
+    "alwaysOn": {
+      "title": "始终运行",
+      "hint": "仅适用于台式机。工作期间您的电脑会感觉变慢。"
+    },
+    "idleAfter": "空闲多久后开始",
+    "scheduleSub": "用于“按计划”模式。时间为本地时间；时段可以跨越午夜。",
+    "noWindowsYet": "尚无时段。",
+    "addWindow": "添加时段",
+    "capLabel": "每日上限（小时，留空表示不限）"
+  },
+  "autostart": {
+    "title": "登录这台电脑时启动 Vouch Compute",
+    "hint": "它会在系统托盘（时钟旁边的图标）中打开，而不是以窗口形式打开，并遵守您的限制。您可以在此处或系统的启动设置中关闭此功能。",
+    "on": "登录时将启动 Vouch Compute",
+    "off": "Vouch Compute 不会自动启动",
+    "failed": "无法更改启动设置：{error}"
+  },
+  "update": {
+    "checking": "正在检查…",
+    "available": "版本 {version} 已可用。",
+    "install": "安装并重启",
+    "upToDate": "已是最新版本。"
+  },
+  "settings": {
+    "title": "设置",
+    "lede": "Vouch Compute 在这台电脑上如何以及何时工作。",
+    "startup": "启动",
+    "language": {
+      "title": "语言",
+      "sub": "本应用的语言。更改立即生效。",
+      "label": "应用语言",
+      "system": "系统语言（{name}）",
+      "changed": "语言已更改为{name}"
+    },
+    "theme": {
+      "title": "外观",
+      "sub": "除非您选择了主题，否则跟随系统设置。",
+      "group": "主题",
+      "system": "跟随系统",
+      "light": "浅色",
+      "dark": "深色",
+      "announceSystem": "主题跟随系统",
+      "announceLight": "浅色主题",
+      "announceDark": "深色主题"
+    },
+    "privacy": {
+      "title": "数据与隐私",
+      "sandbox": "任务在无法访问网络、也无法访问您文件的沙盒中运行。输入数据只保存在内存中，绝不会写入磁盘。",
+      "inputs": "仅处理非敏感数据。您的电脑在处理任务时，技术上可以看到任务输入。",
+      "readOnly": "本应用只能读取您的收益和设备信息。收款账户只能在网页上更改。",
+      "counted": "工作量由服务器统计，绝不依据本应用报告的数据。只有经过验证的工作才会获得报酬。",
+      "consentAllowed": "已允许",
+      "consentRefused": "未允许",
+      "consentNone": "尚未答复",
+      "howVerification": "验证的工作原理"
+    },
+    "account": {
+      "title": "账户",
+      "signedIn": "已在这台电脑上登录。",
+      "notSignedIn": "未登录。",
+      "openDashboard": "打开网页控制面板",
+      "signOut": "退出登录"
+    },
+    "recover": {
+      "title": "恢复我的账户",
+      "hint": "仅当您已在网页上发起账户恢复，且网页要求提供本应用中的代码时使用。",
+      "codeLabel": "网页上的代码",
+      "sign": "用此设备签名",
+      "start": "我有恢复代码"
+    },
+    "repair": {
+      "summary": "高级：修复设备身份",
+      "text": "为这台电脑创建一个由当前密钥担保的新密钥，并保留其等级。仅在支持团队要求时使用。",
+      "button": "修复设备身份"
+    },
+    "about": {
+      "title": "更新与关于",
+      "sub": "更新均经过签名；签名验证未通过的更新都会被 Vouch Compute 拒绝。",
+      "channel": "应用渠道",
+      "build": "构建版本",
+      "release": "发布版本",
+      "check": "检查更新"
+    },
+    "remove": {
+      "title": "移除此设备",
+      "text": "从您的账户中移除这台电脑并删除其密钥。收益仍保留在您的账户中。此操作无法撤销；重新注册后它将成为一台新设备。",
+      "confirmLabel": "输入 {word} 以确认"
+    }
+  },
+  "toast": {
+    "settingsSaved": "设置已保存",
+    "saved": "已保存",
+    "saveFailed": "无法保存：{error}",
+    "pausedServer": "已在服务器上暂停",
+    "resumed": "已恢复",
+    "removed": "此设备已移除",
+    "repaired": "设备身份已修复",
+    "pausedHour": "已暂停一小时",
+    "reconnecting": "正在尝试重新连接"
+  },
+  "legal": {
+    "linkAccept": "继续操作即表示您将此电脑关联到您的 Vouch Compute 账户，并同意以下条款：",
+    "englishBinding": "这些协议以英文提供。英文文本为具有约束力的版本。"
+  }
+}

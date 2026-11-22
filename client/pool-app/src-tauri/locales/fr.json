@@ -1,0 +1,40 @@
+{
+  "tray": {
+    "open": "Ouvrir Vouch Compute",
+    "pause": "Pause d’1\u00a0heure",
+    "resume": "Reprendre",
+    "quit": "Fermer la fenêtre de Vouch Compute",
+    "tooltip": "Vouch Compute",
+    "tooltipDev": "Vouch Compute (VERSION DE DÉVELOPPEMENT)"
+  },
+  "window": {
+    "titleDev": "Vouch Compute (VERSION DE DÉVELOPPEMENT)"
+  },
+  "error": {
+    "methodNotAllowed": "Cette requête n’est pas autorisée\u00a0: {method}",
+    "agentNotRunning": "L’agent Vouch Compute ne fonctionne pas",
+    "agentClosed": "L’agent Vouch Compute a fermé la connexion",
+    "agentError": "L’agent Vouch Compute a signalé une erreur",
+    "agentStartFailed": "Impossible de démarrer l’agent Vouch Compute ({path})\u00a0: {detail}",
+    "agentDidNotStart": "L’agent Vouch Compute n’a pas démarré",
+    "noAppFolder": "Le dossier de l’application est introuvable",
+    "noSignin": "Aucune connexion en cours",
+    "linkUnavailable": "Ce lien n’est pas disponible pour le moment",
+    "unknownLink": "Lien inconnu",
+    "link": {
+      "invalid": "Lien non valide refusé",
+      "userInfo": "Lien contenant des informations d’utilisateur refusé",
+      "noHost": "Lien sans hôte refusé",
+      "notHttps": "Lien non https refusé",
+      "notWeb": "Lien qui n’est pas une page web refusé"
+    },
+    "update": {
+      "endpoint": "L’adresse de mise à jour n’est pas valide\u00a0: {detail}",
+      "noKey": "Cette version n’a pas de clé de mise à jour",
+      "checkFailed": "La recherche de mise à jour a échoué\u00a0: {detail}",
+      "noneAvailable": "Aucune mise à jour disponible",
+      "rejected": "La mise à jour a été rejetée\u00a0: {detail}",
+      "refused": "La mise à jour a été refusée\u00a0: {detail}"
+    }
+  }
+}
