@@ -558,5 +558,9 @@
     "repaired": "Identitas perangkat diperbaiki",
     "pausedHour": "Dijeda selama satu jam",
     "reconnecting": "Mencoba menghubungkan kembali"
+  },
+  "legal": {
+    "linkAccept": "Dengan melanjutkan, Anda menautkan komputer ini ke akun Vouch Compute Anda dan menyetujui:",
+    "englishBinding": "Perjanjian ini tersedia dalam bahasa Inggris. Teks bahasa Inggris adalah versi yang mengikat."
   }
 }

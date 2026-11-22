@@ -558,5 +558,9 @@
     "repaired": "设备身份已修复",
     "pausedHour": "已暂停一小时",
     "reconnecting": "正在尝试重新连接"
+  },
+  "legal": {
+    "linkAccept": "继续操作即表示您将此电脑关联到您的 Vouch Compute 账户，并同意以下条款：",
+    "englishBinding": "这些协议以英文提供。英文文本为具有约束力的版本。"
   }
 }

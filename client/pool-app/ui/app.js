@@ -200,6 +200,16 @@ function benchHtml(b, now, benchNow) {
 // Hardware-identifier consent (2.1.0): the agent's text is shown word for word (escaped, whitespace kept), never
 // rewritten, shortened or translated (it is versioned with vault); the buttons send back its hash. Other locales
 // get a short note that the English text is the binding one.
+// Linking a device means accepting these documents. The titles stay English because the English text is
+// binding; only the lead-in is translated. The URLs come from the agent's config through open_link, never the page.
+const LEGAL_DOCS = [["contributor_agreement", "Vouch Compute Contributor Agreement"], ["acceptable_use", "Vouch Compute Acceptable Use Policy"]];
+function legalAcceptHtml() {
+  return `<div class="legal-accept"><p>${tx("legal.linkAccept")}</p>
+    <ul class="legal-docs" lang="en" dir="ltr">${LEGAL_DOCS.map(([kind, title]) =>
+      `<li><button type="button" class="linklike" data-link="${kind}">${esc(title)}${icon("external")}</button></li>`).join("")}</ul>
+    ${activeLocale() === "en" ? "" : `<p class="muted small">${tx("legal.englishBinding")}</p>`}</div>`;
+}
+
 function consentHtml(c, decision) {
   if (!c || c.loading) return `<div class="row"><div class="spinner"></div><span class="muted">${tx("common.loading")}</span></div>`;
   if (c.error) return `<div class="note note-danger">${icon("alert")}<span>${esc(c.error)}</span></div>`;
@@ -214,6 +224,7 @@ function consentHtml(c, decision) {
     </div>
     <p class="muted small">${tx("consent.sentOnly", { version: c.version })}</p>
     ${refused ? `<div class="note note-warn" role="alert">${icon("alert")}<span>${esc(c.refused_message)}</span></div>` : ""}
+    ${legalAcceptHtml()}
     <div class="ob-actions"><button type="button" class="btn" data-go="signin">${tx("common.back")}</button><span class="spacer"></span>
       <button type="button" class="btn" id="consent-refuse">${tx("consent.refuse")}</button>
       <button type="button" class="btn btn-primary btn-lg" id="consent-accept">${tx("consent.accept")}</button></div>`;
@@ -742,7 +753,8 @@ function renderDeviceStep(s) {
     return `${head("onboarding.device.replace.title")}
       <p class="lede">${tx("onboarding.device.replace.lede", { count: c.length })}</p>
       <div class="choice-list">${c.map((x) => `<button type="button" class="choice-btn" data-replace="${esc(x.device_id)}">${icon("refresh")}<span><strong>${tx("onboarding.device.replace.item", { name: x.name || t("onboarding.device.replace.unnamed") })}</strong>${x.last_seen_day ? `<span class="muted small">${tx("onboarding.device.replace.lastSeen", { date: day(x.last_seen_day) })}</span>` : ""}</span></button>`).join("")}
-        <button type="button" class="choice-btn choice-primary" data-replace="">${icon("sparkle")}<span><strong>${tx("onboarding.device.replace.new")}</strong><span class="muted small">${tx("onboarding.device.replace.newHint")}</span></span></button></div>`;
+        <button type="button" class="choice-btn choice-primary" data-replace="">${icon("sparkle")}<span><strong>${tx("onboarding.device.replace.new")}</strong><span class="muted small">${tx("onboarding.device.replace.newHint")}</span></span></button></div>
+      ${legalAcceptHtml()}`;
   }
   if (si.state === "blocked") {
     const fix = si.code === "hardware_in_use" ? `<button type="button" class="btn" data-link="devices">${icon("external")}${tx("onboarding.device.blocked.openDevices")}</button>`

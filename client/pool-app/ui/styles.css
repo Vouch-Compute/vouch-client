@@ -479,6 +479,12 @@ input[type="time"], input[type="number"], input:not([type]), select {
 .disc-icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--surface); color: var(--accent); border: 1px solid var(--border); }
 .disc-icon .i { width: 16px; height: 16px; }
 .consent { padding: 18px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); }
+.legal-accept { margin-top: 16px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); font-size: .925rem; }
+.legal-accept p { margin: 0; }
+.legal-docs { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.legal-docs .linklike { display: inline-flex; align-items: center; gap: 6px; text-align: start; }
+.legal-docs .linklike svg { width: 14px; height: 14px; flex: none; }
+.legal-accept .muted { margin-top: 8px; }
 .consent-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--heading); font-size: .975rem; line-height: 1.6; }
 .code-wrap { display: flex; }
 .code { font-family: var(--mono); font-size: 2.1rem; font-weight: 750; letter-spacing: .14em; padding: 14px 22px; border-radius: 14px; color: var(--heading); background: var(--surface-2); border: 1.5px dashed var(--border-strong); user-select: all; overflow-wrap: anywhere; }

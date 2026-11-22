@@ -8,10 +8,10 @@
     "range": "{low} – {high}",
     "rangeSpoken": "de {low} à {high}",
     "devBuild": "VERSION DE DÉVELOPPEMENT",
-    "devBuildTitle": "Version de développement\u00a0: clés de développement, canal de mise à jour de développement, réseau de test. Ce n’est pas une version publiée.",
+    "devBuildTitle": "Version de développement : clés de développement, canal de mise à jour de développement, réseau de test. Ce n’est pas une version publiée.",
     "duration": {
-      "minutes": "{m}\u00a0min",
-      "hoursMinutes": "{h}\u00a0h {m}\u00a0min"
+      "minutes": "{m} min",
+      "hoursMinutes": "{h} h {m} min"
     },
     "unit": {
       "min": "min",
@@ -55,7 +55,7 @@
       "title": "Hors ligne",
       "connecting": "Connexion…",
       "sub": "Impossible de joindre le réseau Vouch Compute pour le moment.",
-      "subRetry": "Impossible de joindre le réseau Vouch Compute pour le moment. Nouvel essai dans {seconds, plural, one {#\u00a0seconde} many {#\u00a0secondes} other {#\u00a0secondes}}."
+      "subRetry": "Impossible de joindre le réseau Vouch Compute pour le moment. Nouvel essai dans {seconds, plural, one {# seconde} many {# secondes} other {# secondes}}."
     },
     "setup": {
       "title": "Configuration de cet appareil",
@@ -67,7 +67,7 @@
     },
     "revoked": {
       "title": "Appareil en pause ou suspendu",
-      "sub": "Cet appareil ne peut pas recevoir de travail pour le moment. Vouch Compute réessaie de temps en temps\u00a0; consultez Appareils sur le web."
+      "sub": "Cet appareil ne peut pas recevoir de travail pour le moment. Vouch Compute réessaie de temps en temps ; consultez Appareils sur le web."
     },
     "earning": {
       "title": "En train de gagner",
@@ -76,7 +76,7 @@
     },
     "benchmark": {
       "title": "Test de performance",
-      "sub": "Le test de performance soutenu de 20\u00a0minutes est en cours. Ce n’est pas du travail payé."
+      "sub": "Le test de performance soutenu de 20 minutes est en cours. Ce n’est pas du travail payé."
     },
     "paused": {
       "title": "En pause",
@@ -85,12 +85,12 @@
     },
     "idle": {
       "title": "Inactif, en attente de tâches",
-      "sub": "Prêt à travailler. Les revenus dépendent de la demande\u00a0: il peut y avoir des périodes creuses."
+      "sub": "Prêt à travailler. Les revenus dépendent de la demande : il peut y avoir des périodes creuses."
     },
     "waiting": {
       "userActive": {
         "title": "En attente de votre absence",
-        "sub": "Démarre après {minutes, plural, one {#\u00a0minute} many {#\u00a0minutes} other {#\u00a0minutes}} sans utilisation du clavier ni de la souris."
+        "sub": "Démarre après {minutes, plural, one {# minute} many {# minutes} other {# minutes}} sans utilisation du clavier ni de la souris."
       },
       "fullscreen": {
         "title": "En pause pour votre jeu ou votre présentation",
@@ -102,11 +102,11 @@
       },
       "batteryLow": {
         "title": "Batterie faible",
-        "sub": "Vouch Compute ne fonctionne jamais sur batterie en dessous de 30\u00a0%."
+        "sub": "Vouch Compute ne fonctionne jamais sur batterie en dessous de 30 %."
       },
       "thermal": {
         "title": "Refroidissement",
-        "sub": "En pause jusqu’à ce que la température repasse sous votre limite de {limit, number}\u00a0°C."
+        "sub": "En pause jusqu’à ce que la température repasse sous votre limite de {limit, number} °C."
       },
       "outsideSchedule": {
         "title": "En dehors de votre horaire",
@@ -119,13 +119,13 @@
     }
   },
   "pilot": {
-    "banner": "Pilote\u00a0: argent de test, sans valeur réelle"
+    "banner": "Pilote : argent de test, sans valeur réelle"
   },
   "hw": {
     "gpu": "Carte graphique",
     "notDetected": "Non détectée",
     "vram": ", {size}",
-    "gigabytes": "{value, number}\u00a0Go",
+    "gigabytes": "{value, number} Go",
     "accelerated": "Accéléré",
     "cpu": "Processeur",
     "memory": "Mémoire",
@@ -144,16 +144,16 @@
     "title": "Test de performance",
     "waiting": "En attente de l’envoi de votre test de performance par le réseau. Laissez Vouch Compute ouvert et branché sur secteur.",
     "progressLabel": "Progression du test de performance",
-    "progress": "{ratio, number, percent} · {rounds, plural, one {#\u00a0passe terminée} many {#\u00a0passes terminées} other {#\u00a0passes terminées}}. Vous pouvez continuer à utiliser votre ordinateur pour des tâches légères\u00a0; si vous avez choisi «\u00a0Lancer maintenant\u00a0», bouger la souris ne l’annule pas.",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# passe terminée} many {# passes terminées} other {# passes terminées}}. Vous pouvez continuer à utiliser votre ordinateur pour des tâches légères ; si vous avez choisi « Lancer maintenant », bouger la souris ne l’annule pas.",
     "finished": "Test de performance terminé. Les résultats sont contrôlés par le serveur.",
     "stopped": "Le test de performance s’est arrêté avant la fin. Il redémarrera plus tard.",
-    "about": "Un test signé et soutenu de 20\u00a0minutes mesure ce dont cet ordinateur est réellement capable. Il n’est jamais payé et vous pouvez l’arrêter à tout moment.",
+    "about": "Un test signé et soutenu de 20 minutes mesure ce dont cet ordinateur est réellement capable. Il n’est jamais payé et vous pouvez l’arrêter à tout moment.",
     "runNow": "Lancer maintenant",
     "runAtIdle": "Lancer plutôt à la première inactivité"
   },
   "consent": {
     "title": "Identifiants matériels",
-    "lede": "Avant de pouvoir enregistrer cet ordinateur, Vouch Compute a besoin de votre réponse. Voici le texte complet\u00a0:",
+    "lede": "Avant de pouvoir enregistrer cet ordinateur, Vouch Compute a besoin de votre réponse. Voici le texte complet :",
     "englishBinding": "Ce texte d’autorisation est affiché en anglais. La version anglaise fait foi.",
     "sentOnly": "Envoyé uniquement au service de comptes de Vouch Compute, jamais au réseau de tâches. Version {version}.",
     "refuse": "Ne pas autoriser",
@@ -175,12 +175,12 @@
     "bonusHintEnds": "Un bonus de lancement temporaire, jusqu’au {date}. Il diminue à mesure que la demande payante augmente.",
     "noBonus": "Pas de bonus de lancement actuellement.",
     "electricity": "Électricité",
-    "electricityHint": "{watts, number}\u00a0W à {price}/kWh, déjà déduits.",
-    "assumes": "Suppose {hours, number}\u00a0h/jour de disponibilité et du travail pendant {utilization, number, percent} de ce temps. C’est une fourchette, pas une promesse\u00a0: les revenus dépendent de la demande, et seul le travail vérifié est payé."
+    "electricityHint": "{watts, number} W à {price}/kWh, déjà déduits.",
+    "assumes": "Suppose {hours, number} h/jour de disponibilité et du travail pendant {utilization, number, percent} de ce temps. C’est une fourchette, pas une promesse : les revenus dépendent de la demande, et seul le travail vérifié est payé."
   },
   "earnings": {
     "title": "Revenus",
-    "lede": "Les chiffres viennent du serveur une fois par jour et couvrent le travail d’il y a au moins 24\u00a0heures.",
+    "lede": "Les chiffres viennent du serveur une fois par jour et couvrent le travail d’il y a au moins 24 heures.",
     "statusTitle": "État des versements",
     "statusSub": "Seul le travail vérifié est comptabilisé. Les nouveaux revenus sont retenus avant d’être versés.",
     "unavailable": "Les revenus sont disponibles une fois que vous êtes connecté et en ligne. ({error})",
@@ -191,9 +191,9 @@
     "paid": "Versé",
     "paidHint": "Envoyé sur votre compte de versement",
     "allStates": "Tous les états de versement",
-    "probation": "Nouvel appareil\u00a0: les revenus sont retenus pendant {days, plural, one {#\u00a0jour} many {#\u00a0jours} other {#\u00a0jours}} le temps de vérifier le travail.",
-    "probationUntil": "Nouvel appareil\u00a0: les revenus sont retenus pendant {days, plural, one {#\u00a0jour} many {#\u00a0jours} other {#\u00a0jours}} le temps de vérifier le travail (jusqu’au {date}).",
-    "footer": "Vérifié cette semaine\u00a0: <b>{amount}</b>. Au {date}. L’historique détaillé se trouve sur le <link>tableau de bord web</link>.",
+    "probation": "Nouvel appareil : les revenus sont retenus pendant {days, plural, one {# jour} many {# jours} other {# jours}} le temps de vérifier le travail.",
+    "probationUntil": "Nouvel appareil : les revenus sont retenus pendant {days, plural, one {# jour} many {# jours} other {# jours}} le temps de vérifier le travail (jusqu’au {date}).",
+    "footer": "Vérifié cette semaine : <b>{amount}</b>. Au {date}. L’historique détaillé se trouve sur le <link>tableau de bord web</link>.",
     "state": {
       "pending": "En attente",
       "inEscrow": "En séquestre",
@@ -203,8 +203,8 @@
       "clawedBack": "Repris"
     },
     "hint": {
-      "pending": "Retenu 72\u00a0h avant déblocage",
-      "inEscrow": "Période probatoire\u00a0: retenu 21\u00a0jours",
+      "pending": "Retenu 72 h avant déblocage",
+      "inEscrow": "Période probatoire : retenu 21 jours",
       "inReview": "En cours de vérification, pas perdu",
       "releasable": "Part avec le prochain versement hebdomadaire",
       "sent": "Versé sur votre compte de versement",
@@ -214,12 +214,12 @@
   "payout": {
     "title": "Compte de versement",
     "sub": "Affichage uniquement. Votre compte de versement se configure et se modifie sur le web.",
-    "none": "Aucun compte de versement configuré pour l’instant. Les revenus continuent de s’accumuler\u00a0; configurez-en un sur le web avant votre premier versement.",
+    "none": "Aucun compte de versement configuré pour l’instant. Les revenus continuent de s’accumuler ; configurez-en un sur le web avant votre premier versement.",
     "resumes": "Reprise des versements le {date}",
     "unavailable": "Les détails du compte de versement sont disponibles une fois que vous êtes connecté.",
     "manage": "Configurer ou modifier votre compte de versement sur le web",
     "verify": "Vérifier votre identité",
-    "fine": "Pour votre sécurité, les comptes de versement se configurent et se modifient uniquement sur le web, avec votre second facteur. Toute modification suspend les versements pendant 72\u00a0heures. Vérifiez votre identité sur le web pour être payé."
+    "fine": "Pour votre sécurité, les comptes de versement se configurent et se modifient uniquement sur le web, avec votre second facteur. Toute modification suspend les versements pendant 72 heures. Vérifiez votre identité sur le web pour être payé."
   },
   "device": {
     "title": "Appareil",
@@ -232,27 +232,27 @@
     "id": "ID de l’appareil",
     "notRegistered": "Non enregistré",
     "keyTpm": "TPM 2.0 (matériel, non exportable)",
-    "keySoftware": "Clé logicielle (niveau dév.\u00a0: plafonné à la période probatoire)",
+    "keySoftware": "Clé logicielle (niveau dév. : plafonné à la période probatoire)",
     "trustCeiling": "Plafond de confiance",
     "sandbox": "Bac à sable",
     "notUsedYet": "Pas encore utilisé",
     "agentVersion": "Version de l’agent",
     "sandboxFine": "Les tâches s’exécutent dans un processus isolé distinct, sans accès au réseau ni à vos fichiers. Les données d’entrée restent en mémoire et ne sont jamais écrites sur le disque.",
     "relUnavailable": "Disponible une fois cet appareil enregistré et en ligne.",
-    "scheduleSub": "Mode\u00a0: {mode}. Les heures ci-dessous s’appliquent en mode «\u00a0Selon un horaire\u00a0».",
+    "scheduleSub": "Mode : {mode}. Les heures ci-dessous s’appliquent en mode « Selon un horaire ».",
     "noWindows": "Aucune plage horaire définie.",
     "changeSchedule": "Modifier le mode et l’horaire",
-    "dailyLimit": "Limite quotidienne\u00a0: {hours, number}\u00a0h",
+    "dailyLimit": "Limite quotidienne : {hours, number} h",
     "noDailyLimit": "Pas de limite quotidienne",
     "limits": {
       "title": "Limites",
       "sub": "Vouch Compute se met en pause avant que cet ordinateur ne chauffe trop, et vous choisissez son intensité de travail.",
       "pauseAbove": "Pause au-dessus de",
-      "tempMax": "Vouch Compute ne dépasse jamais 90\u00a0°C, quel que soit ce réglage.",
+      "tempMax": "Vouch Compute ne dépasse jamais 90 °C, quel que soit ce réglage.",
       "power": "Consommation",
       "battery": {
         "title": "Ne jamais fonctionner sur batterie",
-        "hint": "En dessous de 30\u00a0% de batterie, il ne fonctionne jamais, quoi qu’il arrive."
+        "hint": "En dessous de 30 % de batterie, il ne fonctionne jamais, quoi qu’il arrive."
       },
       "fullscreen": {
         "title": "Pause pendant les jeux et le plein écran",
@@ -263,7 +263,7 @@
       "title": "Cet appareil sur votre compte",
       "pause": "Mettre en pause sur le serveur",
       "manage": "Gérer sur le web",
-      "fine": "Une pause ici équivaut à une pause sur le web\u00a0: aucun nouveau travail n’arrive tant que vous ne reprenez pas. Une tâche en cours se termine et est payée si elle est vérifiée."
+      "fine": "Une pause ici équivaut à une pause sur le web : aucun nouveau travail n’arrive tant que vous ne reprenez pas. Une tâche en cours se termine et est payée si elle est vérifiée."
     }
   },
   "schedule": {
@@ -277,7 +277,7 @@
   "reliability": {
     "title": "Fiabilité",
     "empty": "Votre niveau de fiabilité apparaît ici dès que le serveur en a attribué un à cet appareil.",
-    "bonus": "+{pct}\u00a0% sur le travail vérifié",
+    "bonus": "+{pct} % sur le travail vérifié",
     "noBonus": "Pas de bonus de fiabilité",
     "since": "depuis le {date}",
     "queue": "File d’attente",
@@ -298,10 +298,10 @@
       "highest": "Place la plus prioritaire dans la file"
     },
     "hint": {
-      "keepRegularHours": "Gardez des horaires réguliers\u00a0: soyez disponible à des heures similaires chaque semaine.",
-      "avoidDisconnects": "Évitez les déconnexions\u00a0: une connexion stable aide.",
-      "finishAcceptedJobs": "Terminez les tâches que vous acceptez\u00a0: évitez d’interrompre le travail en cours, par exemple en réglant des limites d’inactivité et d’horaire adaptées à votre usage.",
-      "buildTenure": "Persévérez\u00a0: la fiabilité se construit sur plusieurs semaines.",
+      "keepRegularHours": "Gardez des horaires réguliers : soyez disponible à des heures similaires chaque semaine.",
+      "avoidDisconnects": "Évitez les déconnexions : une connexion stable aide.",
+      "finishAcceptedJobs": "Terminez les tâches que vous acceptez : évitez d’interrompre le travail en cours, par exemple en réglant des limites d’inactivité et d’horaire adaptées à votre usage.",
+      "buildTenure": "Persévérez : la fiabilité se construit sur plusieurs semaines.",
       "verifyIdentity": "Vérifiez votre identité sur le web.",
       "useHardwareKey": "Utilisez un ordinateur doté d’une puce de sécurité matérielle (TPM)."
     }
@@ -328,17 +328,17 @@
         "provider": "<b>Votre fournisseur d’accès à internet</b> peut restreindre l’usage commercial d’une connexion domestique. Vérifiez votre contrat.",
         "taxes": "<b>Les impôts</b> sur ce que vous gagnez relèvent de votre responsabilité.",
         "dollars": "<b>Payé en dollars américains.</b> Seules les tâches d’IA décrites ici s’exécutent sur votre ordinateur. Les revenus sont versés en dollars américains sur votre compte de versement (banque ou portefeuille électronique).",
-        "probation": "<b>Les nouveaux appareils commencent en période probatoire.</b> Les revenus sont placés en séquestre pendant 21\u00a0jours le temps de vérifier le travail. Le travail non vérifié n’est pas payé.",
-        "defaults": "<b>Les réglages par défaut sont prudents\u00a0:</b> le travail ne démarre qu’après 10\u00a0minutes d’absence, s’arrête dès votre retour, se met en pause pendant les jeux et sur batterie, et respecte une limite de température."
+        "probation": "<b>Les nouveaux appareils commencent en période probatoire.</b> Les revenus sont placés en séquestre pendant 21 jours le temps de vérifier le travail. Le travail non vérifié n’est pas payé.",
+        "defaults": "<b>Les réglages par défaut sont prudents :</b> le travail ne démarre qu’après 10 minutes d’absence, s’arrête dès votre retour, se met en pause pendant les jeux et sur batterie, et respecte une limite de température."
       }
     },
     "signin": {
-      "lede": "Utilisez votre compte Vouch Compute. La connexion se fait dans votre navigateur avec votre nom d’utilisateur, votre mot de passe et votre second facteur\u00a0: cette fenêtre ne voit donc jamais votre mot de passe ni vos codes.",
+      "lede": "Utilisez votre compte Vouch Compute. La connexion se fait dans votre navigateur avec votre nom d’utilisateur, votre mot de passe et votre second facteur : cette fenêtre ne voit donc jamais votre mot de passe ni vos codes.",
       "start": "Se connecter avec le navigateur",
       "doneTitle": "Vous êtes connecté",
       "doneLede": "Ensuite, cet ordinateur reçoit sa propre clé.",
       "pendingTitle": "Confirmez dans votre navigateur",
-      "pendingLede": "Ouvrez la page de connexion, connectez-vous avec votre nom d’utilisateur, votre mot de passe et votre second facteur, puis vérifiez que ce code correspond\u00a0:",
+      "pendingLede": "Ouvrez la page de connexion, connectez-vous avec votre nom d’utilisateur, votre mot de passe et votre second facteur, puis vérifiez que ce code correspond :",
       "codeLabel": "Code de l’appareil",
       "openPage": "Ouvrir la page de connexion",
       "waiting": "En attente de votre approbation…",
@@ -348,13 +348,13 @@
     "device": {
       "signInFirst": {
         "title": "Connectez-vous d’abord",
-        "lede": "Cet ordinateur est enregistré sur votre compte\u00a0: connectez-vous avant de le configurer.",
+        "lede": "Cet ordinateur est enregistré sur votre compte : connectez-vous avant de le configurer.",
         "button": "Aller à la connexion"
       },
       "replace": {
-        "title": "Avez-vous déjà utilisé cet ordinateur\u00a0?",
-        "lede": "{count, plural, one {Votre compte a déjà un appareil semblable à celui-ci.} many {Votre compte a déjà des appareils semblables à celui-ci.} other {Votre compte a déjà des appareils semblables à celui-ci.}} Si vous avez réinstallé Windows ou l’application, remplacez l’ancienne entrée. Son niveau n’est pas repris\u00a0: le remplaçant démarre comme un nouvel appareil.",
-        "item": "Remplacer «\u00a0{name}\u00a0»",
+        "title": "Avez-vous déjà utilisé cet ordinateur ?",
+        "lede": "{count, plural, one {Votre compte a déjà un appareil semblable à celui-ci.} many {Votre compte a déjà des appareils semblables à celui-ci.} other {Votre compte a déjà des appareils semblables à celui-ci.}} Si vous avez réinstallé Windows ou l’application, remplacez l’ancienne entrée. Son niveau n’est pas repris : le remplaçant démarre comme un nouvel appareil.",
+        "item": "Remplacer « {name} »",
         "unnamed": "Appareil sans nom",
         "lastSeen": "Vu pour la dernière fois le {date}",
         "new": "Non, c’est un nouvel ordinateur",
@@ -379,11 +379,11 @@
       },
       "done": {
         "title": "C’est prêt",
-        "lede": "Cet ordinateur est enregistré. Un court test de performance suit\u00a0; ensuite, Vouch Compute travaille tout seul, dans vos limites.",
+        "lede": "Cet ordinateur est enregistré. Un court test de performance suit ; ensuite, Vouch Compute travaille tout seul, dans vos limites.",
         "infoOnly": "À titre indicatif uniquement. Ce que vous pouvez gagner est déterminé par un test de performance, jamais par ce que l’application indique.",
         "noTpm": "Sans puce de sécurité matérielle, cet appareil reste au niveau de la période probatoire, avec des revenus plafonnés.",
-        "summary": "Démarre après {minutes, plural, one {#\u00a0minute} many {#\u00a0minutes} other {#\u00a0minutes}} d’absence et se met en pause au-dessus de {temp, number}\u00a0°C. Vous pouvez modifier cela à tout moment dans les Paramètres.",
-        "summaryBattery": "Démarre après {minutes, plural, one {#\u00a0minute} many {#\u00a0minutes} other {#\u00a0minutes}} d’absence, se met en pause au-dessus de {temp, number}\u00a0°C et ne fonctionne jamais sur batterie. Vous pouvez modifier cela à tout moment dans les Paramètres.",
+        "summary": "Démarre après {minutes, plural, one {# minute} many {# minutes} other {# minutes}} d’absence et se met en pause au-dessus de {temp, number} °C. Vous pouvez modifier cela à tout moment dans les Paramètres.",
+        "summaryBattery": "Démarre après {minutes, plural, one {# minute} many {# minutes} other {# minutes}} d’absence, se met en pause au-dessus de {temp, number} °C et ne fonctionne jamais sur batterie. Vous pouvez modifier cela à tout moment dans les Paramètres.",
         "open": "Ouvrir Vouch Compute"
       }
     }
@@ -397,13 +397,13 @@
     "verify": "Vérifier"
   },
   "clock": {
-    "minutes": "{n, plural, one {#\u00a0minute} many {#\u00a0minutes} other {#\u00a0minutes}}",
-    "seconds": "{n, plural, one {#\u00a0seconde} many {#\u00a0secondes} other {#\u00a0secondes}}",
+    "minutes": "{n, plural, one {# minute} many {# minutes} other {# minutes}}",
+    "seconds": "{n, plural, one {# seconde} many {# secondes} other {# secondes}}",
     "behind": "L’horloge de votre ordinateur retarde de {offset}. Vouch Compute corrige l’écart, mais le mieux est de régler l’heure automatiquement dans les paramètres du système.",
     "ahead": "L’horloge de votre ordinateur avance de {offset}. Vouch Compute corrige l’écart, mais le mieux est de régler l’heure automatiquement dans les paramètres du système."
   },
   "actions": {
-    "pauseHour": "Pause d’1\u00a0heure",
+    "pauseHour": "Pause d’1 heure",
     "resumeNow": "Reprendre maintenant",
     "tryAgainNow": "Réessayer maintenant",
     "goToUpdates": "Aller aux mises à jour"
@@ -413,14 +413,14 @@
   },
   "agentDown": {
     "title": "L’agent Vouch Compute ne fonctionne pas",
-    "lede": "L’agent fonctionne en arrière-plan\u00a0: il effectue le travail et conserve la clé de cet ordinateur. Démarrez-le pour continuer.",
+    "lede": "L’agent fonctionne en arrière-plan : il effectue le travail et conserve la clé de cet ordinateur. Démarrez-le pour continuer.",
     "start": "Le démarrer"
   },
   "home": {
     "status": "État",
-    "mode": "Mode\u00a0: {mode}",
+    "mode": "Mode : {mode}",
     "onlyVerified": "Seul le travail vérifié est payé",
-    "lastProblem": "Dernier problème\u00a0: {error}",
+    "lastProblem": "Dernier problème : {error}",
     "today": {
       "title": "Travail du jour",
       "sub": "Compté sur cet ordinateur. Le serveur vérifie chaque tâche avant de la payer.",
@@ -428,7 +428,7 @@
       "jobsFinished": "Tâches terminées pendant cette session",
       "stoppedEarly": "Arrêtées avant la fin (non payées)",
       "dailyLimit": "Limite quotidienne",
-      "capUsage": "{ratio, number, percent} de {hours, number}\u00a0h",
+      "capUsage": "{ratio, number, percent} de {hours, number} h",
       "capLabel": "Part de la limite du jour utilisée",
       "noLimit": "Pas de limite quotidienne. <link>En définir une dans les Paramètres</link>"
     },
@@ -450,7 +450,7 @@
     "to": "à",
     "remove": "Supprimer",
     "removeWindow": "Supprimer la plage {n}",
-    "modeTitle": "Quand Vouch Compute doit-il travailler\u00a0?",
+    "modeTitle": "Quand Vouch Compute doit-il travailler ?",
     "idleOnly": {
       "title": "Quand je suis absent (recommandé)",
       "hint": "Démarre après une période d’inactivité, s’arrête en quelques secondes à votre retour."
@@ -464,7 +464,7 @@
       "hint": "Ordinateurs de bureau uniquement. Votre ordinateur semblera plus lent pendant qu’il travaille."
     },
     "idleAfter": "Démarrer après une inactivité de",
-    "scheduleSub": "Utilisé en mode «\u00a0Selon un horaire\u00a0». Heures locales\u00a0; une plage peut dépasser minuit.",
+    "scheduleSub": "Utilisé en mode « Selon un horaire ». Heures locales ; une plage peut dépasser minuit.",
     "noWindowsYet": "Aucune plage pour l’instant.",
     "addWindow": "Ajouter une plage horaire",
     "capLabel": "Limite quotidienne (heures, vide pour aucune)"
@@ -474,7 +474,7 @@
     "hint": "Il s’ouvre dans la zone de notification (l’icône à côté de l’horloge), pas dans une fenêtre, et respecte vos limites. Vous pouvez désactiver cette option ici ou dans les paramètres de démarrage du système.",
     "on": "Vouch Compute démarrera quand vous vous connecterez",
     "off": "Vouch Compute ne démarrera pas tout seul",
-    "failed": "Impossible de modifier le réglage de démarrage\u00a0: {error}"
+    "failed": "Impossible de modifier le réglage de démarrage : {error}"
   },
   "update": {
     "checking": "Vérification…",
@@ -491,7 +491,7 @@
       "sub": "La langue de cette application. Le changement est immédiat.",
       "label": "Langue de l’application",
       "system": "Langue du système ({name})",
-      "changed": "Langue changée\u00a0: {name}"
+      "changed": "Langue changée : {name}"
     },
     "theme": {
       "title": "Apparence",
@@ -530,13 +530,13 @@
       "start": "J’ai un code de récupération"
     },
     "repair": {
-      "summary": "Avancé\u00a0: réparer l’identité de l’appareil",
+      "summary": "Avancé : réparer l’identité de l’appareil",
       "text": "Crée une nouvelle clé pour cet ordinateur, garantie par la clé actuelle, et conserve son niveau. À utiliser uniquement si le support vous le demande.",
       "button": "Réparer l’identité de l’appareil"
     },
     "about": {
       "title": "Mises à jour et à propos",
-      "sub": "Les mises à jour sont signées\u00a0; Vouch Compute refuse toute mise à jour dont la signature n’est pas valide.",
+      "sub": "Les mises à jour sont signées ; Vouch Compute refuse toute mise à jour dont la signature n’est pas valide.",
       "channel": "Canal de l’application",
       "build": "Compilation",
       "release": "Version",
@@ -544,19 +544,23 @@
     },
     "remove": {
       "title": "Retirer cet appareil",
-      "text": "Retire cet ordinateur de votre compte et supprime sa clé. Les revenus restent sur votre compte. Action irréversible\u00a0: un nouvel enregistrement en fera un nouvel appareil.",
+      "text": "Retire cet ordinateur de votre compte et supprime sa clé. Les revenus restent sur votre compte. Action irréversible : un nouvel enregistrement en fera un nouvel appareil.",
       "confirmLabel": "Saisissez {word} pour confirmer"
     }
   },
   "toast": {
     "settingsSaved": "Paramètres enregistrés",
     "saved": "Enregistré",
-    "saveFailed": "Enregistrement impossible\u00a0: {error}",
+    "saveFailed": "Enregistrement impossible : {error}",
     "pausedServer": "En pause sur le serveur",
     "resumed": "Reprise",
     "removed": "Cet appareil a été retiré",
     "repaired": "Identité de l’appareil réparée",
     "pausedHour": "En pause pendant une heure",
     "reconnecting": "Tentative de reconnexion"
+  },
+  "legal": {
+    "linkAccept": "En continuant, vous associez cet ordinateur à votre compte Vouch Compute et vous acceptez :",
+    "englishBinding": "Ces contrats sont disponibles en anglais. La version anglaise fait foi."
   }
 }

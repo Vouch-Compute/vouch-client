@@ -558,5 +558,9 @@
     "repaired": "Geräteidentität repariert",
     "pausedHour": "Für eine Stunde pausiert",
     "reconnecting": "Verbindung wird wiederhergestellt"
+  },
+  "legal": {
+    "linkAccept": "Wenn Sie fortfahren, verknüpfen Sie diesen Computer mit Ihrem Vouch Compute-Konto und stimmen Folgendem zu:",
+    "englishBinding": "Diese Vereinbarungen liegen auf Englisch vor. Die englische Fassung ist verbindlich."
   }
 }

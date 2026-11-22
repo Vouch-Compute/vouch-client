@@ -558,5 +558,9 @@
     "repaired": "Device identity repaired",
     "pausedHour": "Paused for one hour",
     "reconnecting": "Trying to reconnect"
+  },
+  "legal": {
+    "linkAccept": "By continuing, you link this computer to your Vouch Compute account and agree to:",
+    "englishBinding": "These agreements are available in English. The English text is the binding version."
   }
 }

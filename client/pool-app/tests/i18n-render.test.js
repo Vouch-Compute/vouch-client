@@ -6,7 +6,7 @@ const { I18N, uiMessages, useLocale, loadSection } = require("./ui-loader.js");
 // a stand-in for the document, so use() can set lang and dir as it does in the window
 globalThis.document = { documentElement: {} };
 
-const names = ["heroState", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "deviceStateText", "hardwareHtml",
+const names = ["heroState", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "deviceStateText", "hardwareHtml", "legalAcceptHtml",
   "consentHtml", "benchHtml", "duration", "reliabilityHtml", "stepsHtml", "noticesHtml", "clockHtml", "heroActionHtml", "controlsHtml",
   "scheduleSummary", "languageHtml", "daysText"];
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
@@ -82,6 +82,11 @@ for (const { code, dir } of I18N.LOCALES) {
   const consent = api.consentHtml({ text: "The binding text.", version: "v1" }, null);
   if (!consent.includes('lang="en"') || !consent.includes("The binding text.")) fail(`${code}: consent text`);
   if ((code === "en") === consent.includes(I18N.t("consent.englishBinding"))) fail(`${code}: English-binding note`);
+  // the device-link acceptance: translated lead-in, English document titles, binding note outside English
+  const legal = api.legalAcceptHtml();
+  if (!consent.includes(legal)) fail(`${code}: acceptance line on the consent step`);
+  if (!legal.includes(I18N.t("legal.linkAccept")) || !legal.includes("Vouch Compute Contributor Agreement") || !legal.includes("Vouch Compute Acceptable Use Policy")) fail(`${code}: acceptance line`);
+  if ((code === "en") === legal.includes(I18N.t("legal.englishBinding"))) fail(`${code}: legal English-binding note`);
 }
 if (I18N.dir() !== I18N.info(I18N.locale()).dir) fail("dir()");
 useLocale("ar");

@@ -558,5 +558,9 @@
     "repaired": "Cihaz kimliği onarıldı",
     "pausedHour": "Bir saatliğine duraklatıldı",
     "reconnecting": "Yeniden bağlanılmaya çalışılıyor"
+  },
+  "legal": {
+    "linkAccept": "Devam ederek bu bilgisayarı Vouch Compute hesabınıza bağlar ve şunları kabul etmiş olursunuz:",
+    "englishBinding": "Bu sözleşmeler İngilizce olarak sunulur. Bağlayıcı olan İngilizce metindir."
   }
 }

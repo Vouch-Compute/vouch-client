@@ -1,7 +1,7 @@
 // Rendering checks for app.js (hero status, escaping, pilot banner, estimate, consent). Run: node pool-app/tests/render.test.js
 // Loads the DOM-free "pure" section of app.js, the same way the other UI tests load their sections, in English.
 const { useLocale, loadSection } = require("./ui-loader.js");
-const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "benchHtml", "sumUsd", "duration"];
+const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "legalAcceptHtml", "benchHtml", "sumUsd", "duration"];
 useLocale("en");
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
 
@@ -82,6 +82,31 @@ const text = `Line one & "two" <three>\n  indented, 'four'. ${"x".repeat(2000)}`
 const c = api.consentHtml({ text, version: "v1", text_sha256: "ab".repeat(32), refused_message: "no" }, null);
 if (!c.includes(api.esc(text))) fail("consent text not byte-identical after escaping");
 if (!c.includes('id="consent-accept"') || !c.includes('id="consent-refuse"')) fail("consent buttons");
+
+// 5a. linking a device accepts the Contributor Agreement and the AUP: English titles, opened only through open_link kinds
+const legal = api.legalAcceptHtml();
+for (const h of [c, legal]) {
+  if (!h.includes("By continuing, you link this computer to your Vouch Compute account and agree to:")) fail("legal lead-in");
+  if (!h.includes('data-link="contributor_agreement"') || !h.includes('data-link="acceptable_use"')) fail("legal links");
+  if (!h.includes("Vouch Compute Contributor Agreement") || !h.includes("Vouch Compute Acceptable Use Policy")) fail("legal titles");
+  if (!/<ul class="legal-docs" lang="en" dir="ltr">/.test(h)) fail("legal titles marked as English");
+  if (/href=|https?:/.test(h)) fail("the page must not carry legal URLs");
+  if (h.includes("binding version")) fail("binding note shown in English");
+}
+// every link kind the page asks for is one open_link allows (status.links kinds, plus the sign-in page)
+{
+  const fs = require("fs"), path = require("path");
+  const src = path.join(__dirname, "..");
+  const app = fs.readFileSync(path.join(src, "ui", "app.js"), "utf8");
+  const rs = fs.readFileSync(path.join(src, "src-tauri", "src", "links.rs"), "utf8");
+  const agent = fs.readFileSync(path.join(src, "..", "crates", "pool-core", "src", "agent.rs"), "utf8");
+  const kinds = [...rs.match(/STATUS_KINDS: &\[&str\] = &\[([^\]]*)\]/)[1].matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+  const used = new Set([...app.matchAll(/data-link="([a-z_]+)"/g), ...app.matchAll(/linkTag\("([a-z_]+)"\)/g)].map((m) => m[1]));
+  for (const m of legal.matchAll(/data-link="([a-z_]+)"/g)) used.add(m[1]);
+  for (const k of used) if (k !== "signin" && !kinds.includes(k)) fail(`link kind ${k} is not allowed by open_link`);
+  for (const k of kinds) if (!agent.includes(`"${k}": format!(`)) fail(`status.links has no ${k}`);
+  if (!agent.includes('"{}/legal/contributor-agreement"') || !agent.includes('"{}/legal/acceptable-use"')) fail("legal URL slugs");
+}
 
 // 5b. the backend that ran the last job: label and "Accelerated" badge (Metal on Apple silicon, macOS)
 for (const [b, label, accel] of [["candle-metal", "Graphics card (Metal)", true], ["candle-cuda", "Graphics card (CUDA)", true],

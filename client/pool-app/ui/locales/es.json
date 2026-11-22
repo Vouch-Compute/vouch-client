@@ -558,5 +558,9 @@
     "repaired": "Identidad del dispositivo reparada",
     "pausedHour": "En pausa durante una hora",
     "reconnecting": "Intentando reconectar"
+  },
+  "legal": {
+    "linkAccept": "Al continuar, vinculas este equipo a tu cuenta de Vouch Compute y aceptas:",
+    "englishBinding": "Estos acuerdos están disponibles en inglés. La versión en inglés es la vinculante."
   }
 }

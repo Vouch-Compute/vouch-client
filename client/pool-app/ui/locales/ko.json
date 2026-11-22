@@ -558,5 +558,9 @@
     "repaired": "기기 ID가 복구되었습니다",
     "pausedHour": "1시간 동안 일시 중지되었습니다",
     "reconnecting": "다시 연결하는 중"
+  },
+  "legal": {
+    "linkAccept": "계속하면 이 컴퓨터가 Vouch Compute 계정에 연결되며 다음 사항에 동의하는 것입니다:",
+    "englishBinding": "이 계약은 영어로 제공됩니다. 영어 원문이 법적 효력을 갖는 버전입니다."
   }
 }

@@ -43,7 +43,7 @@ async fn open_link(app: AppHandle, kind: String) -> Result<(), String> {
             let s = core_client::call("signin.status", Value::Null).await?;
             s.get("verification_uri_complete").and_then(Value::as_str).map(String::from).ok_or_else(|| i18n::t("error.noSignin"))?
         }
-        "wallet" | "dashboard" | "earn" | "trust" | "devices" | "recover" | "verify" => {
+        k if links::STATUS_KINDS.contains(&k) => {
             let s = core_client::call("status", Value::Null).await?;
             s.pointer(&format!("/links/{kind}")).and_then(Value::as_str).map(String::from).ok_or_else(|| i18n::t("error.linkUnavailable"))?
         }

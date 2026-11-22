@@ -60,6 +60,8 @@ in as values.
   shows a short translated note that the English text is binding.
 - Messages from the agent or the server without a mapped code, and the update policy's security reasons inside
   the translated update errors.
+- The titles of the legal documents accepted when linking a device (Contributor Agreement, Acceptable Use Policy)
+  and the documents themselves. Only the lead-in (`legal.linkAccept`) is translated, with the binding note.
 - The word typed to confirm removing a device (`REMOVE`).
 
 ## Checks

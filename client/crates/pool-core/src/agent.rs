@@ -907,6 +907,8 @@ impl Agent {
                 "verify": format!("{}/app/wallet", self.cfg.web_url),
                 "earn": format!("{}/earn", self.cfg.web_url),
                 "trust": format!("{}/trust", self.cfg.web_url),
+                "contributor_agreement": format!("{}/legal/contributor-agreement", self.cfg.web_url),
+                "acceptable_use": format!("{}/legal/acceptable-use", self.cfg.web_url),
             },
             "hardware": platform::hw_claims().to_value_json(),
         })
