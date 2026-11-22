@@ -89,7 +89,7 @@ for (const h of [c, legal]) {
   if (!h.includes("By continuing, you link this computer to your Vouch Compute account and agree to:")) fail("legal lead-in");
   if (!h.includes('data-link="contributor_agreement"') || !h.includes('data-link="acceptable_use"')) fail("legal links");
   if (!h.includes("Vouch Compute Contributor Agreement") || !h.includes("Vouch Compute Acceptable Use Policy")) fail("legal titles");
-  if (!/<ul class="legal-docs" lang="en" dir="ltr">/.test(h)) fail("legal titles marked as English");
+  if ((h.match(/data-link="[a-z_]+" lang="en" dir="ltr">Vouch Compute /g) || []).length !== 2) fail("legal titles marked as English");
   if (/href=|https?:/.test(h)) fail("the page must not carry legal URLs");
   if (h.includes("binding version")) fail("binding note shown in English");
 }

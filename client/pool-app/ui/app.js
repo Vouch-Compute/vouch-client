@@ -205,8 +205,8 @@ function benchHtml(b, now, benchNow) {
 const LEGAL_DOCS = [["contributor_agreement", "Vouch Compute Contributor Agreement"], ["acceptable_use", "Vouch Compute Acceptable Use Policy"]];
 function legalAcceptHtml() {
   return `<div class="legal-accept"><p>${tx("legal.linkAccept")}</p>
-    <ul class="legal-docs" lang="en" dir="ltr">${LEGAL_DOCS.map(([kind, title]) =>
-      `<li><button type="button" class="linklike" data-link="${kind}">${esc(title)}${icon("external")}</button></li>`).join("")}</ul>
+    <ul class="legal-docs">${LEGAL_DOCS.map(([kind, title]) =>
+      `<li><button type="button" class="linklike" data-link="${kind}" lang="en" dir="ltr">${esc(title)}${icon("external")}</button></li>`).join("")}</ul>
     ${activeLocale() === "en" ? "" : `<p class="muted small">${tx("legal.englishBinding")}</p>`}</div>`;
 }
 
