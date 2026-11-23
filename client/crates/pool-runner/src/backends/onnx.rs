@@ -1,14 +1,24 @@
 //! ONNX Runtime embeddings (feature `onnx`). `ort` is built with `load-dynamic`: the ONNX Runtime shared library
 //! comes from the pinned backend pack ([`crate::accel`]), whose verified directory pool-core passes in
 //! `POOL_ORT_PACK_DIR`. With the pack, the DirectML execution provider (any DX12 GPU) runs the model; without it,
-//! or if the GPU provider fails, the CPU provider does. Bundle files: `model.onnx`, `vocab.txt`, optional
-//! `pooling.json` (same schema as the candle backend).
+//! or if the GPU provider fails, the CPU provider does.
+//!
+//! Two bundle layouts:
+//! * **WordPiece**: `model.onnx` + `vocab.txt` at the bundle root, optional `pooling.json` (same schema as the candle
+//!   backend). Unchanged.
+//! * **Hugging Face export** (bge-m3): exactly one `*.onnx` graph, a `tokenizer.json` next to it (or at the root), an
+//!   optional `tokenizer_config.json`, and the graph's external weights (`*.onnx_data` / `*.data` next to the graph,
+//!   e.g. `onnx/model.onnx` + `onnx/model.onnx_data`). The external weights reach ONNX Runtime **from memory** (the
+//!   bytes the runner already hash-checked), so ONNX Runtime opens no weight file itself. Tokenisation, batching and
+//!   pooling follow the engine reference worker: [`super::hf_tokenizer`], [`super::hf_export`].
 
 use std::borrow::Cow;
 
 use ort::session::{Session, SessionInputValue};
 use ort::value::Tensor;
 
+use super::hf_tokenizer::HfTokenizer;
+use super::hf_export::{self, hf_layout};
 use super::wordpiece::WordPiece;
 use crate::bundle::VerifiedBundle;
 
@@ -31,13 +41,24 @@ impl Default for Pooling {
 pub const BACKEND_DIRECTML: &str = "onnxruntime-directml";
 pub const BACKEND_CPU: &str = "onnxruntime-cpu";
 
+/// External weight files handed to ONNX Runtime from memory: (name as the graph refers to it, bytes).
+type External = [(String, &'static [u8])];
+
+fn builder(external: &External) -> ort::Result<ort::session::builder::SessionBuilder> {
+    let mut b = Session::builder()?;
+    for (name, bytes) in external {
+        b = b.with_external_initializer_file_in_memory(name, Cow::Borrowed(*bytes))?;
+    }
+    Ok(b)
+}
+
 /// Build the session: DirectML when the pinned pack loaded, the CPU provider otherwise (or if DirectML fails).
-fn session(model: &[u8], gpu: bool) -> anyhow::Result<(Session, &'static str)> {
+fn session(model: &[u8], external: &External, gpu: bool) -> anyhow::Result<(Session, &'static str)> {
     #[cfg(windows)]
     if gpu {
         use ort::execution_providers::DirectMLExecutionProvider;
         // DirectML needs sequential execution and no memory-pattern optimisation (ONNX Runtime docs)
-        let built = Session::builder()
+        let built = builder(external)
             .and_then(|b| b.with_memory_pattern(false))
             .and_then(|b| b.with_parallel_execution(false))
             .and_then(|b| b.with_execution_providers([DirectMLExecutionProvider::default().build().error_on_failure()]))
@@ -48,7 +69,7 @@ fn session(model: &[u8], gpu: bool) -> anyhow::Result<(Session, &'static str)> {
         }
     }
     let _ = gpu;
-    Ok((Session::builder()?.commit_from_memory(model)?, BACKEND_CPU))
+    Ok((builder(external)?.commit_from_memory(model)?, BACKEND_CPU))
 }
 
 pub fn embed(bundle: &mut VerifiedBundle, inputs: &[String]) -> anyhow::Result<(Vec<Vec<f32>>, u64, &'static str)> {
@@ -60,13 +81,73 @@ pub fn embed(bundle: &mut VerifiedBundle, inputs: &[String]) -> anyhow::Result<(
         Ok(false) => anyhow::bail!("no ONNX Runtime backend pack: onnxruntime jobs need the pinned pack"),
         Err(e) => anyhow::bail!("{e}"),
     };
+    if bundle.files.contains_key("model.onnx") && bundle.files.contains_key("vocab.txt") {
+        embed_wordpiece(bundle, inputs, gpu)
+    } else {
+        embed_hf(bundle, inputs, gpu)
+    }
+}
+
+fn embed_hf(bundle: &mut VerifiedBundle, inputs: &[String], gpu: bool) -> anyhow::Result<(Vec<Vec<f32>>, u64, &'static str)> {
+    let layout = hf_layout(bundle.files.keys()).map_err(anyhow::Error::msg)?;
+    let tok = HfTokenizer::from_bytes(
+        bundle.file(&layout.tokenizer)?,
+        layout.tokenizer_config.as_deref().map(|p| bundle.file(p)).transpose()?,
+    )
+    .map_err(anyhow::Error::msg)?;
+    // The weights (2.3 GB for bge-m3) move out of the bundle without a copy and live as long as this one-job process:
+    // ONNX Runtime reads them from memory, and a DirectML attempt that fails can hand the same bytes to the CPU session.
+    let mut external = Vec::with_capacity(layout.external.len());
+    for (path, name) in &layout.external {
+        let bytes = bundle.files.remove(path).ok_or_else(|| anyhow::anyhow!("bundle lacks {path}"))?;
+        let leaked: &'static [u8] = bytes.leak();
+        external.push((name.clone(), leaked));
+    }
+    let (mut session, backend) = session(bundle.file(&layout.graph)?, &external, gpu)?;
+    let has_type_ids = session.inputs.iter().any(|i| i.name == "token_type_ids");
+
+    let ids: Vec<Vec<u32>> = inputs.iter().map(|s| tok.encode(s)).collect::<Result<_, _>>().map_err(anyhow::Error::msg)?;
+    let tokens = ids.iter().map(|v| v.len() as u64).sum::<u64>();
+    let lens: Vec<usize> = ids.iter().map(Vec::len).collect();
+    let mut out: Vec<Option<Vec<f32>>> = vec![None; inputs.len()];
+    for group in hf_export::length_groups(&lens, hf_export::MAX_BATCH, hf_export::TOKEN_BUDGET) {
+        let b = group.len();
+        let l = group.iter().map(|&i| lens[i]).max().unwrap_or(0).max(1);
+        let mut flat = Vec::with_capacity(b * l);
+        let mut mask = Vec::with_capacity(b * l);
+        for &i in &group {
+            flat.extend(ids[i].iter().map(|x| i64::from(*x)));
+            flat.extend(std::iter::repeat_n(i64::from(tok.pad), l - lens[i]));
+            mask.extend(std::iter::repeat_n(1i64, lens[i]));
+            mask.extend(std::iter::repeat_n(0i64, l - lens[i]));
+        }
+        let mut feed: Vec<(Cow<'_, str>, SessionInputValue<'_>)> = vec![
+            ("input_ids".into(), Tensor::from_array(([b, l], flat))?.into()),
+            ("attention_mask".into(), Tensor::from_array(([b, l], mask))?.into()),
+        ];
+        if has_type_ids {
+            feed.push(("token_type_ids".into(), Tensor::from_array(([b, l], vec![0i64; b * l]))?.into()));
+        }
+        let outputs = session.run(feed)?;
+        let (shape, data) = outputs[0].try_extract_tensor::<f32>()?;
+        let vecs = hf_export::cls_normalized(shape, data).map_err(anyhow::Error::msg)?;
+        anyhow::ensure!(vecs.len() == b, "embedding output has {} rows for {b} inputs", vecs.len());
+        for (&i, v) in group.iter().zip(vecs) {
+            out[i] = Some(v);
+        }
+    }
+    let vectors = out.into_iter().map(|v| v.ok_or_else(|| anyhow::anyhow!("missing embedding"))).collect::<anyhow::Result<_>>()?;
+    Ok((vectors, tokens, backend))
+}
+
+fn embed_wordpiece(bundle: &mut VerifiedBundle, inputs: &[String], gpu: bool) -> anyhow::Result<(Vec<Vec<f32>>, u64, &'static str)> {
     let pooling: Pooling = match bundle.files.get("pooling.json") {
         Some(b) => serde_json::from_slice(b)?,
         None => Pooling::default(),
     };
     let tok = WordPiece::from_vocab_txt(std::str::from_utf8(bundle.file("vocab.txt")?)?, pooling.lowercase, pooling.max_len)
         .map_err(anyhow::Error::msg)?;
-    let (mut session, backend) = session(bundle.file("model.onnx")?, gpu)?;
+    let (mut session, backend) = session(bundle.file("model.onnx")?, &[], gpu)?;
     let has_type_ids = session.inputs.iter().any(|i| i.name == "token_type_ids");
     let mut vectors = Vec::with_capacity(inputs.len());
     let mut tokens = 0u64;

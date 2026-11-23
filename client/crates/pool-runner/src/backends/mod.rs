@@ -3,7 +3,7 @@
 //! | manifest runtime | format       | feature   | notes |
 //! |------------------|--------------|-----------|-------|
 //! | `candle`         | safetensors  | `candle`  | pure-Rust CPU fallback; embeddings (BERT) and Whisper; always builds |
-//! | `onnxruntime`    | onnx         | `onnx`    | ONNX Runtime via `ort` (load-dynamic: library from a signed backend pack) |
+//! | `onnxruntime`    | onnx         | `onnx`    | ONNX Runtime via `ort` (load-dynamic: library from a signed backend pack); WordPiece `vocab.txt` or Hugging Face `tokenizer.json` bundles, external weights from memory |
 //! | `whisper.cpp`    | gguf         | `whisper` | whisper.cpp via `whisper-rs` (needs cmake + C++; not on the Windows GNU toolchain) |
 //! | any (dev builds) | ct2 / onnx   | `dev-trust` | the server's deterministic dev reference model, only for bundles whose `config.json` says `"dev_reference": true` |
 //!
@@ -19,6 +19,11 @@ pub mod candle_embed;
 pub mod candle_whisper;
 #[cfg(feature = "onnx")]
 pub mod onnx;
+// `tokenizer.json` layouts (bge-m3); also compiled in test builds so the default `cargo test` checks them
+#[cfg(any(feature = "onnx", test))]
+pub mod hf_export;
+#[cfg(any(feature = "onnx", test))]
+pub mod hf_tokenizer;
 #[cfg(feature = "whisper")]
 pub mod whisper_cpp;
 #[cfg(feature = "dev-trust")]

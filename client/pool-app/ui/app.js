@@ -202,12 +202,19 @@ function benchHtml(b, now, benchNow) {
 // get a short note that the English text is the binding one.
 // Linking a device means accepting these documents. The titles stay English because the English text is
 // binding; only the lead-in is translated. The URLs come from the agent's config through open_link, never the page.
+// The sign-in step names the same documents with its own lead-in (signing in and running the app).
 const LEGAL_DOCS = [["contributor_agreement", "Vouch Compute Contributor Agreement"], ["acceptable_use", "Vouch Compute Acceptable Use Policy"]];
-function legalAcceptHtml() {
-  return `<div class="legal-accept"><p>${tx("legal.linkAccept")}</p>
+function legalDocsHtml(leadKey, leadClass) {
+  return `<div class="legal-accept"><p${leadClass ? ` class="${leadClass}"` : ""}>${tx(leadKey)}</p>
     <ul class="legal-docs">${LEGAL_DOCS.map(([kind, title]) =>
       `<li><button type="button" class="linklike" data-link="${kind}" lang="en" dir="ltr">${esc(title)}${icon("external")}</button></li>`).join("")}</ul>
     ${activeLocale() === "en" ? "" : `<p class="muted small">${tx("legal.englishBinding")}</p>`}</div>`;
+}
+function legalAcceptHtml() {
+  return legalDocsHtml("legal.linkAccept");
+}
+function signinTermsHtml() {
+  return legalDocsHtml("onboarding.signin.terms", "muted small");
 }
 
 function consentHtml(c, decision) {
@@ -724,7 +731,7 @@ function renderOnboarding() {
           <div><p class="eyebrow">${stepLine(2)}</p><h1 id="ob-title">${tx("common.signIn")}</h1>
           <p class="lede">${tx("onboarding.signin.lede")}</p></div></div>
         ${err}${down}
-        <p class="muted small">${tx("onboarding.signin.terms")}</p>
+        ${signinTermsHtml()}
         <div class="ob-actions"><button type="button" class="btn" data-go="welcome">${tx("common.back")}</button><span class="spacer"></span>
           <button type="button" class="btn btn-primary btn-lg" id="signin-start">${icon("external")}${tx("onboarding.signin.start")}</button></div>`;
     }

@@ -343,7 +343,7 @@
       "openPage": "Oturum açma sayfasını aç",
       "waiting": "Onayınız bekleniyor…",
       "readOnly": "Uygulama kazançlarınıza ve cihazlarınıza yalnızca okuma erişimi alır. Ödeme hesabı değişiklikleri her zaman web'de yapılır.",
-      "terms": "Oturum açıp uygulamayı bu bilgisayarda çalıştırarak Vouch Compute Katkı Sağlayıcı Sözleşmesi'ni kabul etmiş olursunuz: vouchcompute.com/legal/contributor-agreement"
+      "terms": "Oturum açıp uygulamayı bu bilgisayarda çalıştırarak şunları kabul etmiş olursunuz:"
     },
     "device": {
       "signInFirst": {

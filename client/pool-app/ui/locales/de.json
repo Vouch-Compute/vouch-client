@@ -343,7 +343,7 @@
       "openPage": "Anmeldeseite öffnen",
       "waiting": "Warten auf Ihre Bestätigung…",
       "readOnly": "Die App erhält nur Lesezugriff auf Ihre Einnahmen und Geräte. Änderungen am Auszahlungskonto erfolgen immer im Web.",
-      "terms": "Mit der Anmeldung und dem Betrieb der App auf diesem Computer stimmen Sie der Teilnahmevereinbarung von Vouch Compute zu: vouchcompute.com/legal/contributor-agreement"
+      "terms": "Mit der Anmeldung und dem Betrieb der App auf diesem Computer stimmen Sie Folgendem zu:"
     },
     "device": {
       "signInFirst": {

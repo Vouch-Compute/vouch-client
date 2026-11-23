@@ -343,7 +343,7 @@
       "openPage": "Buka halaman masuk",
       "waiting": "Menunggu persetujuan Anda…",
       "readOnly": "Aplikasi ini hanya mendapat akses baca ke pendapatan dan perangkat Anda. Perubahan akun pembayaran selalu dilakukan di web.",
-      "terms": "Dengan masuk dan menjalankan aplikasi di komputer ini, Anda menyetujui Perjanjian Kontributor Vouch Compute: vouchcompute.com/legal/contributor-agreement"
+      "terms": "Dengan masuk dan menjalankan aplikasi di komputer ini, Anda menyetujui:"
     },
     "device": {
       "signInFirst": {

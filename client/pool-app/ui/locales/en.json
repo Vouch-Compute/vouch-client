@@ -343,7 +343,7 @@
       "openPage": "Open sign-in page",
       "waiting": "Waiting for you to approve…",
       "readOnly": "The app only gets read access to your earnings and devices. Payout account changes always happen on the web.",
-      "terms": "By signing in and running the app on this computer, you agree to the Vouch Compute Contributor Agreement: vouchcompute.com/legal/contributor-agreement"
+      "terms": "By signing in and running the app on this computer, you agree to:"
     },
     "device": {
       "signInFirst": {

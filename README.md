@@ -26,6 +26,7 @@ inside a locked-down sandbox, and it shows earnings as honest estimates, never a
 ## Table of contents
 
 - [Download](#-download)
+- [First launch on macOS](#-first-launch-on-macos)
 - [Features](#-features)
 - [What the sandbox protects](#-what-the-sandbox-protects)
 - [System requirements](#-system-requirements)
@@ -44,6 +45,47 @@ download page shows placeholders, and any "Vouch Compute" installer found elsewh
 Release files will be signed, and the download page will list each file's SHA-256 checksum, so you can check that the
 file you downloaded is the one we published. The app installs only updates signed with the project's release keys, and
 never an older version.
+
+## 🍎 First launch on macOS
+
+The macOS app is **not signed with an Apple Developer ID and not notarized**. We have no Apple Developer account yet,
+and we'd rather say so than hide it. Trust comes from the published source, the checksums below and our own update
+signatures, not from Apple.
+
+Because of that, macOS blocks the app the first time you open it. You allow it once:
+
+1. Open the downloaded `.dmg` and drag **Vouch Compute** to **Applications**.
+2. Open Vouch Compute from Applications. macOS says it can't verify the developer. Click **Done** (not "Move to Trash").
+3. Open **System Settings → Privacy & Security** and scroll down to the note about Vouch Compute.
+   Click **Open Anyway**, then confirm with your password or Touch ID.
+4. Open the app again and choose **Open**. From now on it opens normally.
+
+On older macOS versions, right-click (or Control-click) the app in Applications and choose **Open** instead.
+
+**Check the download before you open it.** Each release lists SHA-256 checksums in a `SHA256SUMS` file. In Terminal, in
+the folder that holds both files:
+
+```bash
+grep '\.dmg$' SHA256SUMS | shasum -a 256 -c -
+# or compare by eye:
+shasum -a 256 VouchCompute-<version>-macos-arm64.dmg
+```
+
+The line for the `.dmg` must say `OK` (or the two hashes must be equal). If not, delete the file and don't open it.
+
+**What the update signature protects.** The app installs an update only if it is signed with the project's release
+update key (the `.sig` file next to each update), whose public half is built into the app. It also refuses older
+versions. So a changed or swapped update file is rejected, even though Apple doesn't sign the app. What it does not
+cover: the first download itself (that's what the checksum is for), and a compromise of our release key.
+
+This section applies once the first macOS build is published; until then the download page shows macOS as coming soon.
+
+**What being unsigned changes for you.** Nothing in how jobs run: every job still runs in the macOS sandbox described
+below. Without Apple's signing, the app can't use a Secure Enclave key or Apple's device attestation yet, so Macs start
+with the lower, capped earning limits that apply to every device without hardware attestation.
+
+Maintainers: `scripts/release-macos.sh` builds the unsigned release on an Apple silicon Mac, writes `SHA256SUMS` and the
+updater files, and prints the `gh release create` command to run by hand.
 
 ## ✨ Features
 

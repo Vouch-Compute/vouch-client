@@ -6,7 +6,7 @@ const { I18N, uiMessages, useLocale, loadSection } = require("./ui-loader.js");
 // a stand-in for the document, so use() can set lang and dir as it does in the window
 globalThis.document = { documentElement: {} };
 
-const names = ["heroState", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "deviceStateText", "hardwareHtml", "legalAcceptHtml",
+const names = ["heroState", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "deviceStateText", "hardwareHtml", "legalAcceptHtml", "signinTermsHtml",
   "consentHtml", "benchHtml", "duration", "reliabilityHtml", "stepsHtml", "noticesHtml", "clockHtml", "heroActionHtml", "controlsHtml",
   "scheduleSummary", "languageHtml", "daysText"];
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
@@ -87,6 +87,11 @@ for (const { code, dir } of I18N.LOCALES) {
   if (!consent.includes(legal)) fail(`${code}: acceptance line on the consent step`);
   if (!legal.includes(I18N.t("legal.linkAccept")) || !legal.includes("Vouch Compute Contributor Agreement") || !legal.includes("Vouch Compute Acceptable Use Policy")) fail(`${code}: acceptance line`);
   if ((code === "en") === legal.includes(I18N.t("legal.englishBinding"))) fail(`${code}: legal English-binding note`);
+  // the sign-in line: its own translated lead-in, the same two English document titles and binding note
+  const signin = api.signinTermsHtml();
+  if (!signin.includes(I18N.t("onboarding.signin.terms")) || !signin.includes("Vouch Compute Contributor Agreement") || !signin.includes("Vouch Compute Acceptable Use Policy")) fail(`${code}: sign-in terms`);
+  if ((code === "en") === signin.includes(I18N.t("legal.englishBinding"))) fail(`${code}: sign-in English-binding note`);
+  if (/contributor-agreement|vouchcompute\.com/.test(I18N.t("onboarding.signin.terms"))) fail(`${code}: sign-in terms still carry a URL`);
 }
 if (I18N.dir() !== I18N.info(I18N.locale()).dir) fail("dir()");
 useLocale("ar");
