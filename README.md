@@ -84,8 +84,15 @@ This section applies once the first macOS build is published; until then the dow
 below. Without Apple's signing, the app can't use a Secure Enclave key or Apple's device attestation yet, so Macs start
 with the lower, capped earning limits that apply to every device without hardware attestation.
 
+**Homebrew.** Once the first macOS build is published, the app can also be installed from the project's own tap:
+`brew install --cask metehanaydemir/tap/vouch-compute`. The "Open Anyway" step above still applies once. The cask pins
+the release's SHA-256, and the tap's README ([MetehanAydemir/homebrew-tap](https://github.com/MetehanAydemir/homebrew-tap))
+explains how to verify, update and uninstall. The official Homebrew repository only lists signed and notarized apps,
+which is why it is a separate tap.
+
 Maintainers: `scripts/release-macos.sh` builds the unsigned release on an Apple silicon Mac, writes `SHA256SUMS` and the
-updater files, and prints the `gh release create` command to run by hand.
+updater files, prints the `gh release create` command to run by hand, and (with `VOUCH_TAP_DIR` set) runs
+`scripts/update-cask.sh`, which writes the version and checksum into the tap's cask and prints the git commands for it.
 
 ## ✨ Features
 

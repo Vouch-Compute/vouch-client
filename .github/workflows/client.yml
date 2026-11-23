@@ -81,6 +81,8 @@ jobs:
         run: node client/pool-app/tests/i18n.test.js
       - name: App languages rendered (no raw keys or leftovers, lang and dir per locale)
         run: node client/pool-app/tests/i18n-render.test.js
+      - name: Homebrew cask (updater output, app name and minimum macOS against the Tauri config)
+        run: node client/pool-app/tests/homebrew-cask.test.js
       - name: cargo audit
         working-directory: client
         run: |
