@@ -19,7 +19,8 @@ trap 'rm -rf "$work"' EXIT
 files=()
 
 add() {
-  local f="$1"
+  local f
+  f="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"   # absolute: the .deb branch unpacks from inside a temp dir
   case "$f" in
     *.deb)
       local d="$work/deb$RANDOM"; mkdir -p "$d"
