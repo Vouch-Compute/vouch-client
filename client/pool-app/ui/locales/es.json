@@ -144,7 +144,7 @@
     "title": "Prueba de rendimiento",
     "waiting": "Esperando a que la red envíe tu prueba de rendimiento. Mantén Vouch Compute abierto y conectado a la corriente.",
     "progressLabel": "Progreso de la prueba de rendimiento",
-    "progress": "{ratio, number, percent} · {rounds, plural, one {# ronda completada} many {# rondas completadas} other {# rondas completadas}}. Puedes seguir usando el equipo para tareas ligeras; si elegiste «Ejecutar ahora», mover el ratón no la cancela.",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# ronda completada} many {# rondas completadas} other {# rondas completadas}}. Si empiezas a usar el equipo, la prueba se detiene, aunque hayas elegido «Ejecutar ahora».",
     "finished": "Prueba de rendimiento terminada. El servidor comprueba los resultados.",
     "stopped": "La prueba de rendimiento se detuvo antes de terminar. Volverá a empezar más tarde.",
     "about": "Una prueba de velocidad firmada se ejecuta a máxima velocidad durante unos 20 minutos. Se detiene si usas el equipo, si el equipo se calienta demasiado o si pasa a funcionar con batería. Tu ajuste «Uso de energía» se aplica al trabajo pagado, no a esta prueba. La prueba nunca se paga y puedes detenerla en cualquier momento.",

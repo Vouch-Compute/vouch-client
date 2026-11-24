@@ -144,7 +144,7 @@
     "title": "Benchmark",
     "waiting": "Waiting for the network to send your benchmark. Keep Vouch Compute open and plugged in.",
     "progressLabel": "Benchmark progress",
-    "progress": "{ratio, number, percent} · {rounds, plural, one {# round} other {# rounds}} done. You can keep using your computer lightly; moving the mouse doesn't cancel it if you chose “Run now”.",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# round} other {# rounds}} done. If you start using the computer, it stops, even if you chose “Run now”.",
     "finished": "Benchmark finished. Results are checked by the server.",
     "stopped": "The benchmark stopped before it finished. It will start again later.",
     "about": "A signed speed test runs at full speed for about 20 minutes. It stops if you use the computer, if the computer gets too hot or if it switches to battery. Your “Power use” setting applies to paid work, not to this test. The test is never paid, and you can stop it at any time.",
