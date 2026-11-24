@@ -14,7 +14,9 @@
 //!   with a signed app update.
 //! * Every pinned file is loaded by **full path** after its hash matched, in the listed order, so each import resolves
 //!   to an already-loaded, checked module, never to a copy the machine has installed or a library placed next to the
-//!   runner. The runtime is then initialised from the pack's `library` by full path (`ort` `load-dynamic`).
+//!   runner. The runtime is then initialised from the pack's `library` by full path (`ort` `load-dynamic`). On Linux
+//!   the runner hashes each file from one open descriptor and loads `/proc/self/fd/<n>` of that descriptor, so the
+//!   file that was checked is the file that is mapped ([`open_verified`]).
 //! * The pack directory is only *readable* inside the sandbox (the agent grants read access like a model dir; on
 //!   Linux the runner adds it to its Landlock read set); the runner gets no network or other file access for it.
 //!   Models still come only from signed bundles.
@@ -253,6 +255,42 @@ fn load_by_full_path(p: &Path) -> Result<(), PackError> {
     Ok(())
 }
 
+/// Linux: open every pinned file once, hash it **from that open descriptor**, and return the descriptors' paths
+/// (`/proc/self/fd/<n>`) in load order. Loading through those paths maps exactly the file that was hashed, even if
+/// the pack directory is changed between the check and the load (a rename or a swapped entry cannot redirect the
+/// load). The descriptors stay open for the rest of the process (one job), so the paths stay valid for `ort` too.
+/// A pinned name that is a symlink or not a regular file is refused.
+#[cfg(target_os = "linux")]
+pub fn open_verified(dir: &Path, files: &[PackFile]) -> Result<Vec<PathBuf>, PackError> {
+    use std::io::Read;
+    use std::os::unix::fs::OpenOptionsExt;
+    use std::os::unix::io::IntoRawFd;
+    if files.is_empty() {
+        return Err(PackError::NoPack);
+    }
+    let mut opened = Vec::with_capacity(files.len());
+    for f in files {
+        let p = dir.join(&f.name);
+        // O_NOFOLLOW: the pinned name itself must not be a symlink; O_CLOEXEC: never inherited
+        let mut file = std::fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(&p)
+            .map_err(|_| PackError::Missing(f.name.clone()))?;
+        if !file.metadata().map(|m| m.is_file()).unwrap_or(false) {
+            return Err(PackError::Missing(f.name.clone()));
+        }
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).map_err(|_| PackError::Missing(f.name.clone()))?;
+        if hex::encode(pool_proto::sha256(&bytes)) != f.sha256 {
+            return Err(PackError::HashMismatch(f.name.clone()));
+        }
+        opened.push(file);
+    }
+    // only once every file matched: keep the descriptors open for the process lifetime
+    Ok(opened.into_iter().map(|f| PathBuf::from(format!("/proc/self/fd/{}", f.into_raw_fd()))).collect())
+}
+
 /// Verify and load the pack named by [`PACK_ENV`] and initialise `ort` from it. `Ok(true)` = the pack is ready.
 #[cfg(feature = "onnx")]
 pub fn init_from_env() -> Result<bool, PackError> {
@@ -260,14 +298,19 @@ pub fn init_from_env() -> Result<bool, PackError> {
         return Ok(false);
     };
     let pack = ort_pack().ok_or(PackError::NoPack)?;
+    let lib_index = pack.files.iter().position(|f| f.name == pack.library).ok_or_else(|| PackError::Missing(pack.library.clone()))?;
+    // Linux: hash and load the same open file (vault follow-up to CR-T215-01). Elsewhere: hash by path, then load by
+    // the same full path (macOS moves to a same-file load with the Developer ID work).
+    #[cfg(target_os = "linux")]
+    let files = open_verified(&dir, &pack.files)?;
+    #[cfg(not(target_os = "linux"))]
     let files = verify_files(&dir, &pack.files)?;
     for f in &files {
         load_by_full_path(f)?;
     }
-    let lib = dir.join(&pack.library);
-    if !files.contains(&lib) {
-        return Err(PackError::Missing(pack.library.clone()));
-    }
+    // `ort` opens the library by this exact path. On Linux it is the descriptor path loaded above, so the dynamic
+    // loader returns that module instead of opening the directory entry again.
+    let lib = &files[lib_index];
     ort::init_from(lib.to_string_lossy()).commit().map_err(|e| PackError::Load(e.to_string()))?;
     Ok(true)
 }
@@ -289,6 +332,42 @@ mod tests {
             std::fs::write(d.path().join(&f.name), b"not the pinned file").unwrap();
         }
         assert_eq!(verify_pack(d.path()), Err(PackError::HashMismatch(pinned[0].name.clone())));
+    }
+
+    /// Linux: the bytes that are hashed are the bytes behind the returned path. Replacing the directory entry after
+    /// the check (what an attacker racing the load would do) does not change what the path opens; a symlink in
+    /// place of a pinned file, a mismatch or a missing file is refused before any descriptor is handed out.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_load_paths_name_the_hashed_file() {
+        let d = tempfile::tempdir().unwrap();
+        let good = b"the pinned library bytes".to_vec();
+        let other = b"a second pinned file".to_vec();
+        let files = vec![
+            PackFile { name: "libdep.so".into(), sha256: hex::encode(pool_proto::sha256(&other)) },
+            PackFile { name: "libpinned.so".into(), sha256: hex::encode(pool_proto::sha256(&good)) },
+        ];
+        std::fs::write(d.path().join("libdep.so"), &other).unwrap();
+        std::fs::write(d.path().join("libpinned.so"), &good).unwrap();
+        let paths = open_verified(d.path(), &files).unwrap();
+        assert_eq!(paths.len(), 2);
+        assert!(paths.iter().all(|p| p.starts_with("/proc/self/fd/")), "{paths:?}");
+        // swap the directory entry for different bytes: the descriptor path still reads the checked file
+        std::fs::remove_file(d.path().join("libpinned.so")).unwrap();
+        std::fs::write(d.path().join("libpinned.so"), b"planted after the check").unwrap();
+        assert_eq!(std::fs::read(&paths[1]).unwrap(), good);
+        assert_eq!(std::fs::read(&paths[0]).unwrap(), other);
+
+        // refused: a mismatch, a missing file, a symlink in place of a pinned file
+        std::fs::write(d.path().join("libpinned.so"), b"tampered").unwrap();
+        assert_eq!(open_verified(d.path(), &files), Err(PackError::HashMismatch("libpinned.so".into())));
+        std::fs::remove_file(d.path().join("libpinned.so")).unwrap();
+        assert_eq!(open_verified(d.path(), &files), Err(PackError::Missing("libpinned.so".into())));
+        let elsewhere = tempfile::tempdir().unwrap();
+        std::fs::write(elsewhere.path().join("real.so"), &good).unwrap();
+        std::os::unix::fs::symlink(elsewhere.path().join("real.so"), d.path().join("libpinned.so")).unwrap();
+        assert_eq!(open_verified(d.path(), &files), Err(PackError::Missing("libpinned.so".into())));
+        assert_eq!(open_verified(d.path(), &[]), Err(PackError::NoPack));
     }
 
     /// The table parses, and every entry is well formed: one pack per runtime and target, plain file names,

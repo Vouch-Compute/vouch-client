@@ -36,6 +36,10 @@ const FORBIDDEN = [/\bUSDC\b/i, /\bsolana\b/i, /blockchain/i, /airdrop/i, /\bsta
   /加密货币|挖矿|区块链|钱包地址/, /暗号資産|仮想通貨|マイニング|ブロックチェーン/, /암호화폐|채굴|블록체인/, /क्रिप्टो|माइनिंग|ब्लॉकचेन/,
   /عملة مشفرة|العملات المشفرة|تعدين|بلوك ?تشين/];
 
+// "token" in the AI sense (glossary: allowed only in that sense): only these keys, and only next to the hint that says
+// what it means (perf.tokenHint). Every other crypto word stays forbidden in them too.
+const AI_TOKEN_KEYS = new Set(["perf.tokensPerSecond", "perf.tokenHint"]);
+const TOKEN_WORDS = new Set([String(/\btokens?\b/i), String(/\bjeton/i)]);
 let bad = 0;
 const fail = (m) => { bad++; console.log("FAIL", m); };
 
@@ -85,7 +89,10 @@ function checkSide(side, load) {
       let ast;
       try { ast = I18N.parse(v); } catch (e) { fail(`${side} ${code} ${k}: ${e.message}`); continue; }
       const text = textOf(ast);
-      for (const re of FORBIDDEN) if (re.test(text)) fail(`${side} ${code} ${k}: forbidden crypto vocabulary ${re}: ${v}`);
+      for (const re of FORBIDDEN) {
+        if (side === "ui" && AI_TOKEN_KEYS.has(k) && TOKEN_WORDS.has(String(re))) continue;
+        if (re.test(text)) fail(`${side} ${code} ${k}: forbidden crypto vocabulary ${re}: ${v}`);
+      }
       if (!enAst[k]) continue;
       const a = signature(ast), b = signature(enAst[k]);
       if (!same(a.args, b.args)) fail(`${side} ${code} ${k}: arguments ${[...a.args]} differ from en ${[...b.args]}`);

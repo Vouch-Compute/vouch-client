@@ -144,12 +144,43 @@
     "title": "Teste de desempenho",
     "waiting": "Aguardando a rede enviar seu teste de desempenho. Mantenha o Vouch Compute aberto e ligado na tomada.",
     "progressLabel": "Progresso do teste de desempenho",
-    "progress": "{ratio, number, percent} · {rounds, plural, one {# rodada concluída} many {# rodadas concluídas} other {# rodadas concluídas}}. Você pode continuar usando o computador para tarefas leves; se você escolheu “Executar agora”, mover o mouse não cancela o teste.",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# rodada concluída} many {# rodadas concluídas} other {# rodadas concluídas}}. Se você começar a usar o computador, o teste para, mesmo que você tenha escolhido “Executar agora”.",
     "finished": "Teste de desempenho concluído. O servidor confere os resultados.",
     "stopped": "O teste de desempenho parou antes de terminar. Ele vai começar de novo mais tarde.",
-    "about": "Um teste contínuo e assinado de 20 minutos mede o que este computador realmente consegue fazer. Ele nunca é pago, e você pode interrompê-lo a qualquer momento.",
+    "about": "Um teste de velocidade assinado roda em velocidade máxima por cerca de 20 minutos. Ele para se você usar o computador, se o computador esquentar demais ou se passar a funcionar na bateria. Sua configuração “Uso de energia” vale para o trabalho pago, não para este teste. O teste nunca é pago, e você pode interrompê-lo a qualquer momento.",
     "runNow": "Executar agora",
     "runAtIdle": "Executar na primeira ociosidade"
+  },
+  "perf": {
+    "title": "Desempenho",
+    "sub": "A velocidade com que este computador executou o teste de desempenho e a situação dele no servidor.",
+    "tokensPerSecond": "{rate, number} tokens por segundo",
+    "realtime": "{rate, number}× o tempo real",
+    "tokenHint": "Tokens são os pequenos pedaços de texto que um modelo de IA lê. Mais tokens por segundo significa um computador mais rápido.",
+    "detail": "{model} em {backend}, medido em {date}",
+    "received": "Recebido pelo servidor",
+    "sent": "Enviado ao servidor",
+    "empty": "A velocidade deste computador aparece aqui depois do primeiro teste de desempenho.",
+    "soFar": "Medido até agora: {value}",
+    "measuredHere": "Medido pelo app neste computador.",
+    "statusLabel": "Situação no servidor",
+    "tierLabel": "Nível",
+    "serverBenchmark": "Data do teste no servidor",
+    "noServerBenchmark": "Ainda não",
+    "note": "O app mede essa velocidade neste computador só para sua informação. O servidor mede o teste de desempenho por conta própria, e só o trabalho verificado é pago.",
+    "status": {
+      "benchmarking": "Em teste de desempenho",
+      "probation": "Período de avaliação",
+      "active": "Ativo",
+      "limited": "Limitado",
+      "suspended": "Suspenso",
+      "revoked": "Removido"
+    },
+    "tier": {
+      "probation": "Período de avaliação",
+      "established": "Estabelecido",
+      "trusted": "Confiável"
+    }
   },
   "consent": {
     "title": "Identificadores de hardware",

@@ -144,12 +144,43 @@
     "title": "벤치마크",
     "waiting": "네트워크에서 벤치마크를 보내기를 기다리는 중입니다. Vouch Compute를 열어 두고 전원을 연결해 두세요.",
     "progressLabel": "벤치마크 진행률",
-    "progress": "{ratio, number, percent} · {rounds, plural, other {#라운드}} 완료. 가벼운 작업은 계속하셔도 됩니다. ‘지금 실행’을 선택했다면 마우스를 움직여도 취소되지 않습니다.",
+    "progress": "{ratio, number, percent} · {rounds, plural, other {#라운드}} 완료. 컴퓨터를 사용하기 시작하면 ‘지금 실행’을 선택했더라도 테스트가 중지됩니다.",
     "finished": "벤치마크가 완료되었습니다. 결과는 서버에서 확인합니다.",
     "stopped": "벤치마크가 끝나기 전에 중지되었습니다. 나중에 다시 시작합니다.",
-    "about": "서명된 20분 지속 테스트로 이 컴퓨터의 실제 성능을 측정합니다. 보수는 지급되지 않으며 언제든지 중지할 수 있습니다.",
+    "about": "서명된 속도 테스트가 약 20분 동안 최고 속도로 실행됩니다. 컴퓨터를 사용하거나, 컴퓨터가 너무 뜨거워지거나, 배터리 전원으로 전환되면 중지됩니다. ‘전력 사용량’ 설정은 보수가 지급되는 작업에 적용되며 이 테스트에는 적용되지 않습니다. 이 테스트에는 보수가 전혀 지급되지 않으며 언제든지 중지할 수 있습니다.",
     "runNow": "지금 실행",
     "runAtIdle": "대신 처음 유휴 상태일 때 실행"
+  },
+  "perf": {
+    "title": "성능",
+    "sub": "이 컴퓨터가 벤치마크를 얼마나 빠르게 실행했는지와 서버에서의 상태입니다.",
+    "tokensPerSecond": "초당 {rate, number}토큰",
+    "realtime": "실시간의 {rate, number}배",
+    "tokenHint": "토큰은 AI 모델이 읽는 작은 텍스트 조각입니다. 초당 토큰이 많을수록 컴퓨터가 빠릅니다.",
+    "detail": "{model}, {backend}에서 실행, {date} 측정",
+    "received": "서버에서 수신함",
+    "sent": "서버로 보냄",
+    "empty": "첫 벤치마크가 끝나면 이 컴퓨터의 속도가 여기에 표시됩니다.",
+    "soFar": "지금까지 측정: {value}",
+    "measuredHere": "이 컴퓨터에서 앱이 측정했습니다.",
+    "statusLabel": "서버 상태",
+    "tierLabel": "등급",
+    "serverBenchmark": "서버 벤치마크 날짜",
+    "noServerBenchmark": "아직 없음",
+    "note": "이 속도는 참고용으로 앱이 이 컴퓨터에서 측정한 값입니다. 벤치마크는 서버가 직접 측정하며, 검증된 작업만 지급됩니다.",
+    "status": {
+      "benchmarking": "벤치마크 중",
+      "probation": "수습",
+      "active": "활성",
+      "limited": "제한됨",
+      "suspended": "정지됨",
+      "revoked": "삭제됨"
+    },
+    "tier": {
+      "probation": "수습",
+      "established": "정착",
+      "trusted": "신뢰"
+    }
   },
   "consent": {
     "title": "하드웨어 식별자",

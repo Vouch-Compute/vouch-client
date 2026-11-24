@@ -144,12 +144,43 @@
     "title": "基准测试",
     "waiting": "正在等待网络下发您的基准测试。请保持 Vouch Compute 处于打开状态并接通电源。",
     "progressLabel": "基准测试进度",
-    "progress": "{ratio, number, percent} · 已完成 {rounds, plural, other {# 轮}}。您可以继续轻度使用电脑；如果您选择了“立即运行”，移动鼠标不会取消测试。",
+    "progress": "{ratio, number, percent} · 已完成 {rounds, plural, other {# 轮}}。如果您开始使用电脑，即使选择了“立即运行”，测试也会停止。",
     "finished": "基准测试已完成。结果由服务器检查。",
     "stopped": "基准测试在完成前停止了。稍后会重新开始。",
-    "about": "一项经过签名的 20 分钟持续测试，用于衡量这台电脑的真实能力。此测试从不计报酬，您可以随时停止。",
+    "about": "一项经过签名的速度测试将以全速运行约 20 分钟。如果您使用电脑、电脑过热或改用电池供电，测试会停止。您的“功耗”设置适用于有报酬的工作，不适用于此测试。此测试从不计报酬，您可以随时停止。",
     "runNow": "立即运行",
     "runAtIdle": "改为在首次空闲时运行"
+  },
+  "perf": {
+    "title": "性能",
+    "sub": "这台电脑运行基准测试的速度，以及它在服务器上的状态。",
+    "tokensPerSecond": "每秒 {rate, number} 个词元",
+    "realtime": "{rate, number} 倍实时速度",
+    "tokenHint": "词元是 AI 模型读取的一小段文本。每秒处理的词元越多，说明电脑越快。",
+    "detail": "{model}，运行于{backend}，测于 {date}",
+    "received": "服务器已接收",
+    "sent": "已发送到服务器",
+    "empty": "完成首次基准测试后，这台电脑的速度会显示在这里。",
+    "soFar": "目前测得：{value}",
+    "measuredHere": "由应用在这台电脑上测得。",
+    "statusLabel": "服务器上的状态",
+    "tierLabel": "等级",
+    "serverBenchmark": "服务器上的基准测试日期",
+    "noServerBenchmark": "暂无",
+    "note": "此速度由应用在这台电脑上测得，仅供参考。服务器会自行测量基准测试，只有经过验证的工作才会获得报酬。",
+    "status": {
+      "benchmarking": "基准测试中",
+      "probation": "考察期",
+      "active": "正常",
+      "limited": "受限",
+      "suspended": "已暂停",
+      "revoked": "已移除"
+    },
+    "tier": {
+      "probation": "考察期",
+      "established": "正式",
+      "trusted": "受信任"
+    }
   },
   "consent": {
     "title": "硬件标识符",

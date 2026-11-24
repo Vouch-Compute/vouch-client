@@ -1,7 +1,7 @@
 # Vouch Compute desktop app: lint, tests (incl. sandbox escape tests and the mock-server integration test), release
-# hygiene, native runtime feature builds, and unsigned bundles for Linux (AppImage + deb), macOS (aarch64 DMG) and
-# Windows (NSIS). Signing and notarization run only in client-release.yml (tags, protected environment). This workflow
-# has no secrets and never runs on self-hosted runners.
+# hygiene, native runtime feature builds, and unsigned bundles for Linux (AppImage + deb), macOS (aarch64 .app, DMG
+# and updater archive, the forms a release ships) and Windows (NSIS). Signing and notarization run only in
+# client-release.yml (tags, protected environment). This workflow has no secrets and never runs on self-hosted runners.
 #
 # Minutes budget (T-156, reports/CI minutes budget.md). This repository is public, so GitHub's standard hosted runners
 # use no paid minutes; the heavy macOS and Windows gates still run only where they are needed:
@@ -87,6 +87,8 @@ jobs:
         run: node client/pool-app/tests/homebrew-cask.test.js
       - name: Runtime packs (bundle configs, pins and install paths agree)
         run: node client/pool-app/tests/runtime-packs.test.js
+      - name: Release bundle check refuses changed pack bytes (self-test, incl. the .deb)
+        run: node client/pool-app/tests/release-pack-check.test.js
       - name: cargo audit
         working-directory: client
         run: |
@@ -211,6 +213,17 @@ jobs:
           codesign --force --sign - --options runtime target/debug/pool-runner
           codesign --display --verbose=2 target/debug/pool-runner 2>&1 | grep -E 'flags|Signature'
           cargo test -p pool-runner --features onnx --test onnx_xlmr -- --nocapture
+      # The Mac path (T-219): the real agent links as a capped device, runs the probation benchmark and a job for the
+      # bge-m3 stand-in on this pack (CPU), and keeps the speed it measured for the app. macOS and Linux (CPU packs).
+      - name: Agent end to end on the CPU pack (benchmark, job, measured speed)
+        if: runner.os != 'Windows'
+        run: cargo test -p pool-core --test onnx_cpu_path -- --nocapture
+      # Windows: each job's sandbox can read only its own model dir (per-job AppContainer grants, T-218 review)
+      - name: Windows sandbox grants are per job
+        if: runner.os == 'Windows'
+        run: |
+          cargo test -p pool-sandbox -- --nocapture
+          cargo test -p pool-core --test sandbox_isolation -- --nocapture
       - name: Sandbox denials (macOS, on failure)
         if: failure() && runner.os == 'macOS'
         run: log show --last 15m --style compact --predicate 'sender == "Sandbox"' | grep -iE 'pool-runner' | tail -n 80 || true
@@ -257,7 +270,7 @@ jobs:
       fail-fast: false
       # Matrix contexts cannot use `env`, hence the inline JSON.
       matrix:
-        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platforms == 'all' && '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx","timeout":60},{"name":"macos-aarch64","os":"macos-latest","bundles":"dmg","native_features":"whisper,onnx","timeout":60},{"name":"windows-x86_64","os":"windows-latest","bundles":"nsis","native_features":"onnx","timeout":60}]' || github.event_name == 'workflow_dispatch' && inputs.platforms == 'windows' && '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx","timeout":60},{"name":"windows-x86_64","os":"windows-latest","bundles":"nsis","native_features":"onnx","timeout":60}]' || '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx","timeout":60}]') }}
+        include: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.platforms == 'all' && '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx","timeout":60},{"name":"macos-aarch64","os":"macos-latest","bundles":"app,dmg","native_features":"whisper,onnx","timeout":60},{"name":"windows-x86_64","os":"windows-latest","bundles":"nsis","native_features":"onnx","timeout":60}]' || github.event_name == 'workflow_dispatch' && inputs.platforms == 'windows' && '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx","timeout":60},{"name":"windows-x86_64","os":"windows-latest","bundles":"nsis","native_features":"onnx","timeout":60}]' || '[{"name":"linux-x86_64","os":"ubuntu-22.04","bundles":"appimage,deb","native_features":"whisper,onnx","timeout":60}]') }}
     defaults:
       run:
         working-directory: client
@@ -336,22 +349,25 @@ jobs:
         working-directory: client/pool-app
         run: npm ci --no-audit --no-fund
 
+      # Throwaway key, so the bundle step signs the updater archives (.sig) as a release does. It never enters
+      # GITHUB_ENV (whose values the step headers print) and is masked line by line in case anything echoes it; the
+      # bundle step reads it from the runner's temp dir.
       - name: Ephemeral updater key (CI bundles are unsigned dev builds, dev update channel)
         working-directory: client/pool-app
         shell: bash
         run: |
-          npx tauri signer generate --ci -w "$RUNNER_TEMP/updater.key" -f
-          # Multi-line value for GITHUB_ENV: a random delimiter that cannot occur in the key, CRs stripped, and the
-          # value always ends with a newline before the closing delimiter (the key file has no trailing newline).
-          delim="KEY_$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-          key="$(tr -d '\r' < "$RUNNER_TEMP/updater.key")"
-          case "$key" in *"$delim"*) echo "delimiter collision"; exit 1;; esac
-          {
-            printf '%s<<%s\n' TAURI_SIGNING_PRIVATE_KEY "$delim"
-            printf '%s\n' "$key"
-            printf '%s\n' "$delim"
-            printf 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD=\n'
-          } >> "$GITHUB_ENV"
+          npx tauri signer generate --ci -w "$RUNNER_TEMP/updater.key" -f > /dev/null
+          test -s "$RUNNER_TEMP/updater.key" || { echo "no updater key generated"; exit 1; }
+          tr -d '\r' < "$RUNNER_TEMP/updater.key" | while IFS= read -r line || [ -n "$line" ]; do
+            if [ -n "$line" ]; then echo "::add-mask::$line"; fi
+          done
+
+      # Same ad-hoc signature as a release macOS build (client-release.yml), so this run shows what signing does to
+      # the bundled runtime pack before a tag (CR-T215-01 follow-up).
+      - name: macOS ad-hoc signature (as the release)
+        if: runner.os == 'macOS'
+        working-directory: client/pool-app
+        run: echo '{"bundle":{"macOS":{"signingIdentity":"-"}}}' > src-tauri/tauri.signing.conf.json
 
       # `tauri build` runs scripts/sidecars.mjs, which fetches the target's pinned runtime pack
       # (scripts/runtime-packs.mjs, from nuget.org) and fails the build on any hash mismatch.
@@ -359,10 +375,20 @@ jobs:
         working-directory: client/pool-app
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: npx tauri build --bundles ${{ matrix.bundles }}
-
-      - name: Runtime pack in the packaged app (pinned bytes where the agent looks)
         shell: bash
+        run: |
+          TAURI_SIGNING_PRIVATE_KEY="$(tr -d '\r' < "$RUNNER_TEMP/updater.key")"
+          export TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+          if [ "$RUNNER_OS" = macOS ]; then
+            npx tauri build --config src-tauri/tauri.signing.conf.json --bundles ${{ matrix.bundles }}
+          else
+            npx tauri build --bundles ${{ matrix.bundles }}
+          fi
+
+      - name: Runtime pack in the packaged app, after signing (pinned bytes in every packaged form)
+        shell: bash
+        env:
+          RELEASE_PACK_REQUIRE: ${{ runner.os == 'macOS' && 'app,dmg,updater' || runner.os == 'Linux' && 'deb,appimage' || '' }}
         run: bash ci/release-pack-check.sh ${{ matrix.name }} target/release/bundle
 
       - name: Upload bundles
@@ -375,6 +401,7 @@ jobs:
             client/target/release/bundle/appimage/*.AppImage
             client/target/release/bundle/deb/*.deb
             client/target/release/bundle/dmg/*.dmg
+            client/target/release/bundle/macos/*.app.tar.gz
             client/target/release/bundle/nsis/*.exe
             client/target/release/bundle/**/*.sig
 

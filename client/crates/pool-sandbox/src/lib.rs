@@ -4,7 +4,7 @@
 //!
 //! | OS      | Mechanism (implemented)                                                                 | Level reported |
 //! |---------|-----------------------------------------------------------------------------------------|----------------|
-//! | Windows | Less-Privileged AppContainer (no capabilities => no network, no user files) + Job Object (kill on close, 1 process, memory cap, UI limits) + child-process policy; plain AppContainer if LPAC is refused | `windows-lpac` / `windows-appcontainer` |
+//! | Windows | Less-Privileged AppContainer (no capabilities => no network, no user files) + Job Object (kill on close, 1 process, memory cap, UI limits) + child-process policy; plain AppContainer if LPAC is refused; each job's read access to its directories is granted at spawn and removed when the job ends | `windows-lpac` / `windows-appcontainer` |
 //! | Linux   | parent: new user+network namespace (`unshare`), `RLIMIT_DATA`/`RLIMIT_CORE`, `PDEATHSIG`; runner: Landlock + seccomp (`harden.rs`). If namespaces are blocked (Ubuntu 24.04 AppArmor policy without our profile), seccomp+Landlock still apply | `linux-userns` / `linux-seccomp-landlock` |
 //! | macOS   | `sandbox-exec` with a deny-default SBPL profile (no network, read-only model dir + system libs, no writes, no exec except the runner, metadata and sysctl reads allow-listed; GPU jobs also get the Apple GPU driver and the Metal compiler service) + a memory watchdog that kills the runner over its cap (macOS applies no memory rlimit) | `macos-sandbox-exec` |
 //!
@@ -89,6 +89,16 @@ pub struct Spawned {
 pub fn remove_os_profiles() {
     #[cfg(windows)]
     windows::remove_profiles();
+}
+
+/// Windows: remove the job sandbox's read access from `dirs` where no running job uses it (grants that a crash left
+/// behind; each job's grants are otherwise removed when its process ends). Nothing to do elsewhere: the macOS and
+/// Linux sandboxes are built per job and leave nothing on the file system.
+pub fn revoke_stale_grants(dirs: &[PathBuf]) {
+    #[cfg(windows)]
+    windows::revoke_stale_grants(dirs);
+    #[cfg(not(windows))]
+    let _ = dirs;
 }
 
 pub fn spawn_sandboxed(exe: &Path, args: &[String], cfg: &SandboxConfig) -> io::Result<Spawned> {

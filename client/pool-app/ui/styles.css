@@ -318,6 +318,14 @@ main.enter { animation: rise .32s var(--ease); }
 .hw dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; min-width: 0; overflow-wrap: anywhere; }
 .hw-main .hw-value { font-weight: 650; color: var(--heading); }
 
+/* performance measured during the benchmark */
+.perf-rate { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; color: var(--heading); font-variant-numeric: tabular-nums; line-height: 1.2; margin: 8px 0 2px; overflow-wrap: anywhere; }
+.perf-list { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.perf-item { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-width: 0; }
+.perf-item .perf-rate { margin: 0; }
+.perf-item .badge { margin-inline-start: auto; }
+.perf-server { margin-top: 10px; }
+
 .badge {
   display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
   background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; text-transform: none;

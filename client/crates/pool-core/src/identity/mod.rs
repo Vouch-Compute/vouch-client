@@ -117,6 +117,26 @@ pub fn needs_software_fallback(format: &str, blob: Option<&str>, dev: bool) -> b
     !dev && format == "tpm2" && blob.is_none()
 }
 
+/// After a software-key fallback (CR-T213-01) the server knows the software key, and the TPM is skipped from then
+/// on, so the TPM key that could not attest is never used again: delete it (housekeeping; vault follow-up to
+/// CR-T215-01). Only a TPM key is deleted, and only when the enrolled key is a different, software key. Returns
+/// whether a key was deleted; a failure is logged and leaves the enrollment as it is.
+pub fn discard_unused_key(unused: &dyn DeviceKey, enrolled: &dyn DeviceKey) -> bool {
+    if unused.storage() != KeyStorage::Tpm || enrolled.storage() != KeyStorage::SoftwareDev || unused.device_key_id() == enrolled.device_key_id() {
+        return false;
+    }
+    match unused.destroy() {
+        Ok(()) => {
+            tracing::info!("deleted the unused TPM device key after the software-key enrollment");
+            true
+        }
+        Err(e) => {
+            tracing::warn!("could not delete the unused TPM device key: {e}");
+            false
+        }
+    }
+}
+
 /// Names of the persisted TPM keys. Dev builds use their own names, just as they use their own bundle id, so a dev
 /// build can never sign as a release device on the same machine. Rotated keys are `<TPM_KEY_NAME>-r<ms>`.
 #[cfg(feature = "dev-trust")]
@@ -254,6 +274,62 @@ mod tests {
         assert!(!needs_software_fallback("none", None, false));
         // no TPM request in dev mode or for a software key
         assert!(tpm_request(&sw, false).is_none() && tpm_request(&sw, true).is_none());
+    }
+
+    /// A stand-in for a TPM key that records whether it was deleted.
+    struct FakeTpmKey {
+        inner: SoftwareDeviceKey,
+        destroyed: std::sync::atomic::AtomicBool,
+        fail: bool,
+    }
+    impl Es256Signer for FakeTpmKey {
+        fn kid(&self) -> String {
+            self.inner.kid()
+        }
+        fn sign_es256(&self, msg: &[u8]) -> Result<[u8; 64], pool_proto::Error> {
+            self.inner.sign_es256(msg)
+        }
+    }
+    impl DeviceKey for FakeTpmKey {
+        fn spki_der(&self) -> Vec<u8> {
+            self.inner.spki_der()
+        }
+        fn storage(&self) -> KeyStorage {
+            KeyStorage::Tpm
+        }
+        fn destroy(&self) -> anyhow::Result<()> {
+            if self.fail {
+                anyhow::bail!("TPM busy");
+            }
+            self.destroyed.store(true, std::sync::atomic::Ordering::SeqCst);
+            Ok(())
+        }
+    }
+    fn fake_tpm(fail: bool) -> FakeTpmKey {
+        FakeTpmKey { inner: SoftwareDeviceKey::generate(), destroyed: Default::default(), fail }
+    }
+
+    /// After the fallback the TPM key is deleted; a software key, the enrolled key itself or a TPM-to-TPM pair is never
+    /// touched; a failed delete is reported, not fatal.
+    #[test]
+    fn the_unused_tpm_key_is_deleted_after_a_software_fallback() {
+        use std::sync::atomic::Ordering;
+        let sw = SoftwareDeviceKey::generate();
+        let tpm = fake_tpm(false);
+        assert!(discard_unused_key(&tpm, &sw));
+        assert!(tpm.destroyed.load(Ordering::SeqCst));
+
+        let other_tpm = fake_tpm(false);
+        let enrolled_tpm = fake_tpm(false);
+        assert!(!discard_unused_key(&other_tpm, &enrolled_tpm), "never when a TPM key was enrolled");
+        assert!(!other_tpm.destroyed.load(Ordering::SeqCst));
+
+        let sw2 = SoftwareDeviceKey::generate();
+        assert!(!discard_unused_key(&sw2, &sw), "a software key is never deleted here");
+        assert!(sw2.sign_es256(b"m").is_ok());
+
+        let busy = fake_tpm(true);
+        assert!(!discard_unused_key(&busy, &sw), "a failed delete is reported and ignored");
     }
 
     #[test]

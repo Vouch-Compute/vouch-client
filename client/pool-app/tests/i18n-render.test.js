@@ -8,7 +8,7 @@ globalThis.document = { documentElement: {} };
 
 const names = ["heroState", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "deviceStateText", "hardwareHtml", "legalAcceptHtml", "signinTermsHtml",
   "consentHtml", "benchHtml", "duration", "reliabilityHtml", "stepsHtml", "noticesHtml", "clockHtml", "heroActionHtml", "controlsHtml",
-  "scheduleSummary", "languageHtml", "daysText"];
+  "scheduleSummary", "languageHtml", "daysText", "perfHtml", "measuredText"];
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
 const keys = Object.keys(I18N.flatten(uiMessages("en")));
 
@@ -53,6 +53,14 @@ function render() {
   out.push(api.benchHtml(null, now, false), api.benchHtml({ state: "running", started_ms: now - 600e3, duration_s: 1200, segments: 1 }, now, true),
     api.benchHtml({ state: "running", started_ms: now - 600e3, duration_s: 1200, segments: 46 }, now, false), api.benchHtml({ state: "sent" }, now, false), api.benchHtml({ state: "x" }, now, false));
   out.push(api.duration(5400), api.duration(60), api.duration(null));
+  const m = { unit: "token", per_second: 418.26, runs: 470, backend: "onnxruntime-cpu" };
+  out.push(api.benchHtml({ state: "received", measured: m }, now, false),
+    api.benchHtml({ state: "running", started_ms: now - 600e3, duration_s: 1200, segments: 10, measured: { ...m, unit: "audio_second", per_second: 31 } }, now, false));
+  for (const [status, tier] of [["benchmarking", "probation"], ["probation", "probation"], ["active", "established"], ["limited", "trusted"], ["suspended", "x"], ["revoked", null]]) {
+    out.push(api.perfHtml([{ model_id: "bge-m3", measured: m, finished_ms: now, received: status === "active" }, { model_id: "whisper-small", measured: { unit: "audio_second", per_second: 31, backend: null }, finished_ms: now }],
+      { status, tier, benchmark_date: status === "active" ? "2026-11-24" : null }, false));
+  }
+  out.push(api.perfHtml([], null, true), api.perfHtml(null, null, false));
   out.push(api.reliabilityHtml(null), api.reliabilityHtml({ tier: "stable", since_day: "2026-11-12", benefits: { queue_priority: "higher", bonus_pct: 5 },
     improve: ["keep_regular_hours", "avoid_disconnects", "finish_accepted_jobs", "build_tenure", "verify_identity", "use_hardware_key"] }),
   api.reliabilityHtml({ tier: "probation", benefits: { bonus_pct: 0 }, improve: [] }));

@@ -144,12 +144,43 @@
     "title": "Test de performance",
     "waiting": "En attente de l’envoi de votre test de performance par le réseau. Laissez Vouch Compute ouvert et branché sur secteur.",
     "progressLabel": "Progression du test de performance",
-    "progress": "{ratio, number, percent} · {rounds, plural, one {# passe terminée} many {# passes terminées} other {# passes terminées}}. Vous pouvez continuer à utiliser votre ordinateur pour des tâches légères ; si vous avez choisi « Lancer maintenant », bouger la souris ne l’annule pas.",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# passe terminée} many {# passes terminées} other {# passes terminées}}. Si vous commencez à utiliser l’ordinateur, le test s’arrête, même si vous avez choisi « Lancer maintenant ».",
     "finished": "Test de performance terminé. Les résultats sont contrôlés par le serveur.",
     "stopped": "Le test de performance s’est arrêté avant la fin. Il redémarrera plus tard.",
-    "about": "Un test signé et soutenu de 20 minutes mesure ce dont cet ordinateur est réellement capable. Il n’est jamais payé et vous pouvez l’arrêter à tout moment.",
+    "about": "Un test de vitesse signé tourne à pleine vitesse pendant environ 20 minutes. Il s’arrête si vous utilisez l’ordinateur, si l’ordinateur chauffe trop ou s’il passe sur batterie. Votre réglage « Consommation » s’applique au travail payé, pas à ce test. Le test n’est jamais payé et vous pouvez l’arrêter à tout moment.",
     "runNow": "Lancer maintenant",
     "runAtIdle": "Lancer plutôt à la première inactivité"
+  },
+  "perf": {
+    "title": "Performances",
+    "sub": "La vitesse à laquelle cet ordinateur a exécuté son test de performance, et sa situation sur le serveur.",
+    "tokensPerSecond": "{rate, number} tokens par seconde",
+    "realtime": "{rate, number}× le temps réel",
+    "tokenHint": "Les tokens sont les petits morceaux de texte qu’un modèle d’IA lit. Plus de tokens par seconde signifie un ordinateur plus rapide.",
+    "detail": "{model} sur {backend}, mesuré le {date}",
+    "received": "Reçu par le serveur",
+    "sent": "Envoyé au serveur",
+    "empty": "La vitesse de cet ordinateur s’affichera ici après son premier test de performance.",
+    "soFar": "Mesuré jusqu’ici : {value}",
+    "measuredHere": "Mesuré par l’application sur cet ordinateur.",
+    "statusLabel": "Statut sur le serveur",
+    "tierLabel": "Niveau",
+    "serverBenchmark": "Date du test sur le serveur",
+    "noServerBenchmark": "Pas encore",
+    "note": "L’application mesure cette vitesse sur cet ordinateur à titre indicatif. Le serveur mesure lui-même le test de performance, et seul le travail vérifié est payé.",
+    "status": {
+      "benchmarking": "Test en cours",
+      "probation": "Période probatoire",
+      "active": "Actif",
+      "limited": "Limité",
+      "suspended": "Suspendu",
+      "revoked": "Supprimé"
+    },
+    "tier": {
+      "probation": "Période probatoire",
+      "established": "Confirmé",
+      "trusted": "De confiance"
+    }
   },
   "consent": {
     "title": "Identifiants matériels",

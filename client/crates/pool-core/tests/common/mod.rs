@@ -41,6 +41,11 @@ pub struct V {
     pub hw_reports: AtomicUsize,
     pub recovery: Mutex<Option<J>>,
     pub rotations: AtomicUsize,
+    /// vault's T-213 rules for a release (non-dev) client with a software key: `key_attestation` must be
+    /// `{format: "none", blob: null}`, and the signed `hw_ids` must carry at least two medium identifiers
+    /// (`smbios_uuid`, `board_serial`, `disk_serial`, `gpu_uuid`), else `422 hw_ids_required`. vault applies the
+    /// identifier rule to macOS and Windows; this mock applies it on every OS so the Linux CI checks the same path.
+    pub t213: std::sync::atomic::AtomicBool,
 }
 
 impl V {
@@ -133,9 +138,15 @@ async fn register(State(v): State<Arc<V>>, Json(b): Json<J>) -> axum::response::
     }
     let os = b["os"].as_str().unwrap_or("");
     let fmt = b["key_attestation"]["format"].as_str().unwrap_or("");
-    if (os == "linux" && fmt != "none" && fmt != "tpm2") || (os == "windows" && fmt != "tpm2") || (os == "macos" && fmt != "apple_se") {
+    let t213 = v.t213.load(Ordering::SeqCst);
+    if t213 {
+        if fmt != "none" || !b["key_attestation"]["blob"].is_null() {
+            v.problem(format!("T-213: a software key must send format none with no blob, got {}", b["key_attestation"]));
+        }
+    } else if (os == "linux" && fmt != "none" && fmt != "tpm2") || (os == "windows" && fmt != "tpm2") || (os == "macos" && fmt != "apple_se") {
         v.problem(format!("attestation format {fmt} for {os}"));
     }
+    let mut medium_ids = 0;
     for k in ["challenge_id", "hw_claims", "agent_version", "arch", "hw_ids", "hw_consent"] {
         if b.get(k).is_none() {
             v.problem(format!("missing {k}"));
@@ -144,7 +155,12 @@ async fn register(State(v): State<Arc<V>>, Json(b): Json<J>) -> axum::response::
     // 2.1.0: hw_ids signed by the new key; hw_consent is the in-app text's version and hash
     match verify_cose(&keys::b64_decode(b["hw_ids"].as_str().unwrap_or("")).unwrap_or_default(), &key, ot::HW_IDS) {
         Ok(c) => match pool_proto::objects::HwIdentifiers::from_value(&c) {
-            Ok(h) if h.device_id == ch => {}
+            Ok(h) if h.device_id == ch => {
+                medium_ids = [h.smbios_uuid.is_some(), h.board_serial.is_some(), h.disk_serial.is_some(), !h.gpu_uuids.is_empty()]
+                    .into_iter()
+                    .filter(|x| *x)
+                    .count();
+            }
             Ok(h) => v.problem(format!("hw_ids device_id {} is not the challenge id", h.device_id)),
             Err(e) => v.problem(format!("hw_ids not a closed HwIdentifiers map: {e}")),
         },
@@ -158,6 +174,9 @@ async fn register(State(v): State<Arc<V>>, Json(b): Json<J>) -> axum::response::
     *v.registered.lock().unwrap() = Some(b.clone());
     if let Some((status, code)) = v.refuse.lock().unwrap().clone() {
         return err(status, &code);
+    }
+    if t213 && medium_ids < 2 {
+        return err(422, "hw_ids_required");
     }
     if let Some(r) = b["replaces_device_id"].as_str() {
         if !v.listed.lock().unwrap().iter().any(|d| d["device_id"] == r) {
@@ -289,6 +308,14 @@ pub async fn spawn_vault() -> (Arc<V>, String) {
 
 pub fn new_agent(dir: &std::path::Path, vault_url: &str) -> Arc<Agent> {
     let cfg = Config { vault_url: vault_url.into(), prefer_tpm: false, ..Config::default() };
+    let a = Agent::with_platform(dir.into(), cfg, Arc::new(pool_core::platform::Readings::default)).unwrap();
+    a.set_hw_collector(fixture_collector());
+    a
+}
+
+/// An agent as a release build behaves at enrollment: dev mode off (no dev attestation blob), software key.
+pub fn release_mode_agent(dir: &std::path::Path, vault_url: &str) -> Arc<Agent> {
+    let cfg = Config { vault_url: vault_url.into(), prefer_tpm: false, dev: false, ..Config::default() };
     let a = Agent::with_platform(dir.into(), cfg, Arc::new(pool_core::platform::Readings::default)).unwrap();
     a.set_hw_collector(fixture_collector());
     a

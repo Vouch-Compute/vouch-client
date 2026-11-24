@@ -144,12 +144,43 @@
     "title": "Benchmark",
     "waiting": "Waiting for the network to send your benchmark. Keep Vouch Compute open and plugged in.",
     "progressLabel": "Benchmark progress",
-    "progress": "{ratio, number, percent} · {rounds, plural, one {# round} other {# rounds}} done. You can keep using your computer lightly; moving the mouse doesn't cancel it if you chose “Run now”.",
+    "progress": "{ratio, number, percent} · {rounds, plural, one {# round} other {# rounds}} done. If you start using the computer, it stops, even if you chose “Run now”.",
     "finished": "Benchmark finished. Results are checked by the server.",
     "stopped": "The benchmark stopped before it finished. It will start again later.",
-    "about": "A signed, 20-minute sustained test measures what this computer can really do. It is never paid, and you can stop it at any time.",
+    "about": "A signed speed test runs at full speed for about 20 minutes. It stops if you use the computer, if the computer gets too hot or if it switches to battery. Your “Power use” setting applies to paid work, not to this test. The test is never paid, and you can stop it at any time.",
     "runNow": "Run now",
     "runAtIdle": "Run at first idle instead"
+  },
+  "perf": {
+    "title": "Performance",
+    "sub": "How fast this computer ran its benchmark, and where it stands on the server.",
+    "tokensPerSecond": "{rate, number} tokens per second",
+    "realtime": "{rate, number}× real time",
+    "tokenHint": "Tokens are the small pieces of text an AI model reads. More tokens per second means a faster computer.",
+    "detail": "{model} on {backend}, measured {date}",
+    "received": "Received by the server",
+    "sent": "Sent to the server",
+    "empty": "This computer's speed appears here after its first benchmark.",
+    "soFar": "Measured so far: {value}",
+    "measuredHere": "Measured by the app on this computer.",
+    "statusLabel": "Status on the server",
+    "tierLabel": "Tier",
+    "serverBenchmark": "Benchmark date on the server",
+    "noServerBenchmark": "Not yet",
+    "note": "The app measures this speed on this computer for your information. The server measures the benchmark itself, and only verified work is paid.",
+    "status": {
+      "benchmarking": "Benchmarking",
+      "probation": "Probation",
+      "active": "Active",
+      "limited": "Limited",
+      "suspended": "Suspended",
+      "revoked": "Removed"
+    },
+    "tier": {
+      "probation": "Probation",
+      "established": "Established",
+      "trusted": "Trusted"
+    }
   },
   "consent": {
     "title": "Hardware identifiers",

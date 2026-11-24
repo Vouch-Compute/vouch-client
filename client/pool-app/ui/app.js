@@ -185,12 +185,48 @@ function hardwareHtml(hw, backend, keyStorage) {
     </dl>`;
 }
 
+// ---- performance (start)
+// The speed this app measured on this computer during the benchmark (the agent's own measurement, display only: the
+// server measures the benchmark itself and only verified work is paid), next to the server's status and tier for
+// this device. Plain text (escaped by the caller); "" when there is no usable number.
+function measuredText(m) {
+  const r = m ? Number(m.per_second) : NaN;
+  if (!Number.isFinite(r) || r <= 0) return "";
+  const rate = r >= 100 ? Math.round(r) : r >= 10 ? Math.round(r * 10) / 10 : Math.round(r * 100) / 100;
+  return m.unit === "audio_second" ? t("perf.realtime", { rate }) : t("perf.tokensPerSecond", { rate });
+}
+const SERVER_STATUS = { benchmarking: "perf.status.benchmarking", probation: "perf.status.probation", active: "perf.status.active",
+  limited: "perf.status.limited", suspended: "perf.status.suspended", revoked: "perf.status.revoked" };
+const TRUST_TIER = { probation: "perf.tier.probation", established: "perf.tier.established", trusted: "perf.tier.trusted" };
+function perfHtml(list, d, loading) {
+  const rows = (Array.isArray(list) ? list : []).filter((p) => p && measuredText(p.measured));
+  const results = rows.length
+    ? `<ul class="perf-list">${rows.map((p) => `<li class="perf-item">
+        <span class="perf-rate">${esc(measuredText(p.measured))}</span>
+        <span class="muted small">${tx("perf.detail", { model: String(p.model_id || "—"), backend: p.measured.backend ? backendLabel(p.measured.backend) : "—", date: day(p.finished_ms) })}</span>
+        <span class="badge ${p.received ? "badge-ok" : "badge-info"}">${p.received ? tx("perf.received") : tx("perf.sent")}</span></li>`).join("")}</ul>
+      ${rows.some((p) => p.measured.unit !== "audio_second") ? `<p class="muted small">${tx("perf.tokenHint")}</p>` : ""}`
+    : `<p class="muted small">${tx("perf.empty")}</p>`;
+  const server = loading ? `<div class="row"><div class="spinner"></div><span class="muted">${tx("common.loading")}</span></div>`
+    : d ? `<dl class="hw perf-server">
+        <div class="hw-row"><dt>${tx("perf.statusLabel")}</dt><dd>${SERVER_STATUS[d.status] ? tx(SERVER_STATUS[d.status]) : "—"}</dd></div>
+        <div class="hw-row"><dt>${tx("perf.tierLabel")}</dt><dd>${TRUST_TIER[d.tier] ? tx(TRUST_TIER[d.tier]) : "—"}</dd></div>
+        <div class="hw-row"><dt>${tx("perf.serverBenchmark")}</dt><dd>${d.benchmark_date ? esc(day(d.benchmark_date)) : tx("perf.noServerBenchmark")}</dd></div>
+      </dl>`
+    : `<p class="muted small">${tx("device.relUnavailable")}</p>`;
+  return `${results}${server}<p class="fine">${tx("perf.note")}</p>`;
+}
+// ---- performance (end)
+
 function benchHtml(b, now, benchNow) {
   const pct = b ? Math.max(0, Math.min(100, Math.round(((now - Number(b.started_ms)) / 1000 / Math.max(1, Number(b.duration_s) || 1)) * 100))) || 0 : 0;
+  const rate = b ? measuredText(b.measured) : "";
   const state = !b ? `<p class="muted">${tx("bench.waiting")}</p>`
     : b.state === "running" ? `<div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${tx("bench.progressLabel")}"><div class="progress-fill" data-w="${pct}"></div></div>
-      <p class="muted small">${tx("bench.progress", { ratio: pct / 100, rounds: n0(b.segments) })}</p>`
-    : b.state === "sent" || b.state === "received" ? `<div class="note note-ok">${icon("check")}<span>${tx("bench.finished")}</span></div>`
+      <p class="muted small">${tx("bench.progress", { ratio: pct / 100, rounds: n0(b.segments) })}</p>
+      ${rate ? `<p class="small">${tx("perf.soFar", { value: rate })}</p>` : ""}`
+    : b.state === "sent" || b.state === "received" ? `<div class="note note-ok">${icon("check")}<span>${tx("bench.finished")}</span></div>
+      ${rate ? `<p class="perf-rate">${esc(rate)}</p><p class="muted small">${tx("perf.measuredHere")}</p>` : ""}`
     : `<div class="note note-warn">${icon("alert")}<span>${tx("bench.stopped")}</span></div>`;
   return `${state}
     <p class="muted small">${tx("bench.about")}</p>
@@ -566,12 +602,18 @@ let updateState = null;
 let booted = false;
 const inflight = new Set();
 
+// When a benchmark changes state (finished, received), the server's status and tier for this device may change too:
+// the Device page asks the server again.
+let lastBenchState;
 async function refresh() {
   try {
     snap = await core("status");
   } catch (e) {
     snap = { error: String(e) };
   }
+  const bs = (snap && snap.status && snap.status.benchmark && snap.status.benchmark.state) || null;
+  if (lastBenchState !== undefined && bs !== lastBenchState && view === "device") loadDevice();
+  lastBenchState = bs;
   render();
 }
 
@@ -908,6 +950,8 @@ function renderDevice() {
         </dl></details>
       <p class="fine">${tx("device.sandboxFine")}</p>
     </section>
+    <section class="card" aria-labelledby="perf-h">${cardHead("perf-h", "gauge", tx("perf.title"), tx("perf.sub"))}
+      ${perfHtml(snap.performance, d, !deviceCache)}</section>
     <div class="grid-2">
       <section class="card" aria-labelledby="bench-h">${cardHead("bench-h", "gauge", tx("bench.title"), "")}${benchHtml(st.benchmark, Date.now(), set.benchmark_now)}</section>
       <section class="card" aria-labelledby="rel-h">${cardHead("rel-h", "shieldCheck", tx("reliability.title"), "")}
@@ -1276,7 +1320,7 @@ function demoInvoke(cmd, args) {
   if (m === "device") {
     if (conf.state === "signedout" || conf.state === "offline") return Promise.reject("device not enrolled");
     return R({ device_id: "7d0c3c9e-1b2a-4f5e-9c8d-0a1b2c3d4e5f", name: p.get("name") || "Gaming PC", connection: "online", activity: conf.state === "earning" ? "working" : conf.state === "paused" ? "paused" : "idle",
-      paused_by: conf.state === "tally" ? "tally" : null, reliability: { tier: "stable", since_day: "2026-11-12", benefits: { queue_priority: "higher", bonus_pct: 5 }, improve: ["keep_regular_hours", "avoid_disconnects"] } });
+      paused_by: conf.state === "tally" ? "tally" : null, status: "probation", tier: "probation", benchmark_date: "2026-11-24", reliability: { tier: "stable", since_day: "2026-11-12", benefits: { queue_priority: "higher", bonus_pct: 5 }, improve: ["keep_regular_hours", "avoid_disconnects"] } });
   }
   if (m === "status") {
     const signedIn = conf.state !== "signedout" && !["idle", "pending", "error"].includes(conf.signin);
@@ -1286,10 +1330,13 @@ function demoInvoke(cmd, args) {
       choose_replace: { state: "choose_replace", candidates: [{ device_id: "1a2b3c4d-0000-4000-8000-000000000001", name: "Gaming PC", last_seen_day: "2026-10-02" }] },
       blocked: conf.consent === "refused" ? { state: "blocked", code: "consent_refused", message: "Vouch Compute can't register this computer for paid work without the hardware check." }
         : { state: "blocked", code: "device_limit", message: "Your account has reached its device limit. Verify your identity on the web to add more." } }[conf.signin] || { state: conf.signin };
-    const bench = conf.bench === "none" ? null : { benchmark_id: "b", state: conf.bench, started_ms: conf.bench === "running" ? now - 460000 : now - 1300000, duration_s: 1200, segments: conf.bench === "running" ? 46 : 120 };
+    const measured = { unit: "token", per_second: conf.bench === "running" ? 412.6 : 418.3, runs: conf.bench === "running" ? 180 : 470, backend: "onnxruntime-cpu" };
+    const bench = conf.bench === "none" ? null : { benchmark_id: "b", state: conf.bench, started_ms: conf.bench === "running" ? now - 460000 : now - 1300000, duration_s: 1200,
+      segments: conf.bench === "running" ? 7 : 20, model_id: "bge-m3", measured };
+    const performance = conf.bench === "sent" ? [{ model_id: "bge-m3", benchmark_id: "b", measured, finished_ms: now - 100000, received: true }] : [];
     const decision = conf.state === "paused" ? { state: "pause", reason: "paused_by_user" } : { state: "run" };
-    return R({ version: "0.1.0", signed_in: signedIn, device_id: enrolled ? "7d0c3c9e-1b2a-4f5e-9c8d-0a1b2c3d4e5f" : null, trust_ceiling: "capped", key_storage: "tpm",
-      settings, worked_today_s: 5400 + (conf.state === "earning" ? 1260 : 0), signin: signinObj, hw_consent: conf.consent, build: { dev_build: true }, links: {}, ...(conf.pilot ? { pilot: true } : {}),
+    return R({ version: "0.2.0", signed_in: signedIn, device_id: enrolled ? "7d0c3c9e-1b2a-4f5e-9c8d-0a1b2c3d4e5f" : null, trust_ceiling: "capped", key_storage: "tpm",
+      settings, worked_today_s: 5400 + (conf.state === "earning" ? 1260 : 0), signin: signinObj, performance, hw_consent: conf.consent, build: { dev_build: true }, links: {}, ...(conf.pilot ? { pilot: true } : {}),
       hardware: { os: "windows", arch: "x86_64", cpu: "AMD Ryzen 7 7800X3D 8-Core Processor", ram_mb: 32768, gpu: "NVIDIA GeForce RTX 4070 Ti", vram_mb: 12282 },
       status: { connection, decision, job: conf.state === "earning" && enrolled ? { model_id: "whisper-small", since_ms: now - 20000 } : null, jobs_completed: 37, jobs_abandoned: 1, benchmark: bench,
         sandbox: "WindowsLpac", last_error: conf.state === "offline" ? "connection refused (os error 10061)" : null, reconnect_in_s: conf.state === "offline" ? 12 : null, backend: "candle-cuda",

@@ -126,6 +126,30 @@ async fn isolation(lpac: bool) {
     assert!(rep.all_blocked());
 }
 
+/// Every job runs under the same sandbox identity (on Windows one AppContainer SID), so a directory granted to one job
+/// must not stay readable for the next: a job reads its own model dir, never the one an earlier job was given (T-218
+/// design review). Checked in both the LPAC and the regular AppContainer (ONNX Runtime jobs), and on every OS.
+#[test]
+fn a_job_cannot_read_the_model_dir_of_an_earlier_job() {
+    let a = user_dir("pool-t219-model-a");
+    let b = user_dir("pool-t219-model-b");
+    std::fs::write(a.path().join("weights.bin"), b"model a").unwrap();
+    std::fs::write(b.path().join("weights.bin"), b"model b").unwrap();
+    let read = |target: &Path, job_dir: &Path, lpac: bool| {
+        let args: Vec<String> =
+            ["--read", &target.to_string_lossy(), "--model-dir", &job_dir.to_string_lossy()].iter().map(|s| s.to_string()).collect();
+        let cfg = SandboxConfig { readable_dirs: vec![job_dir.to_path_buf()], lpac, ..Default::default() };
+        probe(&args, &cfg, true).0.file_read[0].ok
+    };
+    let (fa, fb) = (a.path().join("weights.bin"), b.path().join("weights.bin"));
+    for lpac in [true, false] {
+        assert!(read(&fa, a.path(), lpac), "a job reads its own model dir (lpac {lpac})");
+        assert!(!read(&fa, b.path(), lpac), "the next job read the earlier job's model dir (lpac {lpac})");
+        assert!(read(&fb, b.path(), lpac), "(lpac {lpac})");
+        assert!(!read(&fb, a.path(), lpac), "(lpac {lpac})");
+    }
+}
+
 /// Windows (Job Object) and Linux (`RLIMIT_DATA`): an allocation over the cap fails inside the runner. macOS applies
 /// no memory rlimit; there the agent's footprint watchdog kills the runner instead, tested in pool-runner's
 /// `tests/sandbox_macos.rs` (`memory_cap_kills_a_runner_over_the_cap`).
@@ -176,6 +200,7 @@ fn only_reviewed_code_writes_files() {
         ("pool-core/src/identity/software.rs", "sealed software device key"),
         ("pool-core/src/main.rs", "logs/core.log (no job data is logged: see the robustness test disk audit)"),
         ("pool-core/src/registry.rs", "the vault-signed model cache"),
+        ("pool-runner/src/accel.rs", "no write: OpenOptions only for a read-only O_NOFOLLOW open of the runtime pack files (Linux)"),
         ("pool-runner/src/probe.rs", "sandbox self-test write attempts"),
         ("pool-runner/src/testutil.rs", "test fixtures"),
     ];

@@ -1,11 +1,17 @@
 //! Windows sandbox: Less-Privileged AppContainer + Job Object.
 //!
-//! * An AppContainer profile (`vouchcompute.runner.v1`, created per user, no admin needed) with **no
+//! * An AppContainer profile (`vouchcompute.runner.v2`, created per user, no admin needed) with **no
 //!   capabilities**: no `internetClient`/`privateNetworkClientServer`, so outbound connections and
 //!   loopback are blocked by the OS; no access to the user's files (they are not ACL'd for the container).
 //! * LPAC (`ALL_APPLICATION_PACKAGES` opt-out): not even the objects granted to all app packages.
 //!   Falls back to a regular AppContainer if the OS refuses LPAC.
-//! * The runner executable and the model dir get a read/execute ACE for the container SID only.
+//! * The runner executable gets a read/execute ACE for the container SID (kept: it is the runner itself).
+//! * **Per-job grants:** each directory a job may read (its model dir, the runtime pack) gets a read/execute ACE for
+//!   the container SID when the job starts, and the ACE is removed when the job's process has ended ([`JobGrant`]).
+//!   Every job shares the container SID, so without this a job could read every model dir granted to an earlier job
+//!   (T-218 design review). Overlapping jobs on one directory share its ACE (counted). ACEs left behind by a crash
+//!   are removed at the next start ([`revoke_stale_grants`]). The 0.1.0 profile (`vouchcompute.runner.v1`), whose
+//!   ACEs were never removed, is deleted, so nothing runs under that SID any more, and the sweep clears its ACEs.
 //! * Job Object: kill-on-close, one active process, process memory cap, die on unhandled exception,
 //!   UI restrictions (no clipboard, desktop, global atoms, system parameters).
 //! * Child-process policy: the runner can't create processes.
@@ -19,7 +25,8 @@ use std::io;
 use std::mem::size_of;
 use std::os::windows::ffi::OsStrExt;
 use std::os::windows::io::FromRawHandle;
-use std::path::Path;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use windows::core::{PCWSTR, PWSTR};
@@ -29,14 +36,14 @@ use windows::Win32::Foundation::{
 };
 use windows::Win32::Security::Authorization::{
     ConvertSidToStringSidW, ConvertStringSecurityDescriptorToSecurityDescriptorW, GetNamedSecurityInfoW, SetEntriesInAclW,
-    SetNamedSecurityInfoW, EXPLICIT_ACCESS_W, GRANT_ACCESS, NO_MULTIPLE_TRUSTEE, SDDL_REVISION_1,
+    SetNamedSecurityInfoW, ACCESS_MODE, EXPLICIT_ACCESS_W, GRANT_ACCESS, NO_MULTIPLE_TRUSTEE, REVOKE_ACCESS, SDDL_REVISION_1,
     SE_FILE_OBJECT, TRUSTEE_IS_SID, TRUSTEE_IS_WELL_KNOWN_GROUP, TRUSTEE_W,
 };
 use windows::Win32::Security::Isolation::{
     CreateAppContainerProfile, DeleteAppContainerProfile, DeriveAppContainerSidFromAppContainerName, GetAppContainerFolderPath,
 };
 use windows::Win32::Security::{
-    GetSecurityDescriptorDacl, GetTokenInformation, TokenUser, ACE_FLAGS, ACL, DACL_SECURITY_INFORMATION, NO_INHERITANCE,
+    FreeSid, GetSecurityDescriptorDacl, GetTokenInformation, TokenUser, ACE_FLAGS, ACL, DACL_SECURITY_INFORMATION, NO_INHERITANCE,
     PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID, SECURITY_ATTRIBUTES, SECURITY_CAPABILITIES,
     SUB_CONTAINERS_AND_OBJECTS_INHERIT, TOKEN_QUERY, TOKEN_USER,
 };
@@ -61,9 +68,10 @@ use windows::Win32::System::Threading::{
 
 use super::{base_env, KillHandle, SandboxConfig, SandboxLevel, SandboxProcess, Spawned};
 
-const PROFILE_NAME: &str = "vouchcompute.runner.v1";
-/// The profile name before the rename: deleted once so no stale container (and its folder) is left behind.
-const OLD_PROFILE_NAME: &str = "Tally.Runner.v1";
+const PROFILE_NAME: &str = "vouchcompute.runner.v2";
+/// Earlier profiles, deleted once so no stale container (and its folder) is left behind and nothing runs under their
+/// SIDs again: the 0.1.0 profile, whose directory grants were never removed, and the pre-rename profile.
+const OLD_PROFILE_NAMES: [&str; 2] = ["vouchcompute.runner.v1", "Tally.Runner.v1"];
 // winbase.h attribute ids (stable ABI values)
 const PROC_THREAD_ATTRIBUTE_HANDLE_LIST: usize = 0x0002_0002;
 const PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES: usize = 0x0002_0009;
@@ -99,7 +107,9 @@ unsafe impl Sync for Sid {}
 fn container_sid() -> io::Result<PSID> {
     static SID: OnceLock<Result<Sid, i32>> = OnceLock::new();
     let r = SID.get_or_init(|| unsafe {
-        let _ = DeleteAppContainerProfile(PCWSTR(wide(OsStr::new(OLD_PROFILE_NAME)).as_ptr()));
+        for old in OLD_PROFILE_NAMES {
+            let _ = DeleteAppContainerProfile(PCWSTR(wide(OsStr::new(old)).as_ptr()));
+        }
         let name = wide(OsStr::new(PROFILE_NAME));
         let display = wide(OsStr::new("Vouch Compute job runner"));
         let desc = wide(OsStr::new("Sandbox for Vouch Compute model jobs: no network, no user files"));
@@ -117,7 +127,7 @@ fn container_sid() -> io::Result<PSID> {
     }
 }
 
-/// An AppContainer may write its own profile folder (`%LOCALAPPDATA%\Packages\vouchcompute.runner.v1\AC`, which is
+/// An AppContainer may write its own profile folder (`%LOCALAPPDATA%\Packages\vouchcompute.runner.v2\AC`, which is
 /// also where Windows points its TEMP/TMP). A compromised parser could keep one buyer's input there for a later job to
 /// read. Windows grants the container that folder through a *critical* allow ACE, which a deny ACE does not override
 ///  (tried first). So the folder gets a new **protected** DACL: full access for SYSTEM, Administrators and the
@@ -186,14 +196,92 @@ fn set_protected_dacl(path: &Path, sddl: &str) -> io::Result<()> {
     }
 }
 
-/// Add an allow ACE (read + execute) for the container SID to a file or directory, once per path.
-fn grant_read(path: &Path, sid: PSID) -> io::Result<()> {
-    static DONE: OnceLock<Mutex<Vec<std::path::PathBuf>>> = OnceLock::new();
+/// Read + execute for the container SID on the runner executable, once per path. This grant stays: it is the runner
+/// binary itself, not data.
+fn grant_exe(path: &Path, sid: PSID) -> io::Result<()> {
+    static DONE: OnceLock<Mutex<Vec<PathBuf>>> = OnceLock::new();
     let done = DONE.get_or_init(|| Mutex::new(Vec::new()));
     let canon = path.canonicalize()?;
-    if done.lock().unwrap().contains(&canon) {
+    if done.lock().unwrap_or_else(|e| e.into_inner()).contains(&canon) {
         return Ok(());
     }
+    set_ace(path, sid, GRANT_ACCESS)?;
+    done.lock().unwrap_or_else(|e| e.into_inner()).push(canon);
+    Ok(())
+}
+
+/// Directories granted to running jobs, by canonical path, with the number of live jobs using each.
+fn live_grants() -> &'static Mutex<HashMap<PathBuf, usize>> {
+    static LIVE: OnceLock<Mutex<HashMap<PathBuf, usize>>> = OnceLock::new();
+    LIVE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// One job's read access to one directory. Granted on creation; the ACE is removed when the last live grant of that
+/// directory is dropped, that is when the job's process has ended (or its spawn failed).
+pub(crate) struct JobGrant {
+    key: PathBuf,
+    path: PathBuf,
+}
+
+impl JobGrant {
+    fn new(path: &Path) -> io::Result<Self> {
+        let sid = container_sid()?;
+        let key = path.canonicalize()?;
+        let mut live = live_grants().lock().unwrap_or_else(|e| e.into_inner());
+        let n = live.get(&key).copied().unwrap_or(0);
+        if n == 0 {
+            set_ace(path, sid, GRANT_ACCESS)?;
+        }
+        live.insert(key.clone(), n + 1);
+        Ok(Self { key, path: path.to_path_buf() })
+    }
+}
+
+impl Drop for JobGrant {
+    fn drop(&mut self) {
+        // never panic in Drop (a poisoned lock still holds a usable count)
+        let mut live = live_grants().lock().unwrap_or_else(|e| e.into_inner());
+        let n = live.get(&self.key).copied().unwrap_or(1);
+        if n > 1 {
+            live.insert(self.key.clone(), n - 1);
+            return;
+        }
+        live.remove(&self.key);
+        if let Err(e) = container_sid().and_then(|sid| set_ace(&self.path, sid, REVOKE_ACCESS)) {
+            // the agent's next start removes it (`revoke_stale_grants`)
+            eprintln!("sandbox: could not remove a job's read access to {}: {e}", self.path.display());
+        }
+    }
+}
+
+/// Remove the container SID's ACEs from directories that no running job uses: grants a crash left behind. The agent
+/// calls it at start for its model cache and runtime pack directories. Missing paths are skipped.
+pub fn revoke_stale_grants(dirs: &[PathBuf]) {
+    // 0.1.0 granted the same directories to its own profile and never removed them; nothing runs under that SID any
+    // more, so its ACEs are cleared too (the SID is derived from the name, the profile need not exist).
+    for old in OLD_PROFILE_NAMES {
+        let name = wide(OsStr::new(old));
+        if let Ok(old_sid) = unsafe { DeriveAppContainerSidFromAppContainerName(PCWSTR(name.as_ptr())) } {
+            for d in dirs {
+                let _ = set_ace(d, old_sid, REVOKE_ACCESS);
+            }
+            unsafe { FreeSid(old_sid) };
+        }
+    }
+    let Ok(sid) = container_sid() else { return };
+    let live = live_grants().lock().unwrap_or_else(|e| e.into_inner());
+    for d in dirs {
+        let Ok(key) = d.canonicalize() else { continue };
+        if !live.contains_key(&key) {
+            let _ = set_ace(d, sid, REVOKE_ACCESS);
+        }
+    }
+}
+
+/// Add (`GRANT_ACCESS`) or remove (`REVOKE_ACCESS`: every explicit ACE of the SID) the container SID's read + execute
+/// access on a file or directory. Directory ACEs are inheritable, and `SetNamedSecurityInfoW` propagates the change to
+/// the existing children, so a revoke also removes the inherited ACEs below.
+fn set_ace(path: &Path, sid: PSID, mode: ACCESS_MODE) -> io::Result<()> {
     let w = wide(path.as_os_str());
     unsafe {
         let mut old: *mut ACL = std::ptr::null_mut();
@@ -211,7 +299,7 @@ fn grant_read(path: &Path, sid: PSID) -> io::Result<()> {
         let inherit: ACE_FLAGS = if path.is_dir() { SUB_CONTAINERS_AND_OBJECTS_INHERIT } else { NO_INHERITANCE };
         let ea = EXPLICIT_ACCESS_W {
             grfAccessPermissions: (FILE_GENERIC_READ | FILE_GENERIC_EXECUTE).0,
-            grfAccessMode: GRANT_ACCESS,
+            grfAccessMode: mode,
             grfInheritance: inherit,
             Trustee: TRUSTEE_W {
                 pMultipleTrustee: std::ptr::null_mut(),
@@ -238,10 +326,8 @@ fn grant_read(path: &Path, sid: PSID) -> io::Result<()> {
         );
         let _ = LocalFree(Some(HLOCAL(new as *mut _)));
         let _ = LocalFree(Some(HLOCAL(sd.0)));
-        win32(r)?;
+        win32(r)
     }
-    done.lock().unwrap().push(canon);
-    Ok(())
 }
 
 struct Pipe {
@@ -308,6 +394,8 @@ fn quote_arg(a: &str) -> String {
 struct Handles {
     process: HANDLE,
     job: Option<HANDLE>,
+    /// The job's directory grants: removed once the process has ended (after `wait`, or when these handles drop).
+    grants: Mutex<Vec<JobGrant>>,
 }
 unsafe impl Send for Handles {}
 unsafe impl Sync for Handles {}
@@ -320,6 +408,7 @@ impl Drop for Handles {
             }
             let _ = CloseHandle(self.process);
         }
+        // `grants` drops after this body: the process is gone, so its read access is removed
     }
 }
 
@@ -335,6 +424,8 @@ impl SandboxProcess for WinProcess {
             }
             let mut code = 0u32;
             GetExitCodeProcess(self.h.process, &mut code).map_err(os_err)?;
+            // the job is over: its directories are no longer readable by the container SID
+            self.h.grants.lock().unwrap_or_else(|e| e.into_inner()).clear();
             Ok(code as i32)
         }
     }
@@ -362,11 +453,13 @@ enum Mode {
 
 fn create(exe: &Path, args: &[String], cfg: &SandboxConfig, mode: Mode) -> io::Result<Spawned> {
     let sid = if mode == Mode::Plain { None } else { Some(container_sid()?) };
+    let mut grants = Vec::new();
     if let Some(sid) = sid {
         lock_container_storage(sid)?;
-        grant_read(exe, sid)?;
+        grant_exe(exe, sid)?;
+        // per job: removed when the process ends; on any error below, dropping `grants` removes them again
         for d in &cfg.readable_dirs {
-            grant_read(d, sid)?;
+            grants.push(JobGrant::new(d)?);
         }
     }
     let stdin = pipe(true)?;
@@ -484,7 +577,7 @@ fn create(exe: &Path, args: &[String], cfg: &SandboxConfig, mode: Mode) -> io::R
             stdin: Box::new(File::from_raw_handle(stdin.write.0 as _)),
             stdout: Box::new(File::from_raw_handle(stdout.read.0 as _)),
             stderr: Box::new(File::from_raw_handle(stderr.read.0 as _)),
-            process: Box::new(WinProcess { h: std::sync::Arc::new(Handles { process: pi.hProcess, job }) }),
+            process: Box::new(WinProcess { h: std::sync::Arc::new(Handles { process: pi.hProcess, job, grants: Mutex::new(grants) }) }),
             level,
         })
     }
@@ -550,7 +643,7 @@ fn make_job(memory_limit: u64, cpu_rate_pct: Option<u8>) -> io::Result<HANDLE> {
 /// Delete the job sandbox's AppContainer profiles (current and pre-rename) and their folders. Run on uninstall;
 /// a missing profile is not an error.
 pub fn remove_profiles() {
-    for name in [PROFILE_NAME, OLD_PROFILE_NAME] {
+    for name in std::iter::once(PROFILE_NAME).chain(OLD_PROFILE_NAMES) {
         unsafe {
             let _ = DeleteAppContainerProfile(PCWSTR(wide(OsStr::new(name)).as_ptr()));
         }
@@ -575,14 +668,94 @@ pub fn spawn_plain(exe: &Path, args: &[String], cfg: &SandboxConfig) -> io::Resu
 mod tests {
     use super::*;
 
+    use windows::Win32::Security::{EqualSid, GetAce, ACCESS_ALLOWED_ACE, ACE_HEADER};
+
+    /// Does `path`'s DACL hold an allow ACE (explicit or inherited) for the container SID?
+    fn container_can_read(path: &Path) -> bool {
+        sid_can_read(path, container_sid().unwrap())
+    }
+
+    /// Does `path`'s DACL hold an allow ACE (explicit or inherited) for `sid`?
+    fn sid_can_read(path: &Path, sid: PSID) -> bool {
+        let w = wide(path.as_os_str());
+        unsafe {
+            let mut dacl: *mut ACL = std::ptr::null_mut();
+            let mut sd = PSECURITY_DESCRIPTOR::default();
+            win32(GetNamedSecurityInfoW(PCWSTR(w.as_ptr()), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, None, None, Some(&mut dacl), None, &mut sd))
+                .unwrap();
+            let mut found = false;
+            for i in 0..(*dacl).AceCount {
+                let mut ace: *mut std::ffi::c_void = std::ptr::null_mut();
+                GetAce(dacl, u32::from(i), &mut ace).unwrap();
+                // ACCESS_ALLOWED_ACE_TYPE
+                if (*(ace as *const ACE_HEADER)).AceType == 0 {
+                    let a = ace as *const ACCESS_ALLOWED_ACE;
+                    let ace_sid = PSID(std::ptr::addr_of!((*a).SidStart) as *mut _);
+                    if EqualSid(ace_sid, sid).is_ok() {
+                        found = true;
+                    }
+                }
+            }
+            let _ = LocalFree(Some(HLOCAL(sd.0)));
+            found
+        }
+    }
+
     #[test]
-    fn container_profile_and_acl_grant_work() {
+    fn container_profile_and_exe_grant_work() {
         let sid = container_sid().expect("container sid");
         let dir = tempfile::tempdir().unwrap();
         let f = dir.path().join("x.bin");
         std::fs::write(&f, b"x").unwrap();
-        grant_read(dir.path(), sid).expect("grant dir");
-        grant_read(&f, sid).expect("grant file");
+        grant_exe(&f, sid).expect("grant file");
+        assert!(container_can_read(&f));
+    }
+
+    /// A job's directory grant lives exactly as long as the job: the directory and the files in it are readable by
+    /// the container while a job holds the grant, and not afterwards. Two overlapping jobs share one ACE.
+    #[test]
+    fn job_grants_are_removed_after_the_last_job() {
+        let dir = tempfile::tempdir().unwrap();
+        let f = dir.path().join("weights.bin");
+        std::fs::write(&f, b"w").unwrap();
+        assert!(!container_can_read(dir.path()) && !container_can_read(&f));
+        let a = JobGrant::new(dir.path()).unwrap();
+        assert!(container_can_read(dir.path()), "granted to the job");
+        assert!(container_can_read(&f), "inherited by the files in it");
+        let b = JobGrant::new(dir.path()).unwrap();
+        drop(a);
+        assert!(container_can_read(&f), "still used by the second job");
+        drop(b);
+        assert!(!container_can_read(dir.path()), "removed after the last job");
+        assert!(!container_can_read(&f), "and from the files below it");
+    }
+
+    /// Grants a crash left behind are removed at the next start; a directory a running job uses is left alone.
+    #[test]
+    fn stale_grants_are_revoked() {
+        let stale = tempfile::tempdir().unwrap();
+        let busy = tempfile::tempdir().unwrap();
+        set_ace(stale.path(), container_sid().unwrap(), GRANT_ACCESS).unwrap();
+        let running = JobGrant::new(busy.path()).unwrap();
+        assert!(container_can_read(stale.path()));
+        revoke_stale_grants(&[stale.path().to_path_buf(), busy.path().to_path_buf(), stale.path().join("missing")]);
+        assert!(!container_can_read(stale.path()));
+        assert!(container_can_read(busy.path()), "a running job keeps its grant");
+        drop(running);
+        assert!(!container_can_read(busy.path()));
+    }
+
+    /// The start-up sweep also clears ACEs that 0.1.0 left for its own profile's SID.
+    #[test]
+    fn stale_v1_grants_are_revoked() {
+        let dir = tempfile::tempdir().unwrap();
+        let name = wide(OsStr::new(OLD_PROFILE_NAMES[0]));
+        let v1 = unsafe { DeriveAppContainerSidFromAppContainerName(PCWSTR(name.as_ptr())) }.unwrap();
+        set_ace(dir.path(), v1, GRANT_ACCESS).unwrap();
+        assert!(sid_can_read(dir.path(), v1));
+        revoke_stale_grants(&[dir.path().to_path_buf()]);
+        assert!(!sid_can_read(dir.path(), v1), "the 0.1.0 grant is removed");
+        unsafe { FreeSid(v1) };
     }
 
     #[test]

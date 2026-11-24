@@ -37,7 +37,7 @@ use crate::lease::{self, LeaseError, NonceBook};
 use crate::platform::Readings;
 use crate::registry::Registry;
 use crate::runner_client::{Preempt, RunError, RunnerClient};
-use crate::status::{BenchProgress, Connection, CurrentJob, StatusHub};
+use crate::status::{BenchProgress, Connection, CurrentJob, Measured, MeasuredPerformance, Meter, StatusHub};
 
 pub const HELLO_DEADLINE: Duration = Duration::from_secs(10);
 
@@ -213,6 +213,17 @@ pub struct Deps {
     pub lease_nonces: Arc<NonceBook>,
     pub platform: Arc<dyn Fn() -> Readings + Send + Sync>,
     pub worked_ms: Arc<AtomicU64>,
+    /// Where the app's own benchmark measurement goes (the agent keeps it in `state.json`; display only).
+    pub perf: Arc<dyn Fn(PerfUpdate) + Send + Sync>,
+}
+
+/// The app's own benchmark measurement, for the user to see (never sent to the server).
+#[derive(Debug, Clone, PartialEq)]
+pub enum PerfUpdate {
+    /// A benchmark finished and its signed result was sent.
+    Measured(MeasuredPerformance),
+    /// The server confirmed it stored the result of this benchmark id.
+    Received(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -496,7 +507,11 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
                         tokio::spawn(prepare_and_run_bench(deps.clone(), b, p, decision_rx.clone(), ev_tx.clone()));
                     }
                     SB::BenchmarkReceipt(r) => {
-                        deps.status.update(|s| if let Some(b) = &mut s.benchmark { if b.benchmark_id == r.benchmark_id { b.state = "received".into(); } });
+                        // only RECEIVED means stored; any other status leaves the benchmark as sent
+                        if r.status == pb::ReceiptStatus::Received as i32 {
+                            deps.status.update(|s| if let Some(b) = &mut s.benchmark { if b.benchmark_id == r.benchmark_id { b.state = "received".into(); } });
+                            (deps.perf)(PerfUpdate::Received(r.benchmark_id.clone()));
+                        }
                     }
                     SB::ModelHint(h) => {
                         let d = deps.clone();
@@ -756,8 +771,11 @@ pub struct BenchJob {
     pub duration_s: u64,
 }
 
-/// How long an offer for a model that is not cached yet waits for its download (ModelHint) to finish.
+/// How long an offer for a model that is not cached yet waits for its download (ModelHint) to start and finish.
 pub const BENCH_MODEL_WAIT: Duration = Duration::from_secs(120);
+/// While the model is still downloading, the offer waits longer (bge-m3 is 2.3 GB), but never past the signed
+/// workload's `expires_at`, and never longer than this.
+pub const BENCH_DOWNLOAD_WAIT: Duration = Duration::from_secs(3 * 3600);
 
 async fn prepare_and_run_bench(
     deps: Arc<Deps>,
@@ -783,14 +801,18 @@ async fn prepare_and_run_bench(
     }
 }
 
-/// Wait (bounded) for a model that a ModelHint is still downloading; `None` if it never arrives.
-async fn wait_for_model(deps: &Deps, model_hash: &[u8], preempt: &Preempt) -> Option<crate::registry::CachedModel> {
-    let deadline = tokio::time::Instant::now() + BENCH_MODEL_WAIT;
+/// Wait (bounded) for a model that a ModelHint is still downloading; `None` if it never arrives. Without a download
+/// in progress the wait is [`BENCH_MODEL_WAIT`]; while one is running, until it ends, the workload expires
+/// (`expires_at`, server clock) or [`BENCH_DOWNLOAD_WAIT`] has passed.
+async fn wait_for_model(deps: &Deps, model_hash: &[u8], expires_at: u64, preempt: &Preempt) -> Option<crate::registry::CachedModel> {
+    let start = tokio::time::Instant::now();
     loop {
         if let Some(m) = deps.registry.get(model_hash) {
             return Some(m);
         }
-        if preempt.fired() || tokio::time::Instant::now() >= deadline {
+        let waited = start.elapsed();
+        let limit = if deps.registry.is_downloading(model_hash) { BENCH_DOWNLOAD_WAIT } else { BENCH_MODEL_WAIT };
+        if preempt.fired() || waited >= limit || now_ms() >= expires_at {
             return None;
         }
         tokio::time::sleep(Duration::from_millis(250)).await;
@@ -823,7 +845,7 @@ async fn handle_bench_offer(
     if !d.is_run() && !(now_requested && !matches!(d, Decision::Pause(PauseReason::Thermal | PauseReason::OnBattery | PauseReason::BatteryLow))) {
         return Err(decline(decline_reason(&d)));
     }
-    let model = wait_for_model(deps, &w.model_hash, preempt).await.ok_or_else(|| decline(pb::DeclineReason::ModelNotCached))?;
+    let model = wait_for_model(deps, &w.model_hash, w.expires_at, preempt).await.ok_or_else(|| decline(pb::DeclineReason::ModelNotCached))?;
     let url = if b.bundle_url.starts_with('/') { format!("{}{}", crate::registry::http_base(&deps.cfg.engine_ws_url), b.bundle_url) } else { b.bundle_url.clone() };
     // One retry. A declined onboarding benchmark is never re-issued by the server, and the first GET can fail on a
     // pooled keep-alive connection the server has just closed (seen intermittently in a test).
@@ -865,78 +887,59 @@ pub const BENCHMARK_SEGMENTS: u64 = 20;
 /// assigns the units and derives the rate from the signed timing.
 async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::Sender<Event>) {
     let id = job.offer.benchmark_id.clone();
+    let model_id = job.model.manifest.model_id.clone();
+    let unit = crate::status::unit_for(&job.model.manifest.input_format);
     deps.status.update(|s| {
-        s.benchmark = Some(BenchProgress { benchmark_id: id.clone(), state: "running".into(), started_ms: now_ms(), duration_s: job.duration_s, segments: 0 })
+        s.benchmark = Some(BenchProgress {
+            benchmark_id: id.clone(),
+            state: "running".into(),
+            started_ms: now_ms(),
+            duration_s: job.duration_s,
+            segments: 0,
+            model_id: model_id.clone(),
+            measured: None,
+        })
     });
     let slice_ms = (job.duration_s * 1000).div_ceil(BENCHMARK_SEGMENTS).max(1);
-    let mut t_start = 0u64;
-    let mut segments: Vec<BenchmarkSegment> = Vec::new();
-    let mut last_output = [0u8; 32];
-    let mut seg_units: Option<u64> = None;
-    let result = loop {
-        if preempt.fired() {
-            break None;
-        }
-        let s0 = now_ms();
-        match deps.runner.run(&deps.keyset.raw, &job.model, &job.model.manifest.input_format, job.bundle.clone(), None, preempt.clone()).await {
-            Ok(o) => {
-                let now = now_ms();
-                if t_start == 0 {
-                    t_start = now; // warm-up run done: the measured window starts here
-                } else {
-                    // slices that ended before this run finished name the previous output
-                    while (segments.len() as u64) < BENCHMARK_SEGMENTS && now >= t_start + slice_ms * (segments.len() as u64 + 1) {
-                        let k = segments.len() as u64;
-                        segments.push(BenchmarkSegment {
-                            seq: k,
-                            t_start: t_start + slice_ms * k,
-                            t_end: t_start + slice_ms * (k + 1),
-                            output_sha256: last_output,
-                            units_device: seg_units.take(),
-                        });
-                    }
-                    if let Some(u) = o.units_device_milli {
-                        seg_units = Some(seg_units.unwrap_or(0) + u);
-                    }
-                }
-                last_output = sha256(&o.output);
-                let n = segments.len() as u64;
-                deps.status.update(|s| if let Some(b) = &mut s.benchmark { b.segments = n });
-                if n >= BENCHMARK_SEGMENTS {
-                    break Some(());
-                }
-                // power slider: duty cycle between runs
-                let pct = u64::from(deps.settings_rx.borrow().power_pct.clamp(10, 100));
-                if pct < 100 {
-                    let busy = now_ms() - s0;
-                    tokio::time::sleep(Duration::from_millis(busy * (100 - pct) / pct)).await;
+    let (d, j, p) = (&*deps, &job, preempt.clone());
+    let run = move || d.runner.run(&d.keyset.raw, &j.model, &j.model.manifest.input_format, j.bundle.clone(), None, p.clone());
+    let out = bench_loop(slice_ms, unit, &preempt, run, |n, measured, backend| {
+        deps.status.update(|s| {
+            if let Some(b) = &mut s.benchmark {
+                b.segments = n;
+                if measured.is_some() {
+                    b.measured = measured.clone();
                 }
             }
-            Err(e) => {
-                tracing::warn!("benchmark run failed: {e}");
-                break None;
+            if backend.is_some() {
+                s.backend = backend.clone();
             }
-        }
-    };
-    let body = match result {
-        Some(()) => {
-            let r = BenchmarkResult {
-                benchmark_id: id.clone(),
-                device_key_id: deps.me.device_key_id.clone(),
-                nonce: job.workload.nonce,
-                workload_sha256: sha256(&job.offer.workload),
-                t_start,
-                t_end: now_ms().max(t_start + slice_ms * BENCHMARK_SEGMENTS),
-                segments,
-                hw_claims: crate::platform::hw_claims(),
-            };
-            cose::sign1(&r.to_value(), deps.key.as_ref())
-                .ok()
-                .map(|sig| NB::BenchmarkResult(pb::BenchmarkResult { benchmark_id: id.clone(), result_sig: sig }))
-        }
-        None => None,
+        });
+    })
+    .await;
+    let body = if out.completed {
+        let r = BenchmarkResult {
+            benchmark_id: id.clone(),
+            device_key_id: deps.me.device_key_id.clone(),
+            nonce: job.workload.nonce,
+            workload_sha256: sha256(&job.offer.workload),
+            t_start: out.t_start,
+            t_end: now_ms().max(out.t_start + slice_ms * BENCHMARK_SEGMENTS),
+            segments: out.segments.clone(),
+            hw_claims: crate::platform::hw_claims(),
+        };
+        cose::sign1(&r.to_value(), deps.key.as_ref())
+            .ok()
+            .map(|sig| NB::BenchmarkResult(pb::BenchmarkResult { benchmark_id: id.clone(), result_sig: sig }))
+    } else {
+        None
     };
     let state = if body.is_some() { "sent" } else { "stopped" };
+    if body.is_some() {
+        if let Some(m) = out.measured(unit) {
+            (deps.perf)(PerfUpdate::Measured(MeasuredPerformance { model_id, benchmark_id: id.clone(), measured: m, finished_ms: now_ms(), received: false }));
+        }
+    }
     // A stopped benchmark is reported as a BenchmarkResponse{accept: false}
     // after the earlier accept; USER_ACTIVE when the user came back (pre-emption), OTHER on a runner failure.
     let body = body.or_else(|| {
@@ -945,6 +948,173 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
     });
     deps.status.update(|s| if let Some(b) = &mut s.benchmark { b.state = state.into() });
     let _ = tx.send(Event::BenchDone(body)).await;
+}
+
+/// What [`bench_loop`] measured.
+struct BenchRun {
+    /// All [`BENCHMARK_SEGMENTS`] segments were filled (not stopped, no runner failure).
+    completed: bool,
+    t_start: u64,
+    segments: Vec<BenchmarkSegment>,
+    meter: Meter,
+    /// End of the last run counted in `meter`.
+    last_end: u64,
+    backend: Option<String>,
+}
+
+impl BenchRun {
+    /// The app's own view of the rate (display only): units the runtime reported for the runs that finished inside
+    /// the measured window, over the wall time from the window start to the end of the last of them.
+    fn measured(&self, unit: &str) -> Option<Measured> {
+        self.meter.measured(unit, self.last_end.saturating_sub(self.t_start), self.backend.clone())
+    }
+}
+
+/// The benchmark's run loop. Runs follow each other back to back for the whole signed window (node-protocol §7): the
+/// power slider governs paid work only and never pauses a benchmark, since a paused benchmark would understate this
+/// computer's speed and lower its envelope floor on the server. The loop only stops, never pauses and continues: on
+/// pre-emption (user activity, heat, battery: `preempt`) or a runner failure. `progress` gets the segments filled so
+/// far, the measured rate and the backend after every run.
+async fn bench_loop<F, Fut>(
+    slice_ms: u64,
+    unit: &str,
+    preempt: &Preempt,
+    mut run: F,
+    mut progress: impl FnMut(u64, Option<Measured>, Option<String>),
+) -> BenchRun
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<crate::runner_client::RunOutput, RunError>>,
+{
+    let mut out = BenchRun { completed: false, t_start: 0, segments: Vec::new(), meter: Meter::default(), last_end: 0, backend: None };
+    let mut last_output = [0u8; 32];
+    let mut seg_units: Option<u64> = None;
+    loop {
+        if preempt.fired() {
+            return out;
+        }
+        match run().await {
+            Ok(o) => {
+                let now = now_ms();
+                if out.t_start == 0 {
+                    out.t_start = now; // warm-up run done: the measured window starts here
+                } else {
+                    // slices that ended before this run finished name the previous output
+                    while (out.segments.len() as u64) < BENCHMARK_SEGMENTS && now >= out.t_start + slice_ms * (out.segments.len() as u64 + 1) {
+                        let k = out.segments.len() as u64;
+                        out.segments.push(BenchmarkSegment {
+                            seq: k,
+                            t_start: out.t_start + slice_ms * k,
+                            t_end: out.t_start + slice_ms * (k + 1),
+                            output_sha256: last_output,
+                            units_device: seg_units.take(),
+                        });
+                    }
+                    if let Some(u) = o.units_device_milli {
+                        seg_units = Some(seg_units.unwrap_or(0) + u);
+                    }
+                    out.meter.add(o.units_device_milli);
+                    out.last_end = now;
+                }
+                if o.backend.is_some() {
+                    out.backend = o.backend.clone();
+                }
+                last_output = sha256(&o.output);
+                let n = out.segments.len() as u64;
+                progress(n, out.measured(unit), out.backend.clone());
+                if n >= BENCHMARK_SEGMENTS {
+                    out.completed = true;
+                    return out;
+                }
+            }
+            Err(e) => {
+                tracing::warn!("benchmark run failed: {e}");
+                return out;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod bench_loop_tests {
+    use super::*;
+    use crate::runner_client::RunOutput;
+    use std::time::Instant;
+
+    const RUN_MS: u64 = 30;
+
+    fn output() -> Result<RunOutput, RunError> {
+        Ok(RunOutput { output: b"[0.1]".to_vec(), format: "embeddings".into(), units_device_milli: Some(1000), backend: Some("cpu".into()), sandbox: pool_sandbox::SandboxLevel::None })
+    }
+
+    /// The benchmark code never reads the power slider and never sleeps: `run_bench` and `bench_loop` take nothing
+    /// from the settings, so a slider below 100% cannot reach the signed window.
+    #[test]
+    fn benchmark_code_does_not_read_the_power_slider() {
+        let src = include_str!("session.rs");
+        let start = src.find("async fn run_bench(").unwrap();
+        let end = src.find("mod bench_loop_tests").unwrap();
+        let bench = &src[start..end];
+        for needle in ["power_pct", "settings_rx", "sleep("] {
+            assert!(!bench.contains(needle), "the benchmark code uses `{needle}`");
+        }
+    }
+
+    /// CR-T219-02: where a 10% slider would pause 9x the run time between paid runs, benchmark runs follow each other
+    /// with no pause, and the shown speed is units over wall time with no pause correction.
+    #[tokio::test]
+    async fn slider_below_100_does_not_pause_or_slow_a_benchmark() {
+        let times = Arc::new(Mutex::new(Vec::<(Instant, Instant)>::new()));
+        let t = times.clone();
+        let run = move || {
+            let t = t.clone();
+            async move {
+                let s = Instant::now();
+                tokio::time::sleep(Duration::from_millis(RUN_MS)).await;
+                t.lock().unwrap().push((s, Instant::now()));
+                output()
+            }
+        };
+        let preempt = Preempt::default();
+        let out = bench_loop(20, "token", &preempt, run, |_, _, _| {}).await;
+        assert!(out.completed);
+        assert_eq!(out.segments.len() as u64, BENCHMARK_SEGMENTS);
+
+        let times = times.lock().unwrap();
+        let gaps: Vec<u128> = times.windows(2).map(|w| w[1].0.duration_since(w[0].1).as_millis()).collect();
+        let max_gap = gaps.iter().copied().max().unwrap();
+        // a 10% slider would pause 270 ms after each 30 ms run
+        assert!(max_gap < 20, "runs were paused between each other: gaps {gaps:?} ms");
+
+        // no correction: units over the plain wall window
+        let m = out.measured("token").unwrap();
+        let window_ms = out.last_end - out.t_start;
+        assert_eq!(m.runs, times.len() as u64 - 1, "every run after the warm-up is counted");
+        assert_eq!(m.per_second, m.runs as f64 / (window_ms as f64 / 1000.0));
+        // a 10% duty cycle would show about 3 units/s; back to back runs give about 33
+        assert!(m.per_second > 15.0, "{m:?}");
+    }
+
+    /// Pre-emption (user activity, heat, battery) still stops the benchmark; it is never resumed.
+    #[tokio::test]
+    async fn preemption_stops_the_benchmark() {
+        let preempt = Preempt::default();
+        let (p, n) = (preempt.clone(), Arc::new(AtomicU64::new(0)));
+        let count = n.clone();
+        let run = move || {
+            let (p, count) = (p.clone(), count.clone());
+            async move {
+                if count.fetch_add(1, Ordering::SeqCst) == 3 {
+                    p.fire();
+                }
+                tokio::time::sleep(Duration::from_millis(5)).await;
+                output()
+            }
+        };
+        let out = bench_loop(1000, "token", &preempt, run, |_, _, _| {}).await;
+        assert!(!out.completed);
+        assert_eq!(n.load(Ordering::SeqCst), 4, "no run starts after the pre-emption");
+    }
 }
 
 #[cfg(test)]
