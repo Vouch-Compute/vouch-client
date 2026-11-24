@@ -70,6 +70,7 @@ pub fn bundle_fixture_with(
         input_format: input_format.into(),
         issued_at: v.now(),
         approvals: vec!["approver-a".into(), "approver-b".into()],
+        approval_mode: None,
     };
     let manifest_cose = v.sign_manifest(&manifest);
     let model_hash = sha256(&cbor::encode(&manifest.to_value()));

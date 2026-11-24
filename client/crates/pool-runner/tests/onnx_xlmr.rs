@@ -3,10 +3,12 @@
 //! (`onnx/model.onnx` + `onnx/model.onnx_data`), and must reproduce the engine reference worker's embeddings
 //! (`tests/fixtures/xlmr-tiny/expected.json`, written by `make_fixture.py` with the reference worker's own code).
 //!
-//! Needs the pinned ONNX Runtime pack (Windows: `pool-app/src-tauri/backends/ort-directml`, fetched by
-//! `node pool-app/scripts/gpu-pack.mjs`, or `POOL_ORT_PACK=<dir>`). The GPU provider is switched off: CPU only.
+//! Needs this OS's pinned ONNX Runtime pack (`pool-app/src-tauri/backends/<dir>` from `packs.json`: `ort-directml` on
+//! Windows, `ort-cpu` on macOS arm64 and Linux x64; fetched by `node pool-app/scripts/runtime-packs.mjs`, or
+//! `POOL_ORT_PACK=<dir>`). The GPU provider is switched off: CPU only.
 //!   cargo test -p pool-runner --features onnx --test onnx_xlmr -- --nocapture
-//! Without a pack the tests print why and pass without running (no ONNX Runtime library to load).
+//! Without a pack the tests print why and pass without running (no ONNX Runtime library to load), unless
+//! `POOL_REQUIRE_ORT_PACK=1` (CI), which makes a missing or mismatching pack a failure.
 #![cfg(feature = "onnx")]
 
 use std::io::Write;
@@ -23,11 +25,15 @@ fn fixture() -> PathBuf {
 }
 
 fn pack() -> Option<PathBuf> {
+    let dir = pool_runner::accel::ort_pack().map(|p| p.dir.as_str()).unwrap_or("none");
     let p = std::env::var_os("POOL_ORT_PACK")
         .map(PathBuf::from)
-        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../pool-app/src-tauri/backends/ort-directml"));
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../pool-app/src-tauri/backends").join(dir));
     match pool_runner::accel::verify_pack(&p) {
         Ok(_) => Some(p),
+        Err(e) if std::env::var("POOL_REQUIRE_ORT_PACK").as_deref() == Ok("1") => {
+            panic!("POOL_REQUIRE_ORT_PACK=1: no usable pinned ONNX Runtime pack at {} ({e})", p.display())
+        }
         Err(e) => {
             eprintln!("skipped: no pinned ONNX Runtime pack at {} ({e})", p.display());
             None
@@ -77,11 +83,13 @@ fn run(fx: &testutil::BundleFixture, inputs: &[String], pack: &Path) -> (RunResp
     drop(std::mem::replace(&mut s.stdin, Box::new(std::io::sink())));
     let resp: RunResponse = serde_json::from_slice(&read_frame(&mut s.stdout, 1 << 20).unwrap()).unwrap();
     let out = read_frame(&mut s.stdout, 16 << 20).unwrap_or_default();
-    let _ = s.process.wait();
+    let code = s.process.wait().expect("wait");
     let err = drain.join().unwrap_or_default();
     if !err.trim().is_empty() {
         eprintln!("runner stderr: {}", err.trim());
     }
+    // a job ends with a clean exit, not an abort after the answer (ONNX Runtime's static destructors on macOS)
+    assert_eq!(code, if resp.ok { 0 } else { 3 }, "runner exit code; stderr: {}", err.trim());
     (resp, out)
 }
 

@@ -90,14 +90,25 @@ fn local_day() -> u64 {
     (now_ms() / 60_000 - u64::from(minute)) / (24 * 60)
 }
 
+/// The enrollment challenge with the key attestation computed for it.
+struct EnrollmentAttestation {
+    challenge: crate::vault::EnrollmentChallenge,
+    nonce: [u8; 32],
+    format: String,
+    blob: Option<String>,
+}
+
 /// Plain words for the server's enrollment refusals. Never more than the server says.
 pub fn enrollment_refusal_message(code: &str) -> Option<&'static str> {
     Some(match code {
         "hardware_in_use" => "This computer is already registered to another Vouch Compute account. Remove it from that account first (Devices on the web, signed in to the other account), then try again here. Only one account can use a computer.",
         "device_limit" => "Your account has reached its device limit. Verify your identity on the web, or remove a device you no longer use, then try again.",
         "enrollment_refused" => "Vouch Compute can't register this computer. If you think this is a mistake, contact support.",
-        "hw_ids_required" | "consent_required" => hwids::REFUSED_MESSAGE,
-        "attestation_invalid" => "This computer's security chip could not be verified, so it can't be registered for paid work.",
+        "consent_required" => hwids::REFUSED_MESSAGE,
+        // vault 422 (T-213): a macOS/Windows software key reported fewer than two medium identifiers
+        "hw_ids_required" => "This computer did not report enough hardware details to register.",
+        // vault 422: this computer type cannot be registered yet (server setting), or a malformed hardware blob
+        "attestation_invalid" => "This computer can't be registered for paid work right now.",
         _ => return None,
     })
 }
@@ -128,7 +139,7 @@ impl Agent {
             platform
         };
         let state = State::load(&data_dir);
-        let key = identity::load_or_create(&data_dir, cfg.prefer_tpm, state.tpm_key_name.as_deref())?;
+        let key = identity::load_or_create(&data_dir, cfg.prefer_tpm && !state.software_key, state.tpm_key_name.as_deref())?;
         if state.device_key_id.as_deref().is_some_and(|k| k != key.device_key_id()) {
             tracing::warn!("device key changed since enrollment: re-enrollment needed");
         }
@@ -632,33 +643,20 @@ impl Agent {
         if !self.consent_given() {
             return Err(VaultError { status: 0, code: "consent_required".into(), details: Value::Null }.into());
         }
-        let key = self.key();
+        let mut key = self.key();
         let token = self.access_token().await?;
         let dev = self.cfg.allow_insecure_dev();
-        // tpm2 v2: ask for a credential bound to this TPM's EK and AIK
-        let publics = match identity::tpm_request(key.as_ref(), dev) {
-            Some(Ok(p)) => Some(p),
-            Some(Err(e)) => {
-                tracing::warn!("this TPM cannot give its EK/AIK, enrolling without a tpm2 blob: {e}");
-                None
-            }
-            None => None,
-        };
-        let ch = self.vault.enrollment_challenge(&token, publics.as_ref().map(|p| (&p.ek_public[..], &p.aik_public[..]))).await?;
-        let nonce: [u8; 32] = pool_proto::keys::b64_decode(&ch.nonce)
-            .map_err(|e| anyhow::anyhow!("{e}"))?
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("enrollment nonce must be 32 bytes"))?;
-        let activation = match &ch.tpm_activation {
-            Some(a) => Some(identity::attest::TpmActivation {
-                credential_blob: pool_proto::keys::b64_decode(&a.credential_blob).map_err(|e| anyhow::anyhow!("{e}"))?,
-                encrypted_secret: pool_proto::keys::b64_decode(&a.encrypted_secret).map_err(|e| anyhow::anyhow!("{e}"))?,
-            }),
-            None => None,
-        };
-        let sig = enroll_nonce_sig(&ch.challenge_id, &nonce, key.as_ref())?;
-        let att_ch = identity::ChallengeForAttestation { challenge_id: &ch.challenge_id, nonce: &nonce, tpm_activation: activation.as_ref() };
-        let (att_format, att_blob) = identity::attestation(key.as_ref(), platform::os_name(), &att_ch, publics.as_ref(), dev);
+        let mut att = self.enrollment_attestation(key.as_ref(), &token, dev).await?;
+        // CR-T213-01: never `tpm2` without a blob. A TPM that cannot attest enrolls this computer with a software
+        // key and `none` instead: a capped device in Probation for good.
+        if identity::needs_software_fallback(&att.format, att.blob.as_deref(), dev) {
+            tracing::warn!("this TPM gave no tpm2 attestation: enrolling with a software key (capped, Probation tier)");
+            // in memory only: the choice is saved once the server has accepted this key
+            key = identity::software_key(&self.data_dir)?;
+            att = self.enrollment_attestation(key.as_ref(), &token, dev).await?;
+        }
+        let (ch, att_format, att_blob) = (att.challenge, att.format, att.blob);
+        let sig = enroll_nonce_sig(&ch.challenge_id, &att.nonce, key.as_ref())?;
         let hw = platform::hw_claims();
         let mut hw_json = json!({ "os": hw.os, "arch": hw.arch, "cpu": hw.cpu, "ram_mb": hw.ram_mb,
             "key_storage": match key.storage() { KeyStorage::Tpm => "tpm2-platform", KeyStorage::SoftwareDev => "software-dev" } });
@@ -695,9 +693,41 @@ impl Agent {
             st.hw_report_last_sent_ms = Some(now_ms());
             st.hw_report_last_attempt_ms = None;
             st.tpm_key_name = key.key_name().filter(|n| n.as_str() != crate::identity::TPM_KEY_NAME);
+            // The key the server now knows decides which key loads at start: a software key (the TPM fallback above, or
+            // a TPM that failed to open in `load_or_create`) keeps the TPM skipped from now on (CR-T213-01).
+            st.software_key = key.storage() == KeyStorage::SoftwareDev;
         }
+        *self.key.write().unwrap() = key.clone();
         self.set_enrollment(&reg.device_id, &reg.trust_ceiling);
         Ok(())
+    }
+
+    /// One enrollment challenge and the key attestation for `key` (contract 2.1.0; `tpm2` v2 for a TPM key).
+    async fn enrollment_attestation(&self, key: &dyn DeviceKey, token: &str, dev: bool) -> anyhow::Result<EnrollmentAttestation> {
+        // tpm2 v2: ask for a credential bound to this TPM's EK and AIK
+        let publics = match identity::tpm_request(key, dev) {
+            Some(Ok(p)) => Some(p),
+            Some(Err(e)) => {
+                tracing::warn!("this TPM cannot give its EK/AIK: {e}");
+                None
+            }
+            None => None,
+        };
+        let ch = self.vault.enrollment_challenge(token, publics.as_ref().map(|p| (&p.ek_public[..], &p.aik_public[..]))).await?;
+        let nonce: [u8; 32] = pool_proto::keys::b64_decode(&ch.nonce)
+            .map_err(|e| anyhow::anyhow!("{e}"))?
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("enrollment nonce must be 32 bytes"))?;
+        let activation = match &ch.tpm_activation {
+            Some(a) => Some(identity::attest::TpmActivation {
+                credential_blob: pool_proto::keys::b64_decode(&a.credential_blob).map_err(|e| anyhow::anyhow!("{e}"))?,
+                encrypted_secret: pool_proto::keys::b64_decode(&a.encrypted_secret).map_err(|e| anyhow::anyhow!("{e}"))?,
+            }),
+            None => None,
+        };
+        let att_ch = identity::ChallengeForAttestation { challenge_id: &ch.challenge_id, nonce: &nonce, tpm_activation: activation.as_ref() };
+        let (format, blob) = identity::attestation(key, platform::os_name(), &att_ch, publics.as_ref(), dev);
+        Ok(EnrollmentAttestation { challenge: ch, nonce, format: format.to_string(), blob })
     }
 
     pub fn sign_out(&self) {
@@ -757,6 +787,7 @@ impl Agent {
             st.hw_report_last_sent_ms = None;
             st.hw_report_last_attempt_ms = None;
             st.tpm_key_name = None;
+            st.software_key = false;
             st.benchmark = None;
         }
         self.save();
@@ -815,6 +846,11 @@ impl Agent {
             });
             let att_ch = identity::ChallengeForAttestation { challenge_id: &ch.challenge_id, nonce: &nonce, tpm_activation: activation.as_ref() };
             let (format, blob) = identity::attestation(new.as_ref(), platform::os_name(), &att_ch, publics.as_ref(), dev);
+            // CR-T213-01: never `tpm2` without a blob. A rotation keeps the device's tier, so it is not downgraded to
+            // a software key here: the rotation stops and the current key stays.
+            if identity::needs_software_fallback(format, blob.as_deref(), dev) {
+                anyhow::bail!("This computer's security chip could not certify the new key, so the key was not changed.");
+            }
             let claims = pool_proto::objects::KeyRotationClaims {
                 device_id: device_id.clone(),
                 old_device_key_id: old.device_key_id(),
@@ -946,7 +982,7 @@ pub fn sign_device_control(key: &dyn DeviceKey, device_id: &str, action: &str) -
 pub async fn uninstall_self_revoke(data_dir: &std::path::Path, cfg: &Config, limit: Duration) -> anyhow::Result<bool> {
     let state = State::load(data_dir);
     let Some(device_id) = state.device_id.clone() else { return Ok(false) };
-    let Some(key) = identity::open_existing(data_dir, cfg.prefer_tpm, state.tpm_key_name.as_deref()) else { return Ok(false) };
+    let Some(key) = identity::open_existing(data_dir, cfg.prefer_tpm && !state.software_key, state.tpm_key_name.as_deref()) else { return Ok(false) };
     let cose = sign_device_control(key.as_ref(), &device_id, "self_revoke")?;
     let http = reqwest::Client::builder()
         .connect_timeout(limit)
@@ -1044,5 +1080,12 @@ mod tests {
         assert!(m.contains("Remove it from that account first"), "{m}");
         assert!(super::enrollment_refusal_message("device_limit").unwrap().contains("Verify your identity"));
         assert!(super::enrollment_refusal_message("something_else").is_none());
+        // CR-T213-01 copy
+        assert_eq!(
+            super::enrollment_refusal_message("hw_ids_required"),
+            Some("This computer did not report enough hardware details to register.")
+        );
+        assert_eq!(super::enrollment_refusal_message("attestation_invalid"), Some("This computer can't be registered for paid work right now."));
+        assert_eq!(super::enrollment_refusal_message("consent_required"), Some(crate::hwids::REFUSED_MESSAGE));
     }
 }

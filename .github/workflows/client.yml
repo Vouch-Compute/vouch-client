@@ -3,10 +3,12 @@
 # Windows (NSIS). Signing and notarization run only in client-release.yml (tags, protected environment). This workflow
 # has no secrets and never runs on self-hosted runners.
 #
-# Minutes budget (T-156, reports/CI minutes budget.md). Billing weights on the Free plan: Linux 1x, Windows 2x,
-# macOS 10x, so macOS and Windows never run on push or pull request:
-# * every PR and push to main (Linux only, path-filtered): `quick` (secret scan, cargo/npm audit, JS tests) then `rust`
-#   (clippy -D warnings, workspace tests, release feature set, release-hygiene markers);
+# Minutes budget (T-156, reports/CI minutes budget.md). This repository is public, so GitHub's standard hosted runners
+# use no paid minutes; the heavy macOS and Windows gates still run only where they are needed:
+# * every PR and push to main (path-filtered): `quick` (secret scan, cargo/npm audit, JS tests), then `rust` (Linux:
+#   clippy -D warnings, workspace tests, release feature set, release-hygiene markers) and `onnx-cpu` (each desktop
+#   OS's pinned ONNX Runtime pack runs the bge-m3 stand-in in the sandboxed runner on the CPU: Linux x64, macOS arm64,
+#   Windows x64);
 # * push to main, the weekly run and manual runs add `native` (whisper + onnx runtime build);
 # * the weekly run and manual runs add `bundle` (Linux AppImage + deb);
 # * a manual run with platforms=windows (or all, which adds macOS) also runs the full gate and the bundle there. Run
@@ -83,6 +85,8 @@ jobs:
         run: node client/pool-app/tests/i18n-render.test.js
       - name: Homebrew cask (updater output, app name and minimum macOS against the Tauri config)
         run: node client/pool-app/tests/homebrew-cask.test.js
+      - name: Runtime packs (bundle configs, pins and install paths agree)
+        run: node client/pool-app/tests/runtime-packs.test.js
       - name: cargo audit
         working-directory: client
         run: |
@@ -133,7 +137,7 @@ jobs:
       - name: Release feature set compiles without dev trust
         run: |
           cargo check -p pool-core --no-default-features --features nvml
-          cargo check -p pool-runner --no-default-features --features candle
+          cargo check -p pool-runner --no-default-features --features candle,onnx
       - name: Release decoding rules (pool-proto without dev-trust)
         run: cargo test -p pool-proto --no-default-features
       - name: A release build with dev-trust fails (compile_error! guard)
@@ -143,7 +147,7 @@ jobs:
           POOL_RELEASE: "1"
         run: |
           cargo build --release -p pool-core --bin pool-core --no-default-features --features nvml,release
-          cargo build --release -p pool-runner --bin pool-runner --no-default-features --features candle
+          cargo build --release -p pool-runner --bin pool-runner --no-default-features --features candle,onnx
           mkdir -p "$RUNNER_TEMP/release-bins"
           cp target/release/pool-core target/release/pool-runner "$RUNNER_TEMP/release-bins/"
       - name: Marker check passes on the release binaries
@@ -152,6 +156,64 @@ jobs:
         run: |
           cargo build -p pool-runner --bin pool-runner
           if bash ci/release-marker-check.sh target/debug/pool-runner; then echo "the checker passed a dev-trust binary"; exit 1; fi
+
+  # The desktop ONNX Runtime packs on their own OS (T-215, T-216): fetch this target's pack from the source pinned in
+  # crates/pool-runner/packs.json (fails on any SHA-256 mismatch), then run the bge-m3 stand-in tests (tiny XLM-R
+  # graph with external weights, tests/fixtures/xlmr-tiny) in the real runner inside the OS sandbox, CPU only, against
+  # the reference worker's embeddings. POOL_REQUIRE_ORT_PACK=1 turns "no pack" into a failure. No real weights, no GPU.
+  # macOS runs it twice: as cargo builds the runner, and ad-hoc signed with the hardened runtime as the app bundle
+  # signs it (library validation then applies to the pinned dylib).
+  onnx-cpu:
+    name: onnx-cpu ${{ matrix.name }}
+    needs: quick
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x86_64, os: ubuntu-22.04 }
+          - { name: macos-aarch64, os: macos-latest }
+          - { name: windows-x86_64, os: windows-latest }
+    defaults:
+      run:
+        working-directory: client
+        shell: bash
+    env:
+      POOL_REQUIRE_ORT_PACK: "1"
+    steps:
+      - name: Check out with LF line endings
+        working-directory: .
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: client
+          shared-key: client-onnx-${{ matrix.name }}
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Runtime pack for this OS (pinned source, SHA-256 checked)
+        run: |
+          node pool-app/scripts/runtime-packs.mjs
+          node pool-app/scripts/runtime-packs.mjs --check
+      - name: bge-m3 stand-in in the sandboxed runner, CPU
+        run: cargo test -p pool-runner --features onnx --test onnx_xlmr -- --nocapture
+      - name: Same, runner ad-hoc signed with the hardened runtime (as in the app bundle)
+        if: runner.os == 'macOS'
+        run: |
+          cargo test -p pool-runner --features onnx --test onnx_xlmr --no-run
+          codesign --force --sign - --options runtime target/debug/pool-runner
+          codesign --display --verbose=2 target/debug/pool-runner 2>&1 | grep -E 'flags|Signature'
+          cargo test -p pool-runner --features onnx --test onnx_xlmr -- --nocapture
+      - name: Sandbox denials (macOS, on failure)
+        if: failure() && runner.os == 'macOS'
+        run: log show --last 15m --style compact --predicate 'sender == "Sandbox"' | grep -iE 'pool-runner' | tail -n 80 || true
 
   # Heavy native runtime features (whisper.cpp + ONNX Runtime): main, weekly and manual runs only.
   native:
@@ -200,7 +262,7 @@ jobs:
       run:
         working-directory: client
     steps:
-      # Keep LF: pool-app/scripts/gpu-pack.mjs reads the GPU pack pins from accel.rs, and the sources are LF-only.
+      # Keep LF: the sources and test fixtures are LF-only.
       - name: Check out with LF line endings
         working-directory: .
         shell: bash
@@ -232,9 +294,8 @@ jobs:
           cache: npm
           cache-dependency-path: client/pool-app/package-lock.json
 
-      - name: GPU pack (bundle resources for the Windows build)
-        if: runner.os == 'Windows'
-        run: node pool-app/scripts/gpu-pack.mjs
+      - name: Runtime pack (bundle resources; pinned source, SHA-256 checked)
+        run: node pool-app/scripts/runtime-packs.mjs
 
       # Linux already passed these in the `rust` and `native` jobs.
       - name: Clippy (deny warnings)
@@ -257,7 +318,7 @@ jobs:
         if: runner.os != 'Linux'
         run: |
           cargo check -p pool-core --no-default-features --features nvml
-          cargo check -p pool-runner --no-default-features --features candle
+          cargo check -p pool-runner --no-default-features --features candle,onnx
 
       - name: Release decoding rules (pool-proto without dev-trust)
         if: runner.os != 'Linux'
@@ -292,13 +353,17 @@ jobs:
             printf 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD=\n'
           } >> "$GITHUB_ENV"
 
-      # Windows: `tauri build` runs scripts/sidecars.mjs, which fetches the pinned GPU pack (scripts/gpu-pack.mjs,
-      # from nuget.org) and fails the build on any hash mismatch.
+      # `tauri build` runs scripts/sidecars.mjs, which fetches the target's pinned runtime pack
+      # (scripts/runtime-packs.mjs, from nuget.org) and fails the build on any hash mismatch.
       - name: Bundle (${{ matrix.bundles }})
         working-directory: client/pool-app
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
         run: npx tauri build --bundles ${{ matrix.bundles }}
+
+      - name: Runtime pack in the packaged app (pinned bytes where the agent looks)
+        shell: bash
+        run: bash ci/release-pack-check.sh ${{ matrix.name }} target/release/bundle
 
       - name: Upload bundles
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

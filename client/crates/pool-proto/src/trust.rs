@@ -204,4 +204,18 @@ mod tests {
         // expired key
         assert!(matches!(ks.verify_manifest(&good, u64::MAX), Err(Error::Expired)));
     }
+
+    #[test]
+    fn signed_single_owner_manifest_verifies_and_a_claimless_one_approver_manifest_does_not() {
+        let v = FakeVault::new();
+        let ks = verify_keyset(&v.keyset_bytes(1), &v.roots(), 0).unwrap();
+        let mut m = manifest();
+        m.approvals = vec!["owner".into()];
+        m.approval_mode = Some(crate::objects::APPROVAL_MODE_SINGLE_OWNER.into());
+        let (got, hash) = ks.verify_manifest(&v.sign_manifest(&m), v.now()).unwrap();
+        assert_eq!(got, m);
+        assert_eq!(hash, crate::sha256(&crate::cbor::encode(&m.to_value())), "the claim is part of model_hash");
+        m.approval_mode = None;
+        assert!(matches!(ks.verify_manifest(&v.sign_manifest(&m), v.now()), Err(Error::Malformed(_))));
+    }
 }

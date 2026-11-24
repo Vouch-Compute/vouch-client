@@ -183,11 +183,11 @@ fn tampered_or_missing_pack_is_refused() {
     let r = run(&onnx, &texts(2), None, false);
     assert!(!r.resp.ok && r.resp.message.unwrap_or_default().contains("backend pack"), "no pack: refused");
     let bad = tempfile::tempdir().unwrap();
-    for (name, _) in pool_runner::accel::PINNED {
-        let mut b = std::fs::read(pack.join(name)).unwrap();
+    for f in pool_runner::accel::pinned() {
+        let mut b = std::fs::read(pack.join(&f.name)).unwrap();
         let n = b.len();
         b[n / 2] ^= 1;
-        std::fs::write(bad.path().join(name), b).unwrap();
+        std::fs::write(bad.path().join(&f.name), b).unwrap();
     }
     let r = run(&onnx, &texts(2), Some(&bad.path().to_path_buf()), false);
     assert!(!r.resp.ok && r.resp.message.unwrap_or_default().contains("pinned"), "tampered pack: refused");

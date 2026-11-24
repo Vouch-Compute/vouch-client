@@ -228,6 +228,17 @@ Gaps, rated:
 - Still open before Metal is enabled in release builds: backend-aware fraud benchmarks, closing the
   `KERN_PROCARGS2` gap (signed App Sandbox helper), and an owner-approved GPU re-benchmark.
 
+## 7c. ONNX Runtime CPU pack (embeddings on macOS, `desktop-onnx-packs`)
+
+- bge-m3 and bge-small now run on the Mac through ONNX Runtime 1.22.0's CPU provider: `libonnxruntime.dylib` from
+  Microsoft's `Microsoft.ML.OnnxRuntime` nuget package, pinned by SHA-256 in `crates/pool-runner/packs.json`, shipped in
+  `Contents/Resources/backends/ort-cpu/`, verified by the agent and again by the runner, loaded by full path.
+- **Sandbox: no new rule.** Measured on macos-latest (arm64) with the bge-m3 stand-in: the existing profile is enough,
+  both for the runner as cargo builds it and ad-hoc signed with the hardened runtime, as in the app.
+- **Exit fix:** after an ONNX job the runner used to abort in ONNX Runtime's static destructors ("mutex lock
+  failed") once the answer was sent; it now ends with `_exit`.
+- Not measured yet: speed with the real 2.3 GB weights on the M3 Pro (needs the owner's approval).
+
 ## 8. What the owner needs to do
 
 1. **Apple Developer account**: Developer ID signing and notarization of the app, and the separately signed App

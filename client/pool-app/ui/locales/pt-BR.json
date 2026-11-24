@@ -233,6 +233,7 @@
     "notRegistered": "Não registrado",
     "keyTpm": "TPM 2.0 (hardware, não exportável)",
     "keySoftware": "Chave de software (nível de desenvolvimento: limitado ao período de avaliação)",
+    "capped": "Nenhum chip de segurança de hardware foi verificado, então este dispositivo fica no nível de período de avaliação, com ganhos limitados.",
     "trustCeiling": "Nível máximo de confiança",
     "sandbox": "Ambiente isolado",
     "notUsedYet": "Ainda não usado",
@@ -362,6 +363,8 @@
       },
       "blocked": {
         "title": "Este computador ainda não pode ser registrado",
+        "reasonHwIds": "Este computador não informou detalhes de hardware suficientes para ser registrado.",
+        "reasonAttestation": "Este computador não pode ser registrado para trabalho pago no momento.",
         "openDevices": "Abrir Dispositivos na web",
         "verify": "Verificar na web",
         "manage": "Gerenciar dispositivos",
@@ -381,7 +384,6 @@
         "title": "Tudo pronto",
         "lede": "Este computador está registrado. Em seguida vem um teste de desempenho curto; depois, o Vouch Compute trabalha sozinho, dentro dos seus limites.",
         "infoOnly": "Apenas para sua informação. O quanto você pode ganhar é decidido por um teste de desempenho, nunca pelo que o app informa.",
-        "noTpm": "Sem um chip de segurança de hardware, este dispositivo fica no nível de período de avaliação, com ganhos limitados.",
         "summary": "Começa depois de {minutes, plural, one {# minuto} many {# minutos} other {# minutos}} de ausência e pausa acima de {temp, number} °C. Você pode mudar isso quando quiser em Configurações.",
         "summaryBattery": "Começa depois de {minutes, plural, one {# minuto} many {# minutos} other {# minutos}} de ausência, pausa acima de {temp, number} °C e nunca funciona na bateria. Você pode mudar isso quando quiser em Configurações.",
         "open": "Abrir o Vouch Compute"

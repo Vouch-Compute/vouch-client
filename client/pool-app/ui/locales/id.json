@@ -233,6 +233,7 @@
     "notRegistered": "Belum terdaftar",
     "keyTpm": "TPM 2.0 (perangkat keras, tidak dapat diekspor)",
     "keySoftware": "Kunci perangkat lunak (tingkat pengembangan: dibatasi pada masa percobaan)",
+    "capped": "Tidak ada cip keamanan perangkat keras yang terverifikasi, jadi perangkat ini tetap di tingkat masa percobaan dengan pendapatan yang dibatasi.",
     "trustCeiling": "Batas kepercayaan",
     "sandbox": "Sandbox",
     "notUsedYet": "Belum digunakan",
@@ -362,6 +363,8 @@
       },
       "blocked": {
         "title": "Komputer ini belum dapat didaftarkan",
+        "reasonHwIds": "Komputer ini tidak melaporkan cukup detail perangkat keras untuk didaftarkan.",
+        "reasonAttestation": "Komputer ini tidak dapat didaftarkan untuk pekerjaan berbayar saat ini.",
         "openDevices": "Buka Perangkat di web",
         "verify": "Verifikasi di web",
         "manage": "Kelola perangkat",
@@ -381,7 +384,6 @@
         "title": "Semua siap",
         "lede": "Komputer ini sudah terdaftar. Berikutnya ada uji kinerja singkat; setelah itu Vouch Compute bekerja sendiri, sesuai batasan Anda.",
         "infoOnly": "Hanya sebagai informasi. Penghasilan yang bisa Anda peroleh ditentukan oleh uji kinerja, tidak pernah oleh laporan aplikasi.",
-        "noTpm": "Tanpa cip keamanan perangkat keras, perangkat ini tetap di tingkat masa percobaan, dengan pendapatan yang dibatasi.",
         "summary": "Dimulai setelah Anda pergi selama {minutes, plural, other {# menit}} dan dijeda di atas {temp, number} °C. Anda bisa mengubahnya kapan saja di Pengaturan.",
         "summaryBattery": "Dimulai setelah Anda pergi selama {minutes, plural, other {# menit}}, dijeda di atas {temp, number} °C, dan tidak pernah berjalan dengan baterai. Anda bisa mengubahnya kapan saja di Pengaturan.",
         "open": "Buka Vouch Compute"

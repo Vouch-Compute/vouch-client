@@ -233,6 +233,7 @@
     "notRegistered": "Nicht registriert",
     "keyTpm": "TPM 2.0 (Hardware, nicht exportierbar)",
     "keySoftware": "Softwareschlüssel (Entwicklerstufe: auf Probezeit begrenzt)",
+    "capped": "Es wurde kein Hardware-Sicherheitschip verifiziert, daher bleibt dieses Gerät in der Probezeit-Stufe mit begrenzten Einnahmen.",
     "trustCeiling": "Höchste Vertrauensstufe",
     "sandbox": "Sandbox",
     "notUsedYet": "Noch nicht verwendet",
@@ -362,6 +363,8 @@
       },
       "blocked": {
         "title": "Dieser Computer kann noch nicht registriert werden",
+        "reasonHwIds": "Dieser Computer hat nicht genug Hardware-Angaben gemeldet, um registriert zu werden.",
+        "reasonAttestation": "Dieser Computer kann derzeit nicht für bezahlte Arbeit registriert werden.",
         "openDevices": "„Geräte“ im Web öffnen",
         "verify": "Im Web bestätigen",
         "manage": "Geräte verwalten",
@@ -381,7 +384,6 @@
         "title": "Alles bereit",
         "lede": "Dieser Computer ist registriert. Als Nächstes folgt ein kurzer Leistungstest; danach arbeitet Vouch Compute selbstständig innerhalb Ihrer Grenzen.",
         "infoOnly": "Nur zu Ihrer Information. Was Sie verdienen können, bestimmt ein Leistungstest, nie das, was die App meldet.",
-        "noTpm": "Ohne Hardware-Sicherheitschip bleibt dieses Gerät in der Probezeit-Stufe, mit begrenzten Einnahmen.",
         "summary": "Startet nach {minutes, plural, one {# Minute} other {# Minuten}} Abwesenheit und pausiert über {temp, number} °C. Sie können das jederzeit in den Einstellungen ändern.",
         "summaryBattery": "Startet nach {minutes, plural, one {# Minute} other {# Minuten}} Abwesenheit, pausiert über {temp, number} °C und läuft nie im Akkubetrieb. Sie können das jederzeit in den Einstellungen ändern.",
         "open": "Vouch Compute öffnen"

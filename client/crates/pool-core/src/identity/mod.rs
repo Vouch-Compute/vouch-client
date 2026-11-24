@@ -6,14 +6,17 @@
 //!   ES256 key flagged **DEV**, sealed at rest (DPAPI on Windows, 0600 file elsewhere).
 //! * A reinstall generates a new key, and so a new enrollment as a new device.
 //!
-//! Enrollment attestation ([`attestation`]), contract 2.1.0:
-//! * Linux + software key: `format: "none"` (no hardware key attestation).
+//! Enrollment attestation ([`attestation`]), contract 2.1.0 and CR-T213-01:
+//! * Software key, outside dev mode, on **every** OS: `format: "none"` (no hardware key attestation). The server
+//!   enrolls such a device as `trust_ceiling: capped`, Probation for good (Linux, and macOS/Windows where the server
+//!   allows software keys).
 //! * Dev mode (dev build + `dev: true`): the platform format with the server's **dev** blob `{"dev_software_key": true,...}`,
 //!   which the server accepts only with `VAULT_DEV_ALLOW_SOFTWARE_ATTESTATION=true` (refused when `VAULT_ENV=prod`).
 //! * Otherwise, Windows TPM keys: the `tpm2` **v2** blob ([`attest`]): the enrollment challenge is requested with
 //!   `{tpm: {ek_public, aik_public}}`, the TPM activates the server's credential, certifies the device key, and the blob is
-//!   checked locally before it is sent. Release builds send the `tpm2` claim or nothing, never the dev blob and never
-//!   `none` from Windows or macOS. the server's verifiers fail closed.
+//!   checked locally before it is sent. `tpm2` is never sent without a blob: when the TPM cannot attest
+//!   ([`needs_software_fallback`]), the agent enrolls with a software key and `none` instead. Release builds never
+//!   send the dev blob.
 
 pub mod attest;
 mod software;
@@ -83,7 +86,7 @@ pub fn attestation(
     dev: bool,
 ) -> (&'static str, Option<String>) {
     let storage = key.storage();
-    if let ("linux", KeyStorage::SoftwareDev) = (os, storage) {
+    if storage == KeyStorage::SoftwareDev && (!dev || os == "linux") {
         return ("none", None);
     }
     let format = if os == "macos" { "apple_se" } else { "tpm2" };
@@ -105,6 +108,13 @@ pub fn attestation(
             (format, None)
         }
     }
+}
+
+/// CR-T213-01: a `tpm2` claim without a blob is never sent. Outside dev mode, an attestation that came out as
+/// `tpm2` with no blob (the TPM could not give its EK/AIK, activate the credential or certify the key) means: enroll
+/// with a software key and `none` instead (capped, Probation).
+pub fn needs_software_fallback(format: &str, blob: Option<&str>, dev: bool) -> bool {
+    !dev && format == "tpm2" && blob.is_none()
 }
 
 /// Names of the persisted TPM keys. Dev builds use their own names, just as they use their own bundle id, so a dev
@@ -146,6 +156,11 @@ pub fn load_or_create(data_dir: &Path, prefer_tpm: bool, tpm_key_name: Option<&s
         }
     }
     let _ = (prefer_tpm, tpm_key_name);
+    Ok(Arc::new(SoftwareDeviceKey::load_or_create(&software_key_path(data_dir))?))
+}
+
+/// The sealed software device key in `data_dir` (created if needed), whatever the TPM setting.
+pub fn software_key(data_dir: &Path) -> anyhow::Result<Arc<dyn DeviceKey>> {
     Ok(Arc::new(SoftwareDeviceKey::load_or_create(&software_key_path(data_dir))?))
 }
 
@@ -224,10 +239,19 @@ mod tests {
         let doc: serde_json::Value = serde_json::from_slice(&pool_proto::keys::b64_decode(&blob.unwrap()).unwrap()).unwrap();
         assert_eq!(doc["dev_software_key"], true);
         assert_eq!(attestation(&sw, "macos", &ch, None, true).0, "apple_se");
-        // Outside dev mode the dev blob is never sent; a software key on Windows/macOS has no attestation
-        // (refused), and never `none`
-        assert_eq!(attestation(&sw, "windows", &ch, None, false), ("tpm2", None));
-        assert_eq!(attestation(&sw, "macos", &ch, None, false), ("apple_se", None));
+        // Outside dev mode the dev blob is never sent, and a software key gives `none` on every OS (CR-T213-01):
+        // never `tpm2` or `apple_se` without a blob
+        assert_eq!(attestation(&sw, "windows", &ch, None, false), ("none", None));
+        assert_eq!(attestation(&sw, "macos", &ch, None, false), ("none", None));
+        for os in ["linux", "windows", "macos"] {
+            let (f, blob) = attestation(&sw, os, &ch, None, false);
+            assert!(!needs_software_fallback(f, blob.as_deref(), false), "{os}");
+        }
+        // a TPM that could not attest (`tpm2`, no blob) falls back to a software key; dev mode and real blobs do not
+        assert!(needs_software_fallback("tpm2", None, false));
+        assert!(!needs_software_fallback("tpm2", Some("blob"), false));
+        assert!(!needs_software_fallback("tpm2", None, true));
+        assert!(!needs_software_fallback("none", None, false));
         // no TPM request in dev mode or for a software key
         assert!(tpm_request(&sw, false).is_none() && tpm_request(&sw, true).is_none());
     }

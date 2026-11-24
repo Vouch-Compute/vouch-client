@@ -1,0 +1,36 @@
+{
+  "about": "Pinned native runtime packs, one per runtime and target (`<os>-<arch>` as Rust's std::env::consts spells them). The single source of truth for the runner and the agent (checked at every job start, compiled into the binary), pool-app/scripts/runtime-packs.mjs (fetch and check) and pool-app/src-tauri/build.rs (release builds refuse a missing or mismatching file). `files` are in load order; `library` is the one the runtime is initialised from. A pin changes only with a signed app update. Sources: `nuget` = the official nuget.org package (id, version, path inside it); `vendored` = a file kept in this repository.",
+  "packs": [
+    {
+      "runtime": "onnxruntime",
+      "target": "windows-x86_64",
+      "dir": "ort-directml",
+      "library": "onnxruntime.dll",
+      "files": [
+        { "name": "vcruntime140.dll", "sha256": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7", "vendored": "pool-app/vendor/vcruntime/vcruntime140.dll" },
+        { "name": "vcruntime140_1.dll", "sha256": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e", "vendored": "pool-app/vendor/vcruntime/vcruntime140_1.dll" },
+        { "name": "msvcp140.dll", "sha256": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca", "vendored": "pool-app/vendor/vcruntime/msvcp140.dll" },
+        { "name": "DirectML.dll", "sha256": "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1", "nuget": { "id": "microsoft.ai.directml", "version": "1.15.4", "path": "bin/x64-win/DirectML.dll" } },
+        { "name": "onnxruntime.dll", "sha256": "95366724919f4e95ecc60010912ed538ad9804b6683fbd0aad389749102834b9", "nuget": { "id": "microsoft.ml.onnxruntime.directml", "version": "1.22.0", "path": "runtimes/win-x64/native/onnxruntime.dll" } }
+      ]
+    },
+    {
+      "runtime": "onnxruntime",
+      "target": "macos-aarch64",
+      "dir": "ort-cpu",
+      "library": "libonnxruntime.dylib",
+      "files": [
+        { "name": "libonnxruntime.dylib", "sha256": "6c2f8af5def6e533f17383a4f07dc4eabbd4807d242a478b69f62fcfbe3c1dd3", "nuget": { "id": "microsoft.ml.onnxruntime", "version": "1.22.0", "path": "runtimes/osx-arm64/native/libonnxruntime.dylib" } }
+      ]
+    },
+    {
+      "runtime": "onnxruntime",
+      "target": "linux-x86_64",
+      "dir": "ort-cpu",
+      "library": "libonnxruntime.so",
+      "files": [
+        { "name": "libonnxruntime.so", "sha256": "3da6146e14e7b8aaec625dde11d6114c7457c87a5f93d744897da8781e35c673", "nuget": { "id": "microsoft.ml.onnxruntime", "version": "1.22.0", "path": "runtimes/linux-x64/native/libonnxruntime.so" } }
+      ]
+    }
+  ]
+}
