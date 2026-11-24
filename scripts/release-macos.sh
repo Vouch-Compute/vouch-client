@@ -16,8 +16,14 @@
 #   export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="..."                                         # if the key has one
 #   scripts/release-macos.sh
 #
-# Optional: RELEASE_BASE_URL (where the files will be downloadable; default: this repo's GitHub release download URL,
-# which needs the repository to be public), RELEASE_REPO (default MetehanAydemir/vouch-client).
+# Optional:
+#   VOUCH_DOWNLOAD_BASE  the per-version folder the files will be served from, as an https URL with the "#{version}"
+#                        placeholder (default: this repo's GitHub release download URL, which needs the repository to
+#                        be public; the other option is https://downloads.vouchcompute.com/macos/#{version}). The same
+#                        variable drives scripts/update-cask.sh, so the updater manifest and the Homebrew cask agree.
+#   RELEASE_REPO         default MetehanAydemir/vouch-client.
+#   VOUCH_TAP_DIR        a checkout of the Homebrew tap (MetehanAydemir/homebrew-tap); when set, the cask in it is
+#                        updated from SHA256SUMS at the end (nothing is committed).
 #
 # Secrets: the updater PRIVATE key is read from the environment only. This script never prints it, never writes it to
 # disk and refuses a key file inside the repository. It is removed from the environment for every step except the
@@ -73,8 +79,15 @@ version="$(node -p 'require("./client/pool-app/src-tauri/tauri.conf.json").versi
 tag="client-macos-v$version"
 commit="$(git rev-parse HEAD)"
 repo="${RELEASE_REPO:-MetehanAydemir/vouch-client}"
-base="${RELEASE_BASE_URL:-https://github.com/$repo/releases/download/$tag}"
-case "$base" in https://*) ;; *) die "RELEASE_BASE_URL must be https" ;; esac
+download_base="${VOUCH_DOWNLOAD_BASE:-https://github.com/$repo/releases/download/client-macos-v#{version}}"
+case "$download_base" in https://*) ;; *) die "VOUCH_DOWNLOAD_BASE must be https" ;; esac
+case "$download_base" in *'#{version}'*) ;; *) die 'VOUCH_DOWNLOAD_BASE must contain the #{version} placeholder' ;; esac
+# the concrete folder for this version (the cask keeps the placeholder; update-cask.sh fills it in Ruby)
+base="${download_base//\#\{version\}/$version}"
+base="${base%/}"
+if [ -n "${VOUCH_TAP_DIR:-}" ]; then
+  [ -f "$VOUCH_TAP_DIR/Casks/vouch-compute.rb" ] || die "VOUCH_TAP_DIR has no Casks/vouch-compute.rb: $VOUCH_TAP_DIR"
+fi
 
 target=aarch64-apple-darwin
 bundle_dir="client/target/$target/release/bundle"
@@ -169,7 +182,16 @@ printf '    %q\n' "$out/SHA256SUMS"
 echo
 if [[ "$base" == https://github.com/* ]]; then
   echo "Note: release assets of a PRIVATE repository need a GitHub login, so neither users nor the updater can fetch"
-  echo "them. Until the repository is public, serve the files from RELEASE_BASE_URL (for example"
-  echo "https://downloads.vouchcompute.com/desktop/$version) and rerun with that variable set."
+  echo "them. Until the repository is public, serve the files from our own address instead: rerun with"
+  echo "VOUCH_DOWNLOAD_BASE='https://downloads.vouchcompute.com/macos/#{version}' (see the tap's README)."
 fi
 echo "The app's updater reads $VOUCH_RELEASE_UPDATE_URL: copy latest.json there only after the release is checked."
+
+# ------------------------------------------------------------------------------------------------ homebrew cask
+echo
+if [ -n "${VOUCH_TAP_DIR:-}" ]; then
+  VOUCH_DOWNLOAD_BASE="$download_base" bash scripts/update-cask.sh "$out/SHA256SUMS" "$VOUCH_TAP_DIR/Casks/vouch-compute.rb"
+else
+  echo "Homebrew: to update the cask in a checkout of MetehanAydemir/homebrew-tap, run"
+  printf "  VOUCH_DOWNLOAD_BASE=%q scripts/update-cask.sh %q <tap>/Casks/vouch-compute.rb\n" "$download_base" "$out/SHA256SUMS"
+fi
