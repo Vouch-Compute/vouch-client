@@ -200,6 +200,9 @@ pub struct State {
     /// The last benchmark result per model as this app measured it (display only, never sent; see
     /// [`crate::status::Measured`]). Cleared by "Remove this device".
     pub performance: Vec<crate::status::MeasuredPerformance>,
+    /// Why enrollment of this unregistered computer stopped: "cancelled" (the user) or the server's refusal code. At
+    /// start the agent then shows that instead of registering on its own. `None`: resume at start.
+    pub enroll_stop: Option<String>,
 }
 
 /// The consent the user gave (or refused) in the app, with the exact text version shown.

@@ -45,6 +45,8 @@ pub const ALLOWED: &[&str] = &[
     "signout", "estimate", "wallets", "earnings", "device", "reconnect",
     // 2.1.0 (M9-C): hardware-identifier consent, enrollment choice, device actions, recovery, identity repair
     "hw_consent.get", "hw_consent.set", "enroll", "device.control", "recovery.prove", "identity.repair",
+    // T-225: cancel a running enrollment, and "Start over" (refused by the agent once the computer is registered)
+    "enroll.cancel", "signin.reset",
 ];
 
 async fn roundtrip<S>(stream: S, line: String) -> Result<Value, String>

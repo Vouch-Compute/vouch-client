@@ -1,7 +1,7 @@
 {
   "name": "vouchcompute-app",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Vouch Compute contributor app (Tauri 2 shell). The UI is static (ui/), no bundler.",
   "scripts": {
     "sidecars": "node scripts/sidecars.mjs",

@@ -415,6 +415,53 @@ function stepsHtml(current) {
     `<li class="${j < i ? "done" : j === i ? "current" : ""}"${j === i ? ` aria-current="step"` : ""}><span class="step-dot">${j < i ? icon("check") : esc(num(j + 1))}</span><span class="step-label">${tx(l)}</span></li>`).join("")}</ol>`;
 }
 
+// T-225: the device step until this computer is registered. `si` is the agent's sign-in state; `ui` is the app's view
+// of its own enroll call ({ busy, timedOut }). The spinner shows only while an enroll call runs and is within its time
+// limit. "Back to sign-in" and "Start over" are always there and safe mid-call (the app cancels and ignores the late
+// result). A state this app doesn't know is an error with the agent's words, never a spinner.
+// The agent's errors with a code are translated; others keep the agent's English words.
+const ENROLL_ERRORS = { signin_expired: "onboarding.device.errors.signinExpired", no_answer: "onboarding.device.errors.noAnswer", key_changed: "onboarding.device.errors.keyChanged" };
+function enrollErrorText(si) {
+  return si && ENROLL_ERRORS[si.code] ? tx(ENROLL_ERRORS[si.code]) : esc(si && si.message);
+}
+function enrollStepHtml(si, ui) {
+  const st = si && si.state;
+  const head = (key) => `<p class="eyebrow">${tx("onboarding.step", { current: 3, total: 3 })}</p><h1 id="ob-title">${tx(key)}</h1>`;
+  const nav = (extra) => `<div class="ob-actions"><button type="button" class="btn" id="enroll-back">${tx("onboarding.device.error.backToSignin")}</button>
+    <button type="button" class="btn btn-ghost" id="enroll-reset">${tx("onboarding.device.startOver")}</button><span class="spacer"></span>${extra || ""}</div>`;
+  const retry = `<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.error.tryAgain")}</button>`;
+  const failed = (text) => `${head("onboarding.device.error.title")}<div class="note note-danger" role="alert">${icon("alert")}<span>${text}</span></div>${nav(retry)}`;
+  if (ui && ui.timedOut) return failed(tx("onboarding.device.timeout"));
+  if ((ui && ui.busy) || st === "enrolling") {
+    return `${head("onboarding.device.enrolling.title")}<div class="row" role="status"><div class="spinner" aria-hidden="true"></div><span>${tx("onboarding.device.enrolling.creating")}</span></div>${nav()}`;
+  }
+  if (st === "choose_replace") {
+    const c = si.candidates || [];
+    return `${head("onboarding.device.replace.title")}
+      <p class="lede">${tx("onboarding.device.replace.lede", { count: c.length })}</p>
+      <div class="choice-list">${c.map((x) => `<button type="button" class="choice-btn" data-replace="${esc(x.device_id)}">${icon("refresh")}<span><strong>${tx("onboarding.device.replace.item", { name: x.name || t("onboarding.device.replace.unnamed") })}</strong>${x.last_seen_day ? `<span class="muted small">${tx("onboarding.device.replace.lastSeen", { date: day(x.last_seen_day) })}</span>` : ""}</span></button>`).join("")}
+        <button type="button" class="choice-btn choice-primary" data-replace="">${icon("sparkle")}<span><strong>${tx("onboarding.device.replace.new")}</strong><span class="muted small">${tx("onboarding.device.replace.newHint")}</span></span></button></div>
+      ${legalAcceptHtml()}${nav()}`;
+  }
+  if (st === "blocked") {
+    const fix = si.code === "hardware_in_use" ? `<button type="button" class="btn" data-link="devices">${icon("external")}${tx("onboarding.device.blocked.openDevices")}</button>`
+      : si.code === "device_limit" ? `<button type="button" class="btn" data-link="verify">${icon("external")}${tx("onboarding.device.blocked.verify")}</button><button type="button" class="btn" data-link="devices">${tx("onboarding.device.blocked.manage")}</button>`
+      : si.code === "consent_refused" || si.code === "consent_required" ? `<button type="button" class="btn btn-primary" data-go="consent">${tx("onboarding.device.blocked.reviewPermission")}</button>`
+      : si.code === "replace_not_confirmed" ? `<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.blocked.registerNew")}</button>` : "";
+    const again = si.code === "consent_refused" || si.code === "consent_required" || si.code === "replace_not_confirmed" ? "" : retry;
+    // reasons with a translation; others show the agent's English text
+    const reason = si.code === "hw_ids_required" ? tx("onboarding.device.blocked.reasonHwIds")
+      : si.code === "attestation_invalid" ? tx("onboarding.device.blocked.reasonAttestation") : esc(si.message);
+    return `${head("onboarding.device.blocked.title")}<div class="note note-warn" role="alert">${icon("alert")}<span>${reason}</span></div>${nav(fix + again)}`;
+  }
+  if (st === "error") return failed(enrollErrorText(si));
+  if (!st || st === "idle" || st === "done") {
+    return `${head("onboarding.device.ready.title")}<p class="lede">${tx("onboarding.device.ready.lede")}</p>
+      ${nav(`<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.ready.button")}</button>`)}`;
+  }
+  return failed(si.message ? esc(si.message) : tx("onboarding.device.unknownState", { state: String(st) }));
+}
+
 // ------------------------------------------------------------------ account notices (node protocol 1.2.0)
 // Banners only. They carry no reason; offers are not affected (a paused device simply receives none).
 function noticesHtml(n) {
@@ -611,6 +658,7 @@ async function refresh() {
   } catch (e) {
     snap = { error: String(e) };
   }
+  trackEnroll(snap);
   const bs = (snap && snap.status && snap.status.benchmark && snap.status.benchmark.state) || null;
   if (lastBenchState !== undefined && bs !== lastBenchState && view === "device") loadDevice();
   lastBenchState = bs;
@@ -712,6 +760,47 @@ function loadFor(v) {
   if (v === "settings") loadAutostart();
 }
 
+// ------------------------------------------------------------------ enrollment calls (T-225)
+// `seq` identifies the current call: Back, Start over and the time limit move it on, so a late answer changes nothing.
+// `since` also covers an enrollment the agent runs on its own (resumed at start).
+const ENROLL_TIMEOUT_MS = 60000;
+let enrollUi = { seq: 0, busy: false, timedOut: false, since: 0 };
+function enrollReset() {
+  enrollUi = { seq: enrollUi.seq + 1, busy: false, timedOut: false, since: 0 };
+}
+async function startEnroll(replaces) {
+  enrollReset();
+  const seq = enrollUi.seq;
+  enrollUi.busy = true;
+  enrollUi.since = Date.now();
+  render({ force: true });
+  try {
+    await core("enroll", { replaces_device_id: replaces });
+  } finally {
+    if (enrollUi.seq === seq) enrollUi.busy = false;
+  }
+  if (enrollUi.seq === seq) return refresh();
+}
+function trackEnroll(s) {
+  // a later answer from the agent (a refusal, a choice, an error, registered, signed out) replaces the timeout message
+  const st = s && s.signin && s.signin.state;
+  if (enrollUi.timedOut && (!s || !s.signed_in || s.device_id || ["blocked", "choose_replace", "error", "done", "pending"].includes(st))) enrollReset();
+  const running = enrollUi.busy || st === "enrolling";
+  if (!running) { if (!enrollUi.timedOut) enrollUi.since = 0; return; }
+  if (!enrollUi.since) enrollUi.since = Date.now();
+  if (!enrollUi.timedOut && Date.now() - enrollUi.since >= ENROLL_TIMEOUT_MS) {
+    enrollUi = { seq: enrollUi.seq + 1, busy: false, timedOut: true, since: enrollUi.since };
+    core("enroll.cancel").catch(() => {});
+  }
+}
+async function leaveEnroll(reset) {
+  enrollReset();
+  if (reset) await core("signin.reset");
+  else core("enroll.cancel").catch(() => {});
+  await refresh();
+  return goStep("signin");
+}
+
 // ------------------------------------------------------------------ onboarding (3 visible steps)
 function goStep(s) {
   // finishing setup applies the start-at-sign-in switch as shown, unless the user already decided
@@ -766,7 +855,7 @@ function renderOnboarding() {
           <span class="row muted small"><span class="spinner" aria-hidden="true"></span> ${tx("onboarding.signin.waiting")}</span></div>
         <p class="muted small">${tx("onboarding.signin.readOnly")}</p>`;
     } else {
-      const err = si && si.state === "error" ? `<div class="note note-danger" role="alert">${icon("alert")}<span>${esc(si.message)}</span></div>` : "";
+      const err = si && si.state === "error" ? `<div class="note note-danger" role="alert">${icon("alert")}<span>${enrollErrorText(si)}</span></div>` : "";
       const down = snap && snap.error ? `<div class="note note-warn">${icon("alert")}<span>${esc(snap.error)}</span></div>` : "";
       body = `
         <div class="ob-hero"><div class="ob-mark ob-mark-soft">${icon("user")}</div>
@@ -797,31 +886,7 @@ function renderDeviceStep(s) {
     if (!consentCache) loadConsent();
     return consentHtml(consentCache, s.hw_consent);
   }
-  if (si.state === "choose_replace") {
-    const c = si.candidates || [];
-    return `${head("onboarding.device.replace.title")}
-      <p class="lede">${tx("onboarding.device.replace.lede", { count: c.length })}</p>
-      <div class="choice-list">${c.map((x) => `<button type="button" class="choice-btn" data-replace="${esc(x.device_id)}">${icon("refresh")}<span><strong>${tx("onboarding.device.replace.item", { name: x.name || t("onboarding.device.replace.unnamed") })}</strong>${x.last_seen_day ? `<span class="muted small">${tx("onboarding.device.replace.lastSeen", { date: day(x.last_seen_day) })}</span>` : ""}</span></button>`).join("")}
-        <button type="button" class="choice-btn choice-primary" data-replace="">${icon("sparkle")}<span><strong>${tx("onboarding.device.replace.new")}</strong><span class="muted small">${tx("onboarding.device.replace.newHint")}</span></span></button></div>
-      ${legalAcceptHtml()}`;
-  }
-  if (si.state === "blocked") {
-    const fix = si.code === "hardware_in_use" ? `<button type="button" class="btn" data-link="devices">${icon("external")}${tx("onboarding.device.blocked.openDevices")}</button>`
-      : si.code === "device_limit" ? `<button type="button" class="btn" data-link="verify">${icon("external")}${tx("onboarding.device.blocked.verify")}</button><button type="button" class="btn" data-link="devices">${tx("onboarding.device.blocked.manage")}</button>`
-      : si.code === "consent_refused" || si.code === "consent_required" ? `<button type="button" class="btn btn-primary" data-go="consent">${tx("onboarding.device.blocked.reviewPermission")}</button>`
-      : si.code === "replace_not_confirmed" ? `<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.blocked.registerNew")}</button>` : "";
-    // reasons with a translation; others show the agent's English text
-    const reason = si.code === "hw_ids_required" ? tx("onboarding.device.blocked.reasonHwIds")
-      : si.code === "attestation_invalid" ? tx("onboarding.device.blocked.reasonAttestation") : esc(si.message);
-    return `${head("onboarding.device.blocked.title")}<div class="note note-warn" role="alert">${icon("alert")}<span>${reason}</span></div><div class="ob-actions">${fix}</div>`;
-  }
-  if (si.state === "enrolling" || (!enrolled && si.state !== "error")) {
-    return `${head("onboarding.device.enrolling.title")}<div class="row"><div class="spinner"></div><span>${tx("onboarding.device.enrolling.creating")}</span></div>`;
-  }
-  if (si.state === "error" && !enrolled) {
-    return `${head("onboarding.device.error.title")}<div class="note note-danger" role="alert">${icon("alert")}<span>${esc(si.message)}</span></div>
-      <div class="ob-actions"><button type="button" class="btn" data-go="signin">${tx("onboarding.device.error.backToSignin")}</button><span class="spacer"></span><button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.error.tryAgain")}</button></div>`;
-  }
+  if (!enrolled) return enrollStepHtml(si, enrollUi);
   const set = s.settings || {};
   const b = s.status && s.status.benchmark;
   const limits = { minutes: n0(set.idle_minutes), temp: n0(set.temp_cap_c) };
@@ -1047,7 +1112,7 @@ function renderSettings() {
       <div class="row"><button type="button" class="btn btn-ghost" data-link="trust">${icon("external")}${tx("settings.privacy.howVerification")}</button></div></section>
     <section class="card" aria-labelledby="acct-h">${cardHead("acct-h", "user", tx("settings.account.title"), snap.signed_in ? tx("settings.account.signedIn") : tx("settings.account.notSignedIn"))}
       <div class="row"><button type="button" class="btn" data-link="dashboard">${icon("external")}${tx("settings.account.openDashboard")}</button>
-        <span class="spacer"></span>${snap.signed_in ? `<button type="button" class="btn btn-ghost" id="signout">${icon("logout")}${tx("settings.account.signOut")}</button>` : `<button type="button" class="btn btn-primary" data-go-onboard="signin">${icon("user")}${tx("common.signIn")}</button>`}</div>
+        <span class="spacer"></span>${snap.signed_in && !snap.device_id ? `<button type="button" class="btn btn-ghost" id="enroll-reset">${tx("onboarding.device.startOver")}</button>` : ""}${snap.signed_in ? `<button type="button" class="btn btn-ghost" id="signout">${icon("logout")}${tx("settings.account.signOut")}</button>` : `<button type="button" class="btn btn-primary" data-go-onboard="signin">${icon("user")}${tx("common.signIn")}</button>`}</div>
       <div class="sub-block"><h3>${tx("settings.recover.title")}</h3>
         <p class="muted small">${tx("settings.recover.hint")}</p>
         ${recoverMsg !== null ? `<div class="note note-info">${icon("info")}<span>${esc(recoverMsg)}</span></div>`
@@ -1145,10 +1210,7 @@ document.addEventListener("click", async (e) => {
       if (view === "device") loadDevice();
       return refresh();
     }
-    if (btn.dataset.replace !== undefined) {
-      await core("enroll", { replaces_device_id: btn.dataset.replace || null });
-      return refresh();
-    }
+    if (btn.dataset.replace !== undefined) return await startEnroll(btn.dataset.replace || null);
     if (btn.dataset.remove !== undefined) {
       const form = document.getElementById("controls");
       const s = readControls(form, snap.settings);
@@ -1202,7 +1264,9 @@ document.addEventListener("click", async (e) => {
       case "resume": await core("resume"); announce(t("toast.resumed")); return refresh();
       case "reconnect": await core("reconnect"); announce(t("toast.reconnecting")); toast(t("toast.reconnecting")); return refresh();
       case "start-core": await invoke("ensure_core"); return refresh();
-      case "signout": await core("signout"); return refresh();
+      case "signout": enrollReset(); await core("signout"); return refresh();
+      case "enroll-back": return await leaveEnroll(false);
+      case "enroll-reset": return await leaveEnroll(true);
       case "check-update": {
         updateState = { checking: true };
         render({ force: true });
@@ -1311,7 +1375,8 @@ function demoInvoke(cmd, args) {
   }
   if (m === "signin.start") { conf.signin = "pending"; return R({ state: "pending" }); }
   if (m === "enroll") { conf.signin = "done"; return R({ state: "done" }); }
-  if (m === "signout") { conf.state = "signedout"; conf.signin = "idle"; return R({}); }
+  if (m === "signout" || m === "signin.reset") { conf.state = "signedout"; conf.signin = "idle"; return R({}); }
+  if (m === "enroll.cancel") { if (conf.signin === "enrolling") conf.signin = "idle"; return R({ state: conf.signin }); }
   if (m === "pause") { settings.paused_until_ms = now + args.params.minutes * 60000; conf.state = "paused"; return R(settings); }
   if (m === "resume") { settings.paused_until_ms = null; conf.state = "earning"; return R(settings); }
   if (m === "reconnect" || m === "device.control" || m === "identity.repair") return R({});
@@ -1335,7 +1400,7 @@ function demoInvoke(cmd, args) {
       segments: conf.bench === "running" ? 7 : 20, model_id: "bge-m3", measured };
     const performance = conf.bench === "sent" ? [{ model_id: "bge-m3", benchmark_id: "b", measured, finished_ms: now - 100000, received: true }] : [];
     const decision = conf.state === "paused" ? { state: "pause", reason: "paused_by_user" } : { state: "run" };
-    return R({ version: "0.2.0", signed_in: signedIn, device_id: enrolled ? "7d0c3c9e-1b2a-4f5e-9c8d-0a1b2c3d4e5f" : null, trust_ceiling: "capped", key_storage: "tpm",
+    return R({ version: "0.2.1", signed_in: signedIn, device_id: enrolled ? "7d0c3c9e-1b2a-4f5e-9c8d-0a1b2c3d4e5f" : null, trust_ceiling: "capped", key_storage: "tpm",
       settings, worked_today_s: 5400 + (conf.state === "earning" ? 1260 : 0), signin: signinObj, performance, hw_consent: conf.consent, build: { dev_build: true }, links: {}, ...(conf.pilot ? { pilot: true } : {}),
       hardware: { os: "windows", arch: "x86_64", cpu: "AMD Ryzen 7 7800X3D 8-Core Processor", ram_mb: 32768, gpu: "NVIDIA GeForce RTX 4070 Ti", vram_mb: 12282 },
       status: { connection, decision, job: conf.state === "earning" && enrolled ? { model_id: "whisper-small", since_ms: now - 20000 } : null, jobs_completed: 37, jobs_abandoned: 1, benchmark: bench,

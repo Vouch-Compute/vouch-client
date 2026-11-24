@@ -411,6 +411,19 @@
         "backToSignin": "Volver a iniciar sesión",
         "tryAgain": "Reintentar"
       },
+      "timeout": "El registro está tardando demasiado. Comprueba tu conexión a internet y vuelve a intentarlo.",
+      "unknownState": "La app indicó un paso que no reconoce ({state}). Vuelve a intentarlo o empieza de nuevo.",
+      "errors": {
+        "signinExpired": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+        "noAnswer": "El servidor de cuentas no respondió a tiempo. Comprueba tu conexión a internet y vuelve a intentarlo.",
+        "keyChanged": "La clave de este equipo cambió desde que se registró. Elige «Reintentar» para registrarlo de nuevo."
+      },
+      "ready": {
+        "title": "Registrar este equipo",
+        "lede": "Has iniciado sesión, pero este equipo aún no está registrado.",
+        "button": "Registrar"
+      },
+      "startOver": "Empezar de nuevo",
       "done": {
         "title": "Todo listo",
         "lede": "Este equipo está registrado. Ahora viene una breve prueba de rendimiento; después Vouch Compute trabaja por su cuenta, dentro de tus límites.",

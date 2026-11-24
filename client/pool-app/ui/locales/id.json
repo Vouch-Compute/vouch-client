@@ -411,6 +411,19 @@
         "backToSignin": "Kembali ke halaman masuk",
         "tryAgain": "Coba lagi"
       },
+      "timeout": "Pendaftaran terlalu lama. Periksa koneksi internet Anda, lalu coba lagi.",
+      "unknownState": "Aplikasi melaporkan langkah yang tidak dikenalinya ({state}). Coba lagi, atau mulai dari awal.",
+      "errors": {
+        "signinExpired": "Sesi masuk Anda telah berakhir. Masuk lagi.",
+        "noAnswer": "Server akun tidak menjawab tepat waktu. Periksa koneksi internet Anda, lalu coba lagi.",
+        "keyChanged": "Kunci komputer ini berubah sejak didaftarkan. Pilih \"Coba lagi\" untuk mendaftarkannya kembali."
+      },
+      "ready": {
+        "title": "Daftarkan komputer ini",
+        "lede": "Anda sudah masuk, tetapi komputer ini belum terdaftar.",
+        "button": "Daftarkan"
+      },
+      "startOver": "Mulai dari awal",
       "done": {
         "title": "Semua siap",
         "lede": "Komputer ini sudah terdaftar. Berikutnya ada uji kinerja singkat; setelah itu Vouch Compute bekerja sendiri, sesuai batasan Anda.",

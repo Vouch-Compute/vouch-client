@@ -411,6 +411,19 @@
         "backToSignin": "Zurück zur Anmeldung",
         "tryAgain": "Erneut versuchen"
       },
+      "timeout": "Die Registrierung dauert zu lange. Prüfen Sie Ihre Internetverbindung und versuchen Sie es dann erneut.",
+      "unknownState": "Die App hat einen Schritt gemeldet, den sie nicht kennt ({state}). Versuchen Sie es erneut oder beginnen Sie neu.",
+      "errors": {
+        "signinExpired": "Ihre Anmeldung ist abgelaufen. Melden Sie sich erneut an.",
+        "noAnswer": "Der Kontoserver hat nicht rechtzeitig geantwortet. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+        "keyChanged": "Der Schlüssel dieses Computers hat sich seit der Registrierung geändert. Wählen Sie „Erneut versuchen“, um ihn neu zu registrieren."
+      },
+      "ready": {
+        "title": "Diesen Computer registrieren",
+        "lede": "Sie sind angemeldet, aber dieser Computer ist noch nicht registriert.",
+        "button": "Registrieren"
+      },
+      "startOver": "Neu beginnen",
       "done": {
         "title": "Alles bereit",
         "lede": "Dieser Computer ist registriert. Als Nächstes folgt ein kurzer Leistungstest; danach arbeitet Vouch Compute selbstständig innerhalb Ihrer Grenzen.",

@@ -411,6 +411,19 @@
         "backToSignin": "Voltar ao login",
         "tryAgain": "Tentar de novo"
       },
+      "timeout": "O registro está demorando demais. Verifique sua conexão com a internet e tente de novo.",
+      "unknownState": "O app informou uma etapa que não reconhece ({state}). Tente de novo ou comece de novo.",
+      "errors": {
+        "signinExpired": "Seu login expirou. Entre de novo.",
+        "noAnswer": "O servidor de contas não respondeu a tempo. Verifique sua conexão com a internet e tente de novo.",
+        "keyChanged": "A chave deste computador mudou desde o registro. Escolha \"Tentar de novo\" para registrá-lo novamente."
+      },
+      "ready": {
+        "title": "Registrar este computador",
+        "lede": "Você entrou, mas este computador ainda não está registrado.",
+        "button": "Registrar"
+      },
+      "startOver": "Começar de novo",
       "done": {
         "title": "Tudo pronto",
         "lede": "Este computador está registrado. Em seguida vem um teste de desempenho curto; depois, o Vouch Compute trabalha sozinho, dentro dos seus limites.",

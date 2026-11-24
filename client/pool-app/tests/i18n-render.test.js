@@ -8,7 +8,7 @@ globalThis.document = { documentElement: {} };
 
 const names = ["heroState", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "deviceStateText", "hardwareHtml", "legalAcceptHtml", "signinTermsHtml",
   "consentHtml", "benchHtml", "duration", "reliabilityHtml", "stepsHtml", "noticesHtml", "clockHtml", "heroActionHtml", "controlsHtml",
-  "scheduleSummary", "languageHtml", "daysText", "perfHtml", "measuredText"];
+  "scheduleSummary", "languageHtml", "daysText", "perfHtml", "measuredText", "enrollStepHtml"];
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
 const keys = Object.keys(I18N.flatten(uiMessages("en")));
 
@@ -65,6 +65,13 @@ function render() {
     improve: ["keep_regular_hours", "avoid_disconnects", "finish_accepted_jobs", "build_tenure", "verify_identity", "use_hardware_key"] }),
   api.reliabilityHtml({ tier: "probation", benefits: { bonus_pct: 0 }, improve: [] }));
   for (const st of ["welcome", "signin", "consent", "device"]) out.push(api.stepsHtml(st));
+  const ui = { busy: false, timedOut: false };
+  for (const si of [{ state: "idle" }, { state: "enrolling" }, { state: "error", message: "m" }, { state: "error", code: "signin_expired" }, { state: "error", code: "no_answer" },
+    { state: "error", code: "key_changed" }, { state: "blocked", code: "hw_ids_required" },
+    { state: "blocked", code: "device_limit" }, { state: "choose_replace", candidates: [{ device_id: "d", name: "" }] }, { state: "new_state" }]) {
+    out.push(api.enrollStepHtml(si, ui));
+  }
+  out.push(api.enrollStepHtml({ state: "enrolling" }, { busy: true, timedOut: true }), api.enrollStepHtml({ state: "idle" }, { busy: true, timedOut: false }));
   out.push(api.noticesHtml({ paused_by: "user", recovery_in_progress: true, reverify_required: true }), api.noticesHtml({ paused_by: "tally" }));
   out.push(api.clockHtml(7), api.clockHtml(-1), api.clockHtml(-600), api.clockHtml(61));
   out.push(api.controlsHtml(settings), api.controlsHtml({ ...settings, schedule: [] }), api.controlsHtml(null));

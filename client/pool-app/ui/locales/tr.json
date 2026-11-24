@@ -411,6 +411,19 @@
         "backToSignin": "Oturum açmaya dön",
         "tryAgain": "Yeniden dene"
       },
+      "timeout": "Kayıt çok uzun sürüyor. İnternet bağlantınızı kontrol edip yeniden deneyin.",
+      "unknownState": "Uygulama tanımadığı bir adım bildirdi ({state}). Yeniden deneyin veya baştan başlayın.",
+      "errors": {
+        "signinExpired": "Oturumunuzun süresi doldu. Yeniden oturum açın.",
+        "noAnswer": "Hesap sunucusu zamanında yanıt vermedi. İnternet bağlantınızı kontrol edip yeniden deneyin.",
+        "keyChanged": "Bu bilgisayarın anahtarı kaydedildikten sonra değişti. Yeniden kaydetmek için \"Yeniden dene\"yi seçin."
+      },
+      "ready": {
+        "title": "Bu bilgisayarı kaydet",
+        "lede": "Oturum açtınız, ancak bu bilgisayar henüz kaydedilmedi.",
+        "button": "Kaydet"
+      },
+      "startOver": "Baştan başla",
       "done": {
         "title": "Her şey hazır",
         "lede": "Bu bilgisayar kaydedildi. Sırada kısa bir performans testi var; ardından Vouch Compute, sınırlarınız içinde kendi kendine çalışır.",

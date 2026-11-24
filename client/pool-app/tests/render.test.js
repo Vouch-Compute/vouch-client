@@ -1,7 +1,7 @@
 // Rendering checks for app.js (hero status, escaping, pilot banner, estimate, consent). Run: node pool-app/tests/render.test.js
 // Loads the DOM-free "pure" section of app.js, the same way the other UI tests load their sections, in English.
 const { useLocale, loadSection } = require("./ui-loader.js");
-const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "legalAcceptHtml", "signinTermsHtml", "benchHtml", "sumUsd", "duration", "perfHtml", "measuredText"];
+const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "legalAcceptHtml", "signinTermsHtml", "benchHtml", "sumUsd", "duration", "perfHtml", "measuredText", "enrollStepHtml"];
 useLocale("en");
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
 
@@ -154,6 +154,51 @@ for (const [b, label, accel] of [["candle-metal", "Graphics card (Metal)", true]
   noRaw(hostile, "performance card");
   if (hostile.includes("undefined") || hostile.includes("NaN")) fail("performance card with odd values");
   if (/score|threshold|canary|envelope/i.test(perf)) fail("performance card must not show verification data");
+}
+
+// 5b. T-225: the device step before registration. The spinner shows only during an enroll call within its time limit;
+// Back and Start over are always there; an idle, failed, timed-out or unknown state is never a spinner.
+{
+  const spin = (h) => h.includes('class="spinner"');
+  const nav = (h) => h.includes('id="enroll-back"') && h.includes('id="enroll-reset"') && h.includes("Back to sign-in") && h.includes("Start over");
+  const retry = (h) => h.includes("data-replace=\"\"");
+  const idle = { busy: false, timedOut: false };
+  const states = {
+    idle: api.enrollStepHtml({ state: "idle" }, idle),
+    missing: api.enrollStepHtml({}, idle),
+    busy: api.enrollStepHtml({ state: "idle" }, { busy: true, timedOut: false }),
+    agentEnrolling: api.enrollStepHtml({ state: "enrolling" }, idle),
+    timedOut: api.enrollStepHtml({ state: "enrolling" }, { busy: false, timedOut: true }),
+    error: api.enrollStepHtml({ state: "error", message: "vault 503: unavailable" }, idle),
+    blocked: api.enrollStepHtml({ state: "blocked", code: "attestation_invalid", message: "x" }, idle),
+    blockedOther: api.enrollStepHtml({ state: "blocked", code: "something_new", message: "Ask support." }, idle),
+    choose: api.enrollStepHtml({ state: "choose_replace", candidates: [{ device_id: "d1", name: "Mac" }] }, idle),
+    unknown: api.enrollStepHtml({ state: "waiting_for_magic", message: "The agent says why." }, idle),
+    unknownBare: api.enrollStepHtml({ state: "waiting_for_magic" }, idle),
+    pending: api.enrollStepHtml({ state: "pending" }, idle),
+  };
+  for (const [k, h] of Object.entries(states)) {
+    if (!nav(h)) fail(`enroll step ${k}: Back to sign-in and Start over must always be there`);
+    if (spin(h) !== (k === "busy" || k === "agentEnrolling")) fail(`enroll step ${k}: spinner ${spin(h)}`);
+  }
+  if (!states.busy.includes("Creating this computer")) fail("enroll step: the running call says what it does");
+  if (!states.timedOut.includes("taking too long") || !retry(states.timedOut)) fail("enroll step: time limit shows the error with Try again");
+  if (!states.error.includes("vault 503: unavailable") || !retry(states.error)) fail("enroll step: error shows the agent's message and Try again");
+  if (!states.idle.includes("Register this computer") || !retry(states.idle) || !retry(states.missing)) fail("enroll step: idle offers to register");
+  if (!states.unknown.includes("The agent says why.") || !retry(states.unknown)) fail("enroll step: unknown state shows the agent's message");
+  if (!states.unknownBare.includes("waiting_for_magic") || !states.pending.includes("(pending)")) fail("enroll step: unknown state without a message names it");
+  if (!states.blocked.includes("registered for paid work right now") || !retry(states.blocked)) fail("enroll step: refused shows the reason and Try again");
+  if (!states.blockedOther.includes("Ask support.")) fail("enroll step: other refusals show the agent's words");
+  if (!states.choose.includes('data-replace="d1"')) fail("enroll step: replace choice");
+  const coded = api.enrollStepHtml({ state: "error", code: "signin_expired", message: "English from the agent" }, idle);
+  if (!coded.includes("Your sign-in has expired") || coded.includes("English from the agent")) fail("enroll step: coded errors are translated");
+  if (!api.enrollStepHtml({ state: "error", code: "no_answer", message: "x" }, idle).includes("did not answer in time")) fail("enroll step: no_answer");
+  if (!api.enrollStepHtml({ state: "error", code: "key_changed", message: "x" }, idle).includes("key changed")) fail("enroll step: key_changed");
+  const limit = api.enrollStepHtml({ state: "blocked", code: "device_limit", message: "x" }, idle);
+  if (!limit.includes('data-link="verify"') || !retry(limit)) fail("enroll step: a refusal keeps its fix and offers Try again");
+  const hostile = api.enrollStepHtml({ state: XSS, message: XSS }, idle) + api.enrollStepHtml({ state: "error", message: XSS }, idle)
+    + api.enrollStepHtml({ state: XSS }, idle);
+  noRaw(hostile, "enroll step");
 }
 
 // 6. totals from server strings only
