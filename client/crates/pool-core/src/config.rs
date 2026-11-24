@@ -197,6 +197,9 @@ pub struct State {
     /// CR-T213-01: this device enrolled with a software key because its TPM could not attest. The TPM is then
     /// skipped when the key is loaded, so the enrolled key is found again. Cleared by "Remove this device".
     pub software_key: bool,
+    /// The last benchmark result per model as this app measured it (display only, never sent; see
+    /// [`crate::status::Measured`]). Cleared by "Remove this device".
+    pub performance: Vec<crate::status::MeasuredPerformance>,
 }
 
 /// The consent the user gave (or refused) in the app, with the exact text version shown.

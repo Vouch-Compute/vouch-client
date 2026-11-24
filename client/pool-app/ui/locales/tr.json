@@ -151,6 +151,37 @@
     "runNow": "Şimdi çalıştır",
     "runAtIdle": "İlk boşta kalındığında çalıştır"
   },
+  "perf": {
+    "title": "Performans",
+    "sub": "Bu bilgisayarın performans testini ne kadar hızlı çalıştırdığı ve sunucudaki durumu.",
+    "tokensPerSecond": "Saniyede {rate, number} token",
+    "realtime": "Gerçek zamanın {rate, number} katı",
+    "tokenHint": "Token, bir yapay zekâ modelinin okuduğu küçük metin parçalarıdır. Saniyedeki token sayısı arttıkça bilgisayar daha hızlıdır.",
+    "detail": "{backend} üzerinde {model}, ölçüm: {date}",
+    "received": "Sunucu tarafından alındı",
+    "sent": "Sunucuya gönderildi",
+    "empty": "Bu bilgisayarın hızı, ilk performans testinden sonra burada görünür.",
+    "soFar": "Şu ana kadar ölçülen: {value}",
+    "measuredHere": "Uygulama tarafından bu bilgisayarda ölçüldü.",
+    "statusLabel": "Sunucudaki durum",
+    "tierLabel": "Seviye",
+    "serverBenchmark": "Sunucudaki test tarihi",
+    "noServerBenchmark": "Henüz yok",
+    "note": "Bu hız, bilginiz için uygulama tarafından bu bilgisayarda ölçülür. Performans testini sunucu kendisi ölçer ve yalnızca doğrulanmış iş ödenir.",
+    "status": {
+      "benchmarking": "Test ediliyor",
+      "probation": "Deneme",
+      "active": "Etkin",
+      "limited": "Kısıtlı",
+      "suspended": "Askıya alındı",
+      "revoked": "Kaldırıldı"
+    },
+    "tier": {
+      "probation": "Deneme",
+      "established": "Yerleşik",
+      "trusted": "Güvenilir"
+    }
+  },
   "consent": {
     "title": "Donanım tanımlayıcıları",
     "lede": "Bu bilgisayar kaydedilmeden önce Vouch Compute'un yanıtınıza ihtiyacı var. Metnin tamamı şöyledir:",

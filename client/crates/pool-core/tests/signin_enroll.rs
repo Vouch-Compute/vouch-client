@@ -51,6 +51,59 @@ async fn device_grant_then_enrollment() {
     assert!(agent.state_snapshot().hw_report_last_sent_ms.is_some(), "enrollment counts as the first report");
 }
 
+/// T-213 / CR-T213-01, the Mac path (and Linux, and Windows without a usable TPM): a release-mode agent with a software
+/// key links against vault's T-213 rules: `key_attestation {format: "none", blob: null}`, signed `hw_ids` with at
+/// least two medium identifiers, and the server's answer (`trust_ceiling: capped`, Probation) is kept. The software-key
+/// choice is saved only after the server accepted the key.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn software_key_link_follows_the_t213_contract() {
+    let data = tempfile::tempdir().unwrap();
+    let (v, url) = spawn_vault().await;
+    v.t213.store(true, Ordering::SeqCst);
+    let agent = release_mode_agent(data.path(), &url);
+    assert!(!agent.cfg.allow_insecure_dev(), "release behaviour: no dev attestation blob");
+    consent(&agent, true).await;
+    agent.signin_start().await.unwrap();
+    wait_signin(&agent, |s| matches!(s, SignIn::Done)).await;
+    let problems = v.problems.lock().unwrap().clone();
+    assert!(problems.is_empty(), "{problems:?}");
+    let reg = v.registered.lock().unwrap().clone().unwrap();
+    assert_eq!(reg["key_attestation"], json!({"format": "none", "blob": null}));
+    assert_eq!(reg["os"], pool_core::platform::os_name());
+    assert_eq!(reg["hw_claims"]["key_storage"], "software-dev");
+    let st = agent.state_snapshot();
+    assert_eq!(st.trust_ceiling.as_deref(), Some("capped"));
+    assert!(st.software_key, "the enrolled software key is the one loaded from now on");
+    assert!(agent.device_id().is_some());
+    // the app shows the capped note from the snapshot (trust ceiling and key storage)
+    let snap = agent.snapshot();
+    assert_eq!((snap["trust_ceiling"].as_str(), snap["key_storage"].as_str()), (Some("capped"), Some("software_dev")));
+}
+
+/// T-213: too few hardware identifiers for a software key: vault answers `422 hw_ids_required`, and the app says so in
+/// plain words instead of a generic failure; nothing is saved as enrolled.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn too_few_hardware_identifiers_are_explained() {
+    let data = tempfile::tempdir().unwrap();
+    let (v, url) = spawn_vault().await;
+    v.t213.store(true, Ordering::SeqCst);
+    let agent = release_mode_agent(data.path(), &url);
+    let base = fixture_collector();
+    agent.set_hw_collector(std::sync::Arc::new(move || {
+        let mut raw = base();
+        raw.board_serial = None;
+        raw.gpu_uuids.clear();
+        raw
+    }));
+    consent(&agent, true).await;
+    agent.signin_start().await.unwrap();
+    let SignIn::Blocked { code, message } = wait_signin(&agent, |s| matches!(s, SignIn::Blocked { .. })).await else { unreachable!() };
+    assert_eq!(code, "hw_ids_required");
+    assert_eq!(message, "This computer did not report enough hardware details to register.");
+    assert!(agent.device_id().is_none());
+    assert!(!agent.state_snapshot().software_key, "nothing saved before the server accepted the key");
+}
+
 /// No consent, no identifiers and no enrollment; refusing shows the honest message; accepting continues.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn refusing_the_hardware_consent_blocks_enrollment() {

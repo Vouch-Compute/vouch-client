@@ -151,6 +151,37 @@
     "runNow": "Jetzt starten",
     "runAtIdle": "Bei erster Inaktivität starten"
   },
+  "perf": {
+    "title": "Leistung",
+    "sub": "Wie schnell dieser Computer seinen Leistungstest ausgeführt hat und wie er auf dem Server eingestuft ist.",
+    "tokensPerSecond": "{rate, number} Tokens pro Sekunde",
+    "realtime": "{rate, number}-fache Echtzeit",
+    "tokenHint": "Tokens sind die kleinen Textstücke, die ein KI-Modell liest. Mehr Tokens pro Sekunde bedeuten einen schnelleren Computer.",
+    "detail": "{model} auf {backend}, gemessen am {date}",
+    "received": "Vom Server empfangen",
+    "sent": "An den Server gesendet",
+    "empty": "Die Geschwindigkeit dieses Computers erscheint hier nach seinem ersten Leistungstest.",
+    "soFar": "Bisher gemessen: {value}",
+    "measuredHere": "Von der App auf diesem Computer gemessen.",
+    "statusLabel": "Status auf dem Server",
+    "tierLabel": "Stufe",
+    "serverBenchmark": "Datum des Tests auf dem Server",
+    "noServerBenchmark": "Noch nicht",
+    "note": "Die App misst diese Geschwindigkeit auf diesem Computer zu Ihrer Information. Der Server misst den Leistungstest selbst, und nur verifizierte Arbeit wird bezahlt.",
+    "status": {
+      "benchmarking": "Leistungstest läuft",
+      "probation": "Probezeit",
+      "active": "Aktiv",
+      "limited": "Eingeschränkt",
+      "suspended": "Gesperrt",
+      "revoked": "Entfernt"
+    },
+    "tier": {
+      "probation": "Probezeit",
+      "established": "Etabliert",
+      "trusted": "Vertrauenswürdig"
+    }
+  },
   "consent": {
     "title": "Hardwarekennungen",
     "lede": "Bevor dieser Computer registriert werden kann, benötigt Vouch Compute Ihre Antwort. Dies ist der vollständige Text:",

@@ -151,6 +151,37 @@
     "runNow": "Ejecutar ahora",
     "runAtIdle": "Ejecutar en la primera inactividad"
   },
+  "perf": {
+    "title": "Rendimiento",
+    "sub": "Qué tan rápido ejecutó este equipo su prueba de rendimiento y cuál es su estado en el servidor.",
+    "tokensPerSecond": "{rate, number} tokens por segundo",
+    "realtime": "{rate, number}× tiempo real",
+    "tokenHint": "Los tokens son los pequeños fragmentos de texto que lee un modelo de IA. Más tokens por segundo significa un equipo más rápido.",
+    "detail": "{model} en {backend}, medido el {date}",
+    "received": "Recibido por el servidor",
+    "sent": "Enviado al servidor",
+    "empty": "La velocidad de este equipo aparecerá aquí después de su primera prueba de rendimiento.",
+    "soFar": "Medido hasta ahora: {value}",
+    "measuredHere": "Medido por la app en este equipo.",
+    "statusLabel": "Estado en el servidor",
+    "tierLabel": "Nivel",
+    "serverBenchmark": "Fecha de la prueba en el servidor",
+    "noServerBenchmark": "Todavía no",
+    "note": "La app mide esta velocidad en este equipo solo como referencia para ti. El servidor mide la prueba de rendimiento por su cuenta, y solo se paga el trabajo verificado.",
+    "status": {
+      "benchmarking": "En prueba de rendimiento",
+      "probation": "Periodo de prueba",
+      "active": "Activo",
+      "limited": "Limitado",
+      "suspended": "Suspendido",
+      "revoked": "Eliminado"
+    },
+    "tier": {
+      "probation": "Periodo de prueba",
+      "established": "Consolidado",
+      "trusted": "De confianza"
+    }
+  },
   "consent": {
     "title": "Identificadores de hardware",
     "lede": "Antes de registrar este equipo, Vouch Compute necesita tu respuesta. Este es el texto completo:",

@@ -152,6 +152,15 @@ impl Agent {
             .user_agent(concat!("vouch-core/", env!("CARGO_PKG_VERSION")))
             .build()?;
         let registry = Arc::new(Registry::new(data_dir.join("models"), cfg.model_cache_gb));
+        // Windows: a job's read access to its directories ends with the job; remove any that a crash left behind
+        if cfg!(windows) {
+            let mut dirs: Vec<PathBuf> =
+                std::fs::read_dir(data_dir.join("models")).map(|rd| rd.flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect()).unwrap_or_default();
+            dirs.extend(cfg.ort_pack_dir());
+            if !dirs.is_empty() {
+                pool_sandbox::revoke_stale_grants(&dirs);
+            }
+        }
         let runner = Arc::new(RunnerClient {
             exe: cfg.runner_exe(),
             memory_limit_bytes: 8 << 30,
@@ -336,6 +345,14 @@ impl Agent {
                                 lease_nonces: self.lease_nonces.clone(),
                                 platform: self.platform.clone(),
                                 worked_ms: self.worked_ms.clone(),
+                                perf: {
+                                    let me = Arc::downgrade(&self);
+                                    Arc::new(move |u| {
+                                        if let Some(a) = me.upgrade() {
+                                            a.record_performance(u);
+                                        }
+                                    })
+                                },
                             });
                             let end = session::run(deps, ws, edge).await;
                             // Only a session that reached Welcome resets the backoff. A server that
@@ -647,11 +664,14 @@ impl Agent {
         let token = self.access_token().await?;
         let dev = self.cfg.allow_insecure_dev();
         let mut att = self.enrollment_attestation(key.as_ref(), &token, dev).await?;
+        // The TPM key that could not attest: deleted once the server has accepted the software key instead.
+        let mut unused_tpm_key: Option<Arc<dyn DeviceKey>> = None;
         // CR-T213-01: never `tpm2` without a blob. A TPM that cannot attest enrolls this computer with a software
         // key and `none` instead: a capped device in Probation for good.
         if identity::needs_software_fallback(&att.format, att.blob.as_deref(), dev) {
             tracing::warn!("this TPM gave no tpm2 attestation: enrolling with a software key (capped, Probation tier)");
             // in memory only: the choice is saved once the server has accepted this key
+            unused_tpm_key = Some(key.clone());
             key = identity::software_key(&self.data_dir)?;
             att = self.enrollment_attestation(key.as_ref(), &token, dev).await?;
         }
@@ -699,6 +719,10 @@ impl Agent {
         }
         *self.key.write().unwrap() = key.clone();
         self.set_enrollment(&reg.device_id, &reg.trust_ceiling);
+        // Housekeeping (vault follow-up to CR-T215-01): the TPM is skipped from now on, so its unused key is deleted.
+        if let Some(unused) = unused_tpm_key {
+            identity::discard_unused_key(unused.as_ref(), key.as_ref());
+        }
         Ok(())
     }
 
@@ -789,6 +813,7 @@ impl Agent {
             st.tpm_key_name = None;
             st.software_key = false;
             st.benchmark = None;
+            st.performance.clear();
         }
         self.save();
         let fresh = identity::load_or_create(&self.data_dir, self.cfg.prefer_tpm, None)?;
@@ -919,6 +944,23 @@ impl Agent {
         self.lease_nonces.leases()
     }
 
+    /// Keep the app's own benchmark measurement (display only) in `state.json`.
+    fn record_performance(&self, u: session::PerfUpdate) {
+        let changed = {
+            let mut st = self.state.lock().unwrap();
+            match u {
+                session::PerfUpdate::Measured(p) => {
+                    crate::status::record_performance(&mut st.performance, p);
+                    true
+                }
+                session::PerfUpdate::Received(id) => crate::status::mark_received(&mut st.performance, &id),
+            }
+        };
+        if changed {
+            self.save();
+        }
+    }
+
     pub fn snapshot(&self) -> Value {
         let st = self.state.lock().unwrap().clone();
         let status: Status = self.status.get();
@@ -933,6 +975,8 @@ impl Agent {
             "key_storage": key.storage(),
             "settings": st.settings,
             "worked_today_s": st.worked_today_s,
+            // measured by this app during the benchmark; display only (the server's own measurement decides pay)
+            "performance": st.performance,
             "signin": self.signin_state(),
             "hw_consent": st.hw_consent.as_ref().map(|c| if c.accepted { "accepted" } else { "refused" }),
             "links": {

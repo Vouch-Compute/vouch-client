@@ -26,6 +26,27 @@ pub struct Registry {
     root: PathBuf,
     cap_bytes: u64,
     index: Mutex<HashMap<[u8; 32], CachedModel>>,
+    /// Bundles being downloaded now (one download per model hash; a benchmark offer waits for it).
+    downloading: Mutex<std::collections::HashSet<[u8; 32]>>,
+}
+
+/// A bundle file may take this long per byte at the slowest (128 KiB/s), and at least 2 minutes. The agent's shared
+/// HTTP client stops a request after 120 s, which a 2.3 GB model (bge-m3) does not fit on a home connection.
+pub const MIN_DOWNLOAD_BYTES_PER_S: u64 = 128 << 10;
+/// A download that receives nothing for this long is dropped (and retried at the next hint).
+pub const DOWNLOAD_STALL: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// The time limit for one bundle file of `size` bytes.
+pub fn file_download_limit(size: u64) -> std::time::Duration {
+    std::time::Duration::from_secs((size / MIN_DOWNLOAD_BYTES_PER_S).max(120))
+}
+
+/// Removes the hash from the in-progress set however the download ends.
+struct Downloading<'a>(&'a Registry, [u8; 32]);
+impl Drop for Downloading<'_> {
+    fn drop(&mut self) {
+        self.0.downloading.lock().unwrap().remove(&self.1);
+    }
 }
 
 /// `ws(s)://host:port/...` -> `http(s)://host:port`
@@ -58,7 +79,7 @@ fn dir_size(p: &Path) -> u64 {
 impl Registry {
     pub fn new(root: PathBuf, cap_gb: u32) -> Self {
         let _ = std::fs::create_dir_all(&root);
-        Self { root, cap_bytes: u64::from(cap_gb) << 30, index: Mutex::new(HashMap::new()) }
+        Self { root, cap_bytes: u64::from(cap_gb) << 30, index: Mutex::new(HashMap::new()), downloading: Mutex::new(Default::default()) }
     }
 
     /// Re-index cached models whose manifest still verifies under the current KeySet.
@@ -134,6 +155,14 @@ impl Registry {
         if self.index.lock().unwrap().contains_key(&hash) {
             return Ok(hash);
         }
+        // one download per bundle: a second hint for a model being downloaded waits for that download
+        if !self.downloading.lock().unwrap().insert(hash) {
+            while self.is_downloading(&hash) {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+            return if self.index.lock().unwrap().contains_key(&hash) { Ok(hash) } else { anyhow::bail!("the download of this model failed") };
+        }
+        let _guard = Downloading(self, hash);
         let total: u64 = manifest.files.iter().map(|f| f.size).sum();
         self.evict_for(total);
         let dir = self.root.join(hex::encode(hash));
@@ -143,7 +172,7 @@ impl Registry {
         let res = async {
             for f in &manifest.files {
                 let url = format!("{engine_http}/node/v1/bundles/{}/{}/{}", manifest.model_id, manifest.version, f.path);
-                let mut resp = http.get(&url).send().await?.error_for_status()?;
+                let mut resp = http.get(&url).timeout(file_download_limit(f.size)).send().await?.error_for_status()?;
                 let p = staging.join(&f.path);
                 if let Some(parent) = p.parent() {
                     std::fs::create_dir_all(parent)?;
@@ -152,7 +181,10 @@ impl Registry {
                 let mut hasher = sha2::Sha256::new();
                 let mut n = 0u64;
                 let mut head = Vec::with_capacity(16);
-                while let Some(chunk) = resp.chunk().await? {
+                while let Some(chunk) = tokio::time::timeout(DOWNLOAD_STALL, resp.chunk())
+                    .await
+                    .map_err(|_| anyhow::anyhow!("{}: no data for {} s", f.path, DOWNLOAD_STALL.as_secs()))??
+                {
                     n += chunk.len() as u64;
                     if n > f.size {
                         anyhow::bail!("{} larger than the manifest says", f.path);
@@ -188,6 +220,11 @@ impl Registry {
         }
         self.index.lock().unwrap().insert(hash, CachedModel { manifest, manifest_cose: cose, model_hash: hash, dir });
         Ok(hash)
+    }
+
+    /// Is the bundle with this manifest hash being downloaded now?
+    pub fn is_downloading(&self, model_hash: &[u8]) -> bool {
+        <[u8; 32]>::try_from(model_hash).is_ok_and(|h| self.downloading.lock().unwrap().contains(&h))
     }
 
     fn evict_for(&self, incoming: u64) {
@@ -230,6 +267,31 @@ async fn rename_dir_with_retry(from: &Path, to: &Path) -> std::io::Result<()> {
             }
             Err(e) => return Err(e),
         }
+    }
+}
+
+#[cfg(test)]
+mod download_limit_tests {
+    use super::*;
+
+    /// bge-m3's weights (2.3 GB) get hours, not the shared client's 120 s; small files keep a 2-minute floor.
+    #[test]
+    fn large_bundle_files_get_time_to_download() {
+        assert_eq!(file_download_limit(10 << 20), std::time::Duration::from_secs(120));
+        let bge_m3 = file_download_limit(2_270_000_000);
+        assert!(bge_m3 >= std::time::Duration::from_secs(4 * 3600), "{bge_m3:?}");
+    }
+
+    #[test]
+    fn download_state_is_cleared_however_the_download_ends() {
+        let d = tempfile::tempdir().unwrap();
+        let r = Registry::new(d.path().join("models"), 1);
+        let h = [7u8; 32];
+        r.downloading.lock().unwrap().insert(h);
+        assert!(r.is_downloading(&h));
+        drop(Downloading(&r, h));
+        assert!(!r.is_downloading(&h));
+        assert!(!r.is_downloading(&[1, 2, 3]), "a malformed hash is never downloading");
     }
 }
 

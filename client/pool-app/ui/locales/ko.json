@@ -151,6 +151,37 @@
     "runNow": "지금 실행",
     "runAtIdle": "대신 처음 유휴 상태일 때 실행"
   },
+  "perf": {
+    "title": "성능",
+    "sub": "이 컴퓨터가 벤치마크를 얼마나 빠르게 실행했는지와 서버에서의 상태입니다.",
+    "tokensPerSecond": "초당 {rate, number}토큰",
+    "realtime": "실시간의 {rate, number}배",
+    "tokenHint": "토큰은 AI 모델이 읽는 작은 텍스트 조각입니다. 초당 토큰이 많을수록 컴퓨터가 빠릅니다.",
+    "detail": "{model}, {backend}에서 실행, {date} 측정",
+    "received": "서버에서 수신함",
+    "sent": "서버로 보냄",
+    "empty": "첫 벤치마크가 끝나면 이 컴퓨터의 속도가 여기에 표시됩니다.",
+    "soFar": "지금까지 측정: {value}",
+    "measuredHere": "이 컴퓨터에서 앱이 측정했습니다.",
+    "statusLabel": "서버 상태",
+    "tierLabel": "등급",
+    "serverBenchmark": "서버 벤치마크 날짜",
+    "noServerBenchmark": "아직 없음",
+    "note": "이 속도는 참고용으로 앱이 이 컴퓨터에서 측정한 값입니다. 벤치마크는 서버가 직접 측정하며, 검증된 작업만 지급됩니다.",
+    "status": {
+      "benchmarking": "벤치마크 중",
+      "probation": "수습",
+      "active": "활성",
+      "limited": "제한됨",
+      "suspended": "정지됨",
+      "revoked": "삭제됨"
+    },
+    "tier": {
+      "probation": "수습",
+      "established": "정착",
+      "trusted": "신뢰"
+    }
+  },
   "consent": {
     "title": "하드웨어 식별자",
     "lede": "이 컴퓨터를 등록하려면 먼저 Vouch Compute에 답변해 주셔야 합니다. 전문은 다음과 같습니다.",

@@ -185,7 +185,7 @@ async fn clock_skew_network_loss_silence_version_skew_and_disk_audit() {
     // 6. disk-write audit
     let mut roots = vec![data.path().to_path_buf(), std::env::temp_dir()];
     if let Ok(la) = std::env::var("LOCALAPPDATA") {
-        roots.push(std::path::PathBuf::from(la).join("Packages").join("vouchcompute.runner.v1"));
+        roots.push(std::path::PathBuf::from(la).join("Packages").join("vouchcompute.runner.v2"));
     }
     if cfg!(unix) {
         roots.push("/tmp".into());

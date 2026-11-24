@@ -151,6 +151,37 @@
     "runNow": "Executar agora",
     "runAtIdle": "Executar na primeira ociosidade"
   },
+  "perf": {
+    "title": "Desempenho",
+    "sub": "A velocidade com que este computador executou o teste de desempenho e a situação dele no servidor.",
+    "tokensPerSecond": "{rate, number} tokens por segundo",
+    "realtime": "{rate, number}× o tempo real",
+    "tokenHint": "Tokens são os pequenos pedaços de texto que um modelo de IA lê. Mais tokens por segundo significa um computador mais rápido.",
+    "detail": "{model} em {backend}, medido em {date}",
+    "received": "Recebido pelo servidor",
+    "sent": "Enviado ao servidor",
+    "empty": "A velocidade deste computador aparece aqui depois do primeiro teste de desempenho.",
+    "soFar": "Medido até agora: {value}",
+    "measuredHere": "Medido pelo app neste computador.",
+    "statusLabel": "Situação no servidor",
+    "tierLabel": "Nível",
+    "serverBenchmark": "Data do teste no servidor",
+    "noServerBenchmark": "Ainda não",
+    "note": "O app mede essa velocidade neste computador só para sua informação. O servidor mede o teste de desempenho por conta própria, e só o trabalho verificado é pago.",
+    "status": {
+      "benchmarking": "Em teste de desempenho",
+      "probation": "Período de avaliação",
+      "active": "Ativo",
+      "limited": "Limitado",
+      "suspended": "Suspenso",
+      "revoked": "Removido"
+    },
+    "tier": {
+      "probation": "Período de avaliação",
+      "established": "Estabelecido",
+      "trusted": "Confiável"
+    }
+  },
   "consent": {
     "title": "Identificadores de hardware",
     "lede": "Antes de registrar este computador, o Vouch Compute precisa da sua resposta. Este é o texto completo:",

@@ -151,6 +151,37 @@
     "runNow": "Jalankan sekarang",
     "runAtIdle": "Jalankan saat pertama kali menganggur"
   },
+  "perf": {
+    "title": "Performa",
+    "sub": "Seberapa cepat komputer ini menjalankan uji kinerjanya, dan statusnya di server.",
+    "tokensPerSecond": "{rate, number} token per detik",
+    "realtime": "{rate, number}× waktu nyata",
+    "tokenHint": "Token adalah potongan kecil teks yang dibaca model AI. Makin banyak token per detik, makin cepat komputernya.",
+    "detail": "{model} di {backend}, diukur {date}",
+    "received": "Diterima oleh server",
+    "sent": "Dikirim ke server",
+    "empty": "Kecepatan komputer ini akan muncul di sini setelah uji kinerja pertamanya.",
+    "soFar": "Terukur sejauh ini: {value}",
+    "measuredHere": "Diukur oleh aplikasi di komputer ini.",
+    "statusLabel": "Status di server",
+    "tierLabel": "Tingkat",
+    "serverBenchmark": "Tanggal uji di server",
+    "noServerBenchmark": "Belum ada",
+    "note": "Aplikasi mengukur kecepatan ini di komputer ini sebagai informasi untuk Anda. Server mengukur uji kinerjanya sendiri, dan hanya pekerjaan terverifikasi yang dibayar.",
+    "status": {
+      "benchmarking": "Sedang diuji",
+      "probation": "Masa percobaan",
+      "active": "Aktif",
+      "limited": "Terbatas",
+      "suspended": "Ditangguhkan",
+      "revoked": "Dihapus"
+    },
+    "tier": {
+      "probation": "Masa percobaan",
+      "established": "Mapan",
+      "trusted": "Tepercaya"
+    }
+  },
   "consent": {
     "title": "Pengenal perangkat keras",
     "lede": "Sebelum komputer ini bisa didaftarkan, Vouch Compute memerlukan jawaban Anda. Ini teks lengkapnya:",

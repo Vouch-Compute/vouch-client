@@ -1,7 +1,7 @@
 // Rendering checks for app.js (hero status, escaping, pilot banner, estimate, consent). Run: node pool-app/tests/render.test.js
 // Loads the DOM-free "pure" section of app.js, the same way the other UI tests load their sections, in English.
 const { useLocale, loadSection } = require("./ui-loader.js");
-const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "legalAcceptHtml", "signinTermsHtml", "benchHtml", "sumUsd", "duration"];
+const names = ["esc", "heroState", "isPilot", "pilotHtml", "estimateHtml", "earningsHtml", "walletHtml", "deviceHeadHtml", "hardwareHtml", "consentHtml", "legalAcceptHtml", "signinTermsHtml", "benchHtml", "sumUsd", "duration", "perfHtml", "measuredText"];
 useLocale("en");
 const api = loadSection("// ---- pure (start)", "// ---- pure (end)", names);
 
@@ -121,6 +121,39 @@ for (const [b, label, accel] of [["candle-metal", "Graphics card (Metal)", true]
   const h = api.hardwareHtml({ gpu: "Apple M3 Pro", cpu: "Apple M3 Pro", ram_mb: 18432 }, b, "software");
   if (!h.includes(label)) fail(`backend label for ${b}`);
   if (h.includes("Accelerated") !== accel) fail(`accelerated badge for ${b}`);
+}
+
+// 5c. performance measured during the benchmark: the app's own number, labelled as such, next to the server's status
+// and tier; never a number the server did not have a say in presented as pay, and hostile values escaped
+{
+  const m = { unit: "token", per_second: 418.26, runs: 470, backend: "onnxruntime-cpu" };
+  if (api.measuredText(m) !== "418 tokens per second") fail(`token rate: ${api.measuredText(m)}`);
+  if (api.measuredText({ unit: "token", per_second: 12.345 }) !== "12.3 tokens per second") fail("rate rounding 10-100");
+  if (api.measuredText({ unit: "token", per_second: 1.234 }) !== "1.23 tokens per second") fail("rate rounding < 10");
+  if (api.measuredText({ unit: "token", per_second: 1234.5 }) !== "1,235 tokens per second") fail("rate grouping");
+  if (api.measuredText({ unit: "audio_second", per_second: 31.04 }) !== "31× real time") fail(`audio rate: ${api.measuredText({ unit: "audio_second", per_second: 31.04 })}`);
+  for (const bad of [null, {}, { per_second: 0 }, { per_second: -3 }, { per_second: "x" }, { per_second: Infinity }]) {
+    if (api.measuredText(bad) !== "") fail(`no rate for ${JSON.stringify(bad)}`);
+  }
+  const done = api.benchHtml({ state: "received", measured: m }, now, false);
+  if (!done.includes("418 tokens per second") || !done.includes("Measured by the app on this computer.")) fail("finished benchmark shows the measured rate");
+  const running = api.benchHtml({ state: "running", started_ms: now - 600e3, duration_s: 1200, segments: 10, measured: m }, now, false);
+  if (!running.includes("Measured so far: 418 tokens per second")) fail("running benchmark shows the rate so far");
+  if (api.benchHtml({ state: "sent" }, now, false).includes("per second")) fail("no rate shown without a measurement");
+  const dv = { status: "probation", tier: "probation", benchmark_date: "2026-11-24" };
+  const perf = api.perfHtml([{ model_id: "bge-m3", benchmark_id: "b", measured: m, finished_ms: now, received: true }], dv, false);
+  for (const want of ["418 tokens per second", "bge-m3 on Processor (CPU)", "Received by the server", "Status on the server", "Probation",
+    "Tier", "Benchmark date on the server", "only verified work is paid", "Tokens are the small pieces of text"]) {
+    if (!perf.includes(want)) fail(`performance card: missing ${want}`);
+  }
+  const empty = api.perfHtml([], { status: "benchmarking", tier: "probation" }, false);
+  if (!empty.includes("appears here after its first benchmark") || !empty.includes("Benchmarking") || !empty.includes("Not yet")) fail("performance card before any benchmark");
+  if (!api.perfHtml(null, null, true).includes("Loading")) fail("server part loading");
+  if (!api.perfHtml(null, null, false).includes("registered and online")) fail("server part unavailable");
+  const hostile = api.perfHtml([{ model_id: XSS, measured: { unit: XSS, per_second: 5, backend: XSS }, finished_ms: now }], { status: XSS, tier: XSS, benchmark_date: XSS }, false);
+  noRaw(hostile, "performance card");
+  if (hostile.includes("undefined") || hostile.includes("NaN")) fail("performance card with odd values");
+  if (/score|threshold|canary|envelope/i.test(perf)) fail("performance card must not show verification data");
 }
 
 // 6. totals from server strings only

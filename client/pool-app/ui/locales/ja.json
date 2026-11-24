@@ -151,6 +151,37 @@
     "runNow": "今すぐ実行",
     "runAtIdle": "最初のアイドル時に実行"
   },
+  "perf": {
+    "title": "パフォーマンス",
+    "sub": "このコンピューターがベンチマークをどれだけ速く実行したか、そしてサーバー上での状態です。",
+    "tokensPerSecond": "毎秒 {rate, number} トークン",
+    "realtime": "実時間の {rate, number} 倍",
+    "tokenHint": "トークンとは、AI モデルが読み取るテキストの小さな単位です。毎秒のトークン数が多いほど、コンピューターが高速です。",
+    "detail": "{backend} で {model} を実行、{date} に測定",
+    "received": "サーバーが受信済み",
+    "sent": "サーバーに送信済み",
+    "empty": "最初のベンチマークが終わると、このコンピューターの速度がここに表示されます。",
+    "soFar": "現在までの測定値：{value}",
+    "measuredHere": "このコンピューター上でアプリが測定しました。",
+    "statusLabel": "サーバー上の状態",
+    "tierLabel": "ランク",
+    "serverBenchmark": "サーバー上のベンチマーク日",
+    "noServerBenchmark": "まだありません",
+    "note": "この速度は、参考としてアプリがこのコンピューター上で測定したものです。ベンチマークはサーバーが独自に測定し、支払いの対象は検証済みの作業のみです。",
+    "status": {
+      "benchmarking": "ベンチマーク中",
+      "probation": "試用期間",
+      "active": "有効",
+      "limited": "制限中",
+      "suspended": "停止中",
+      "revoked": "削除済み"
+    },
+    "tier": {
+      "probation": "試用期間",
+      "established": "確立済み",
+      "trusted": "信頼済み"
+    }
+  },
   "consent": {
     "title": "ハードウェア識別子",
     "lede": "このコンピューターを登録する前に、Vouch Compute はあなたの回答を必要としています。全文は次のとおりです：",

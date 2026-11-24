@@ -37,7 +37,7 @@ use crate::lease::{self, LeaseError, NonceBook};
 use crate::platform::Readings;
 use crate::registry::Registry;
 use crate::runner_client::{Preempt, RunError, RunnerClient};
-use crate::status::{BenchProgress, Connection, CurrentJob, StatusHub};
+use crate::status::{BenchProgress, Connection, CurrentJob, MeasuredPerformance, Meter, StatusHub};
 
 pub const HELLO_DEADLINE: Duration = Duration::from_secs(10);
 
@@ -213,6 +213,17 @@ pub struct Deps {
     pub lease_nonces: Arc<NonceBook>,
     pub platform: Arc<dyn Fn() -> Readings + Send + Sync>,
     pub worked_ms: Arc<AtomicU64>,
+    /// Where the app's own benchmark measurement goes (the agent keeps it in `state.json`; display only).
+    pub perf: Arc<dyn Fn(PerfUpdate) + Send + Sync>,
+}
+
+/// The app's own benchmark measurement, for the user to see (never sent to the server).
+#[derive(Debug, Clone, PartialEq)]
+pub enum PerfUpdate {
+    /// A benchmark finished and its signed result was sent.
+    Measured(MeasuredPerformance),
+    /// The server confirmed it stored the result of this benchmark id.
+    Received(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -496,7 +507,11 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
                         tokio::spawn(prepare_and_run_bench(deps.clone(), b, p, decision_rx.clone(), ev_tx.clone()));
                     }
                     SB::BenchmarkReceipt(r) => {
-                        deps.status.update(|s| if let Some(b) = &mut s.benchmark { if b.benchmark_id == r.benchmark_id { b.state = "received".into(); } });
+                        // only RECEIVED means stored; any other status leaves the benchmark as sent
+                        if r.status == pb::ReceiptStatus::Received as i32 {
+                            deps.status.update(|s| if let Some(b) = &mut s.benchmark { if b.benchmark_id == r.benchmark_id { b.state = "received".into(); } });
+                            (deps.perf)(PerfUpdate::Received(r.benchmark_id.clone()));
+                        }
                     }
                     SB::ModelHint(h) => {
                         let d = deps.clone();
@@ -756,8 +771,11 @@ pub struct BenchJob {
     pub duration_s: u64,
 }
 
-/// How long an offer for a model that is not cached yet waits for its download (ModelHint) to finish.
+/// How long an offer for a model that is not cached yet waits for its download (ModelHint) to start and finish.
 pub const BENCH_MODEL_WAIT: Duration = Duration::from_secs(120);
+/// While the model is still downloading, the offer waits longer (bge-m3 is 2.3 GB), but never past the signed
+/// workload's `expires_at`, and never longer than this.
+pub const BENCH_DOWNLOAD_WAIT: Duration = Duration::from_secs(3 * 3600);
 
 async fn prepare_and_run_bench(
     deps: Arc<Deps>,
@@ -783,14 +801,18 @@ async fn prepare_and_run_bench(
     }
 }
 
-/// Wait (bounded) for a model that a ModelHint is still downloading; `None` if it never arrives.
-async fn wait_for_model(deps: &Deps, model_hash: &[u8], preempt: &Preempt) -> Option<crate::registry::CachedModel> {
-    let deadline = tokio::time::Instant::now() + BENCH_MODEL_WAIT;
+/// Wait (bounded) for a model that a ModelHint is still downloading; `None` if it never arrives. Without a download
+/// in progress the wait is [`BENCH_MODEL_WAIT`]; while one is running, until it ends, the workload expires
+/// (`expires_at`, server clock) or [`BENCH_DOWNLOAD_WAIT`] has passed.
+async fn wait_for_model(deps: &Deps, model_hash: &[u8], expires_at: u64, preempt: &Preempt) -> Option<crate::registry::CachedModel> {
+    let start = tokio::time::Instant::now();
     loop {
         if let Some(m) = deps.registry.get(model_hash) {
             return Some(m);
         }
-        if preempt.fired() || tokio::time::Instant::now() >= deadline {
+        let waited = start.elapsed();
+        let limit = if deps.registry.is_downloading(model_hash) { BENCH_DOWNLOAD_WAIT } else { BENCH_MODEL_WAIT };
+        if preempt.fired() || waited >= limit || now_ms() >= expires_at {
             return None;
         }
         tokio::time::sleep(Duration::from_millis(250)).await;
@@ -823,7 +845,7 @@ async fn handle_bench_offer(
     if !d.is_run() && !(now_requested && !matches!(d, Decision::Pause(PauseReason::Thermal | PauseReason::OnBattery | PauseReason::BatteryLow))) {
         return Err(decline(decline_reason(&d)));
     }
-    let model = wait_for_model(deps, &w.model_hash, preempt).await.ok_or_else(|| decline(pb::DeclineReason::ModelNotCached))?;
+    let model = wait_for_model(deps, &w.model_hash, w.expires_at, preempt).await.ok_or_else(|| decline(pb::DeclineReason::ModelNotCached))?;
     let url = if b.bundle_url.starts_with('/') { format!("{}{}", crate::registry::http_base(&deps.cfg.engine_ws_url), b.bundle_url) } else { b.bundle_url.clone() };
     // One retry. A declined onboarding benchmark is never re-issued by the server, and the first GET can fail on a
     // pooled keep-alive connection the server has just closed (seen intermittently in a test).
@@ -865,9 +887,24 @@ pub const BENCHMARK_SEGMENTS: u64 = 20;
 /// assigns the units and derives the rate from the signed timing.
 async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::Sender<Event>) {
     let id = job.offer.benchmark_id.clone();
+    let model_id = job.model.manifest.model_id.clone();
+    let unit = crate::status::unit_for(&job.model.manifest.input_format);
     deps.status.update(|s| {
-        s.benchmark = Some(BenchProgress { benchmark_id: id.clone(), state: "running".into(), started_ms: now_ms(), duration_s: job.duration_s, segments: 0 })
+        s.benchmark = Some(BenchProgress {
+            benchmark_id: id.clone(),
+            state: "running".into(),
+            started_ms: now_ms(),
+            duration_s: job.duration_s,
+            segments: 0,
+            model_id: model_id.clone(),
+            measured: None,
+        })
     });
+    // The app's own view of the rate (display only): units the runtime reported for the runs that finished inside
+    // the measured window, over the time from the window start to the end of the last of them.
+    let mut meter = Meter::default();
+    let mut last_end = 0u64;
+    let mut backend: Option<String> = None;
     let slice_ms = (job.duration_s * 1000).div_ceil(BENCHMARK_SEGMENTS).max(1);
     let mut t_start = 0u64;
     let mut segments: Vec<BenchmarkSegment> = Vec::new();
@@ -898,10 +935,26 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
                     if let Some(u) = o.units_device_milli {
                         seg_units = Some(seg_units.unwrap_or(0) + u);
                     }
+                    meter.add(o.units_device_milli);
+                    last_end = now;
+                }
+                if o.backend.is_some() {
+                    backend = o.backend.clone();
                 }
                 last_output = sha256(&o.output);
                 let n = segments.len() as u64;
-                deps.status.update(|s| if let Some(b) = &mut s.benchmark { b.segments = n });
+                let measured = meter.measured(unit, last_end.saturating_sub(t_start), backend.clone());
+                deps.status.update(|s| {
+                    if let Some(b) = &mut s.benchmark {
+                        b.segments = n;
+                        if measured.is_some() {
+                            b.measured = measured.clone();
+                        }
+                    }
+                    if backend.is_some() {
+                        s.backend = backend.clone();
+                    }
+                });
                 if n >= BENCHMARK_SEGMENTS {
                     break Some(());
                 }
@@ -937,6 +990,11 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
         None => None,
     };
     let state = if body.is_some() { "sent" } else { "stopped" };
+    if body.is_some() {
+        if let Some(m) = meter.measured(unit, last_end.saturating_sub(t_start), backend.clone()) {
+            (deps.perf)(PerfUpdate::Measured(MeasuredPerformance { model_id, benchmark_id: id.clone(), measured: m, finished_ms: now_ms(), received: false }));
+        }
+    }
     // A stopped benchmark is reported as a BenchmarkResponse{accept: false}
     // after the earlier accept; USER_ACTIVE when the user came back (pre-emption), OTHER on a runner failure.
     let body = body.or_else(|| {

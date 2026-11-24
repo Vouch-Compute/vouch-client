@@ -151,6 +151,37 @@
     "runNow": "Run now",
     "runAtIdle": "Run at first idle instead"
   },
+  "perf": {
+    "title": "Performance",
+    "sub": "How fast this computer ran its benchmark, and where it stands on the server.",
+    "tokensPerSecond": "{rate, number} tokens per second",
+    "realtime": "{rate, number}× real time",
+    "tokenHint": "Tokens are the small pieces of text an AI model reads. More tokens per second means a faster computer.",
+    "detail": "{model} on {backend}, measured {date}",
+    "received": "Received by the server",
+    "sent": "Sent to the server",
+    "empty": "This computer's speed appears here after its first benchmark.",
+    "soFar": "Measured so far: {value}",
+    "measuredHere": "Measured by the app on this computer.",
+    "statusLabel": "Status on the server",
+    "tierLabel": "Tier",
+    "serverBenchmark": "Benchmark date on the server",
+    "noServerBenchmark": "Not yet",
+    "note": "The app measures this speed on this computer for your information. The server measures the benchmark itself, and only verified work is paid.",
+    "status": {
+      "benchmarking": "Benchmarking",
+      "probation": "Probation",
+      "active": "Active",
+      "limited": "Limited",
+      "suspended": "Suspended",
+      "revoked": "Removed"
+    },
+    "tier": {
+      "probation": "Probation",
+      "established": "Established",
+      "trusted": "Trusted"
+    }
+  },
   "consent": {
     "title": "Hardware identifiers",
     "lede": "Before this computer can be registered, Vouch Compute needs your answer. This is the full text:",

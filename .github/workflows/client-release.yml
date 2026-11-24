@@ -196,7 +196,11 @@ jobs:
             --bundles ${{ matrix.bundles }}
       - name: Marker check on the packaged app (refuses dev-trust builds)
         run: bash ci/release-marker-check.sh target/release/bundle pool-app/src-tauri/binaries
-      - name: Runtime pack in the packaged app (pinned bytes where the agent looks)
+      # Fails closed if bundling or code signing changed a pinned runtime pack file: macOS checks the signed .app, the
+      # .dmg and the updater archive (and that the .app's signature verifies); Linux the .deb and the AppImage.
+      - name: Runtime pack in every packaged form, after signing (pinned bytes where the agent looks)
+        env:
+          RELEASE_PACK_REQUIRE: ${{ runner.os == 'macOS' && 'app,dmg,updater' || runner.os == 'Linux' && 'deb,appimage' || '' }}
         run: bash ci/release-pack-check.sh ${{ matrix.name }} target/release/bundle
       - name: No dev update channel or dev bundle id in the packaged app
         run: |

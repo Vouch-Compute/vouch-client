@@ -87,6 +87,8 @@ jobs:
         run: node client/pool-app/tests/homebrew-cask.test.js
       - name: Runtime packs (bundle configs, pins and install paths agree)
         run: node client/pool-app/tests/runtime-packs.test.js
+      - name: Release bundle check refuses changed pack bytes (self-test, incl. the .deb)
+        run: node client/pool-app/tests/release-pack-check.test.js
       - name: cargo audit
         working-directory: client
         run: |
@@ -211,6 +213,17 @@ jobs:
           codesign --force --sign - --options runtime target/debug/pool-runner
           codesign --display --verbose=2 target/debug/pool-runner 2>&1 | grep -E 'flags|Signature'
           cargo test -p pool-runner --features onnx --test onnx_xlmr -- --nocapture
+      # The Mac path (T-219): the real agent links as a capped device, runs the probation benchmark and a job for the
+      # bge-m3 stand-in on this pack (CPU), and keeps the speed it measured for the app. macOS and Linux (CPU packs).
+      - name: Agent end to end on the CPU pack (benchmark, job, measured speed)
+        if: runner.os != 'Windows'
+        run: cargo test -p pool-core --test onnx_cpu_path -- --nocapture
+      # Windows: each job's sandbox can read only its own model dir (per-job AppContainer grants, T-218 review)
+      - name: Windows sandbox grants are per job
+        if: runner.os == 'Windows'
+        run: |
+          cargo test -p pool-sandbox -- --nocapture
+          cargo test -p pool-core --test sandbox_isolation -- --nocapture
       - name: Sandbox denials (macOS, on failure)
         if: failure() && runner.os == 'macOS'
         run: log show --last 15m --style compact --predicate 'sender == "Sandbox"' | grep -iE 'pool-runner' | tail -n 80 || true
@@ -353,16 +366,31 @@ jobs:
             printf 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD=\n'
           } >> "$GITHUB_ENV"
 
+      # Same ad-hoc signature as a release macOS build (client-release.yml), so this run shows what signing does to
+      # the bundled runtime pack before a tag (CR-T215-01 follow-up).
+      - name: macOS ad-hoc signature (as the release)
+        if: runner.os == 'macOS'
+        working-directory: client/pool-app
+        run: echo '{"bundle":{"macOS":{"signingIdentity":"-"}}}' > src-tauri/tauri.signing.conf.json
+
       # `tauri build` runs scripts/sidecars.mjs, which fetches the target's pinned runtime pack
       # (scripts/runtime-packs.mjs, from nuget.org) and fails the build on any hash mismatch.
       - name: Bundle (${{ matrix.bundles }})
         working-directory: client/pool-app
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
-        run: npx tauri build --bundles ${{ matrix.bundles }}
-
-      - name: Runtime pack in the packaged app (pinned bytes where the agent looks)
         shell: bash
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            npx tauri build --config src-tauri/tauri.signing.conf.json --bundles ${{ matrix.bundles }}
+          else
+            npx tauri build --bundles ${{ matrix.bundles }}
+          fi
+
+      - name: Runtime pack in the packaged app, after signing (pinned bytes in every packaged form)
+        shell: bash
+        env:
+          RELEASE_PACK_REQUIRE: ${{ runner.os == 'macOS' && 'app,dmg,updater' || runner.os == 'Linux' && 'deb,appimage' || '' }}
         run: bash ci/release-pack-check.sh ${{ matrix.name }} target/release/bundle
 
       - name: Upload bundles
