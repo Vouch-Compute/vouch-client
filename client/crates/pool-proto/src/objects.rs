@@ -466,6 +466,32 @@ pub struct ModelManifest {
     pub input_format: String,
     pub issued_at: u64,
     pub approvals: Vec<String>,
+    /// Optional signed claim (CR-T190-01, CLIENT-IMPACT 3.4.0): `Some("single_owner")` on a manifest the owner
+    /// approved alone under vault's single-owner mode, which then carries exactly one approver. Two-person
+    /// manifests never carry it (`None`), so their bytes are unchanged.
+    pub approval_mode: Option<String>,
+}
+
+/// The only allowed value of the `approval_mode` manifest claim.
+pub const APPROVAL_MODE_SINGLE_OWNER: &str = "single_owner";
+
+/// Approval rule (CR-T190-01): without the claim, at least two distinct approvers; with
+/// `approval_mode: "single_owner"`, exactly one. Any other claim value, the claim with two or more approvers, an
+/// empty list or a repeated approver is malformed.
+fn check_approvals(approvals: &[String], approval_mode: Option<&str>) -> Result<(), Error> {
+    let mut distinct = approvals.to_vec();
+    distinct.sort();
+    distinct.dedup();
+    if distinct.len() != approvals.len() {
+        return Err(Error::Malformed("manifest approvals must be distinct"));
+    }
+    match approval_mode {
+        None if approvals.len() >= 2 => Ok(()),
+        None => Err(Error::Malformed("manifest needs >= 2 distinct approvals")),
+        Some(APPROVAL_MODE_SINGLE_OWNER) if approvals.len() == 1 => Ok(()),
+        Some(APPROVAL_MODE_SINGLE_OWNER) => Err(Error::Malformed("single_owner manifest needs exactly 1 approval")),
+        Some(_) => Err(Error::Malformed("unknown approval_mode")),
+    }
 }
 
 /// Most files one signed bundle may list (bounds the download and verification work).
@@ -603,6 +629,7 @@ impl ModelManifest {
             .text("input_format", &self.input_format)
             .uint("issued_at", self.issued_at)
             .value("approvals", Value::Array(self.approvals.iter().map(|s| Value::Text(s.clone())).collect()))
+            .opt_text("approval_mode", self.approval_mode.as_deref())
             .build()
     }
     pub fn from_value(v: &Value) -> Result<Self, Error> {
@@ -612,7 +639,7 @@ impl ModelManifest {
                 "type", "model_id", "version", "source", "license", "format", "runtime", "quantization", "files",
                 "min_vram_mb", "min_ram_mb", "tolerance_class", "tiers", "input_format", "issued_at", "approvals",
             ],
-            &[],
+            &["approval_mode"],
         )?;
         r.expect_type(t::MODEL_MANIFEST)?;
         let src = MapReader::new(r.map("source")?, &["repo", "commit"], &[])?;
@@ -638,12 +665,8 @@ impl ModelManifest {
             return Err(Error::Malformed("tiers must be non-empty"));
         }
         let approvals = r.array("approvals")?.iter().map(as_text).collect::<Result<Vec<_>, _>>()?;
-        let mut distinct = approvals.clone();
-        distinct.sort();
-        distinct.dedup();
-        if distinct.len() < 2 || distinct.len() != approvals.len() {
-            return Err(Error::Malformed("manifest needs >= 2 distinct approvals"));
-        }
+        let approval_mode = r.opt_text("approval_mode")?;
+        check_approvals(&approvals, approval_mode.as_deref())?;
         Ok(Self {
             model_id: r.text("model_id")?,
             version: r.text("version")?,
@@ -661,6 +684,7 @@ impl ModelManifest {
             input_format: one_of(r.text("input_format")?, &INPUT_FORMATS, "non-canonical input_format")?,
             issued_at: r.uint("issued_at")?,
             approvals,
+            approval_mode,
         })
     }
 }
@@ -987,6 +1011,7 @@ pub(crate) mod fixtures {
             input_format: crate::EMBED_BATCH_FORMAT.into(),
             issued_at: 1,
             approvals: vec!["alice".into(), "bob".into()],
+            approval_mode: None,
         }
     }
 }
@@ -1015,6 +1040,46 @@ mod tests {
         let mut bad = manifest();
         bad.input_format = "audio/mpeg".into();
         assert!(ModelManifest::from_value(&bad.to_value()).is_err());
+    }
+
+    /// CLIENT-IMPACT 3.4.0 / CR-T190-01: one approver only with the signed claim `approval_mode: "single_owner"`.
+    #[test]
+    fn single_owner_manifests() {
+        let enc = |m: &ModelManifest| cbor::decode_deterministic(&cbor::encode(&m.to_value())).unwrap();
+        // two-person manifests carry no claim: same bytes as before the claim existed
+        let two = manifest();
+        assert!(!cbor::encode(&two.to_value()).windows(13).any(|w| w == b"approval_mode"));
+        assert_eq!(ModelManifest::from_value(&enc(&two)).unwrap().approval_mode, None);
+
+        let mut one = manifest();
+        one.approvals = vec!["owner".into()];
+        one.approval_mode = Some(APPROVAL_MODE_SINGLE_OWNER.into());
+        assert_eq!(ModelManifest::from_value(&enc(&one)).unwrap(), one);
+
+        let cases: [(&[&str], Option<&str>); 8] = [
+            (&["owner"], None),                                  // one approver without the claim
+            (&[], Some("single_owner")),                         // claim without an approver
+            (&["alice", "bob"], Some("single_owner")),           // claim with two approvers
+            (&["owner", "owner"], Some("single_owner")),         // claim with a repeated approver
+            (&["owner"], Some("Single_Owner")),                  // any other value
+            (&["owner"], Some("")),
+            (&["alice", "bob"], Some("two_person")),
+            (&["alice", "alice"], None),                         // repeated approver, no claim
+        ];
+        for (approvals, mode) in cases {
+            let mut bad = manifest();
+            bad.approvals = approvals.iter().map(|s| s.to_string()).collect();
+            bad.approval_mode = mode.map(str::to_string);
+            assert!(ModelManifest::from_value(&enc(&bad)).is_err(), "{approvals:?} {mode:?}");
+        }
+        // the claim must be text
+        let Value::Map(mut entries) = one.to_value() else { unreachable!() };
+        for (k, v) in entries.iter_mut() {
+            if *k == Value::Text("approval_mode".into()) {
+                *v = Value::Integer(1.into());
+            }
+        }
+        assert!(ModelManifest::from_value(&Value::Map(entries)).is_err());
     }
 
     #[test]

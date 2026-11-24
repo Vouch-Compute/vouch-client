@@ -766,9 +766,12 @@ function renderDeviceStep(s) {
   if (si.state === "blocked") {
     const fix = si.code === "hardware_in_use" ? `<button type="button" class="btn" data-link="devices">${icon("external")}${tx("onboarding.device.blocked.openDevices")}</button>`
       : si.code === "device_limit" ? `<button type="button" class="btn" data-link="verify">${icon("external")}${tx("onboarding.device.blocked.verify")}</button><button type="button" class="btn" data-link="devices">${tx("onboarding.device.blocked.manage")}</button>`
-      : si.code === "consent_refused" || si.code === "consent_required" || si.code === "hw_ids_required" ? `<button type="button" class="btn btn-primary" data-go="consent">${tx("onboarding.device.blocked.reviewPermission")}</button>`
+      : si.code === "consent_refused" || si.code === "consent_required" ? `<button type="button" class="btn btn-primary" data-go="consent">${tx("onboarding.device.blocked.reviewPermission")}</button>`
       : si.code === "replace_not_confirmed" ? `<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.blocked.registerNew")}</button>` : "";
-    return `${head("onboarding.device.blocked.title")}<div class="note note-warn" role="alert">${icon("alert")}<span>${esc(si.message)}</span></div><div class="ob-actions">${fix}</div>`;
+    // reasons with a translation; others show the agent's English text
+    const reason = si.code === "hw_ids_required" ? tx("onboarding.device.blocked.reasonHwIds")
+      : si.code === "attestation_invalid" ? tx("onboarding.device.blocked.reasonAttestation") : esc(si.message);
+    return `${head("onboarding.device.blocked.title")}<div class="note note-warn" role="alert">${icon("alert")}<span>${reason}</span></div><div class="ob-actions">${fix}</div>`;
   }
   if (si.state === "enrolling" || (!enrolled && si.state !== "error")) {
     return `${head("onboarding.device.enrolling.title")}<div class="row"><div class="spinner"></div><span>${tx("onboarding.device.enrolling.creating")}</span></div>`;
@@ -786,12 +789,18 @@ function renderDeviceStep(s) {
     <div class="setup-grid">
       <section class="inset" aria-labelledby="su-hw"><h2 id="su-hw">${icon("device")}${tx("device.thisComputer")}</h2>${hardwareHtml(s.hardware, s.status && s.status.backend, s.key_storage)}
         <p class="muted small">${tx("onboarding.device.done.infoOnly")}</p>
-        ${s.key_storage === "tpm" ? "" : `<div class="note note-warn small">${icon("alert")}<span>${tx("onboarding.device.done.noTpm")}</span></div>`}</section>
+        ${cappedDevice(s) ? `<div class="note note-warn small">${icon("alert")}<span>${tx("device.capped")}</span></div>` : ""}</section>
       <section class="inset" aria-labelledby="su-bench"><h2 id="su-bench">${icon("gauge")}${tx("bench.title")}</h2>${benchHtml(b, Date.now(), set.benchmark_now)}</section>
     </div>
     <section class="inset">${autostartHtml()}</section>
     <p class="muted small">${set.never_on_battery ? tx("onboarding.device.done.summaryBattery", limits) : tx("onboarding.device.done.summary", limits)}</p>
     <div class="ob-actions"><span class="spacer"></span><button type="button" class="btn btn-primary btn-lg" data-go="">${tx("onboarding.device.done.open")}${icon("arrow")}</button></div>`;
+}
+
+// CR-T213-01: the server enrolled this device as capped (no verified hardware security chip: Probation for good).
+// Before the server's answer, a software key means the same.
+function cappedDevice(snap) {
+  return snap.trust_ceiling ? snap.trust_ceiling === "capped" : snap.key_storage !== "tpm";
 }
 
 // ------------------------------------------------------------------ main views
@@ -888,6 +897,7 @@ function renderDevice() {
     <section class="card" aria-label="${tx("device.cardLabel")}">
       ${deviceHeadHtml(d)}
       ${hardwareHtml(snap.hardware, st.backend, snap.key_storage)}
+      ${cappedDevice(snap) ? `<div class="note note-warn small">${icon("alert")}<span>${tx("device.capped")}</span></div>` : ""}
       <details class="more" id="dev-more"><summary>${tx("device.technical")}</summary>
         <dl class="kv">
           <dt>${tx("device.id")}</dt><dd class="mono small">${esc(snap.device_id || t("device.notRegistered"))}</dd>

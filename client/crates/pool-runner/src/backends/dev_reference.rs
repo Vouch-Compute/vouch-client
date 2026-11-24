@@ -138,6 +138,7 @@ mod tests {
             input_format: pool_proto::EMBED_BATCH_FORMAT.into(),
             issued_at: 1,
             approvals: vec![],
+            approval_mode: None,
         };
         let mut files = std::collections::BTreeMap::new();
         files.insert("config.json".to_string(), br#"{"dev_reference": true, "dim": 8}"#.to_vec());

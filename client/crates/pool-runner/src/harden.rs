@@ -3,8 +3,8 @@
 //! are touched.
 //!
 //! * all OSes: no core dumps / crash dumps with job buffers.
-//! * Linux: `PR_SET_NO_NEW_PRIVS`, not dumpable, Landlock (read-only access to the model dir and system
-//!   library dirs, no writes anywhere), seccomp (no `socket` except AF_UNIX, no `execve`, no `ptrace`).
+//! * Linux: `PR_SET_NO_NEW_PRIVS`, not dumpable, Landlock (read-only access to the model dir, the verified ONNX
+//!   Runtime pack dir and system library dirs, no writes anywhere), seccomp (no `socket` except AF_UNIX, no `execve`, no `ptrace`).
 //! * Windows: no WER dialog / dump (`SetErrorMode`); network and file isolation come from the
 //!   AppContainer + Job Object set up by the parent.
 //! * macOS: no core dumps; isolation comes from the `sandbox-exec` profile set up by the parent.
@@ -46,6 +46,11 @@ fn landlock_restrict(model_dir: &Path) -> String {
     use landlock::{path_beneath_rules, Access, AccessFs, Ruleset, RulesetAttr, RulesetCreatedAttr, ABI};
     let abi = ABI::V2;
     let mut read_dirs: Vec<std::path::PathBuf> = vec![model_dir.to_path_buf()];
+    // The ONNX Runtime pack (`accel`), read-only: the directory pool-core verified against the pins and passed in
+    // `POOL_ORT_PACK_DIR`. The runner checks every file again before loading it. Only an absolute directory counts.
+    if let Some(pack) = pack_dir_from_env() {
+        read_dirs.push(pack);
+    }
     for d in ["/usr/lib", "/usr/lib64", "/lib", "/lib64", "/etc/ld.so.cache", "/proc/self", "/sys/devices/system/cpu", "/sys/fs/cgroup"] {
         if Path::new(d).exists() {
             read_dirs.push(d.into());
@@ -91,6 +96,13 @@ fn landlock_restrict(model_dir: &Path) -> String {
         Ok(s) => format!("{:?}", s.ruleset),
         Err(e) => format!("error: {e}"),
     }
+}
+
+/// The pack directory pool-core passed to this runner (`crate::accel::PACK_ENV`), if it is an absolute directory.
+#[cfg(target_os = "linux")]
+fn pack_dir_from_env() -> Option<std::path::PathBuf> {
+    let p = std::path::PathBuf::from(std::env::var_os(crate::accel::PACK_ENV)?);
+    (p.is_absolute() && p.is_dir()).then_some(p)
 }
 
 /// Syscalls the runner never needs and a compromised parser would want. Previously `socket` was allowed for

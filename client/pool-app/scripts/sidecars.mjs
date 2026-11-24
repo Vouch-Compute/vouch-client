@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { table, targetKey } from "./runtime-packs.mjs";
 
 const release = process.argv.includes("--release");
 const here = dirname(fileURLToPath(import.meta.url));
@@ -25,17 +26,19 @@ const targetDir =
 
 const prod = process.env.POOL_RELEASE_FEATURES === "prod" || process.env.POOL_RELEASE === "1";
 if (prod) process.env.POOL_RELEASE = "1";
-// Windows runners include the ONNX Runtime backend, which runs on the GPU through the pinned DirectML
-// pack (scripts/gpu-pack.mjs, bundled as resources by tauri.windows.conf.json) and falls back to its CPU provider.
-const win = triple.includes("windows");
+// Runners include the ONNX Runtime backend on every target with a pinned runtime pack (crates/pool-runner/packs.json:
+// Windows x64 with DirectML, macOS arm64 and Linux x64 CPU-only). scripts/runtime-packs.mjs fetches the pack and checks
+// every file against its pin; tauri.<os>.conf.json bundles it as resources.
+const packs = table.packs.filter((p) => p.target === targetKey(triple));
+const onnx = packs.some((p) => p.runtime === "onnxruntime");
 const runnerFeats = prod
-  ? ["--no-default-features", "--features", win ? "candle,onnx" : "candle"]
-  : win ? ["--features", "onnx"] : [];
+  ? ["--no-default-features", "--features", onnx ? "candle,onnx" : "candle"]
+  : onnx ? ["--features", "onnx"] : [];
 const builds = [
   ["pool-core", prod ? ["--no-default-features", "--features", "nvml,release"] : []],
   ["pool-runner", runnerFeats],
 ];
-if (win) execFileSync(process.execPath, [join(here, "gpu-pack.mjs")], { stdio: "inherit" });
+if (packs.length) execFileSync(process.execPath, [join(here, "runtime-packs.mjs"), "--target", targetKey(triple)], { stdio: "inherit" });
 for (const [pkg, feats] of builds) {
   const args = ["build", "-p", pkg, "--bin", pkg, ...(release ? ["--release"] : []), ...feats];
   if (process.env.TAURI_ENV_TARGET_TRIPLE) args.push("--target", triple);

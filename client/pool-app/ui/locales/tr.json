@@ -233,6 +233,7 @@
     "notRegistered": "Kayıtlı değil",
     "keyTpm": "TPM 2.0 (donanım, dışa aktarılamaz)",
     "keySoftware": "Yazılım anahtarı (geliştirme seviyesi: Deneme seviyesiyle sınırlı)",
+    "capped": "Hiçbir donanım güvenlik yongası doğrulanmadığı için bu cihaz, kazançları sınırlı olan Deneme seviyesinde kalır.",
     "trustCeiling": "Güven üst sınırı",
     "sandbox": "Korumalı alan",
     "notUsedYet": "Henüz kullanılmadı",
@@ -362,6 +363,8 @@
       },
       "blocked": {
         "title": "Bu bilgisayar henüz kaydedilemiyor",
+        "reasonHwIds": "Bu bilgisayar kayıt için yeterli donanım bilgisi bildirmedi.",
+        "reasonAttestation": "Bu bilgisayar şu anda ücretli iş için kaydedilemiyor.",
         "openDevices": "Web'de Cihazlar'ı aç",
         "verify": "Web'de doğrulayın",
         "manage": "Cihazları yönet",
@@ -381,7 +384,6 @@
         "title": "Her şey hazır",
         "lede": "Bu bilgisayar kaydedildi. Sırada kısa bir performans testi var; ardından Vouch Compute, sınırlarınız içinde kendi kendine çalışır.",
         "infoOnly": "Yalnızca bilginiz için. Ne kazanabileceğinizi uygulamanın bildirdikleri değil, performans testi belirler.",
-        "noTpm": "Donanım güvenlik yongası olmadan bu cihaz, kazançları sınırlı olan Deneme seviyesinde kalır.",
         "summary": "{minutes, plural, one {# dakika} other {# dakika}} boyunca uzakta kaldığınızda başlar ve {temp, number} °C'nin üstünde duraklar. Bunu istediğiniz zaman Ayarlar'dan değiştirebilirsiniz.",
         "summaryBattery": "{minutes, plural, one {# dakika} other {# dakika}} boyunca uzakta kaldığınızda başlar, {temp, number} °C'nin üstünde duraklar ve pil gücünde asla çalışmaz. Bunu istediğiniz zaman Ayarlar'dan değiştirebilirsiniz.",
         "open": "Vouch Compute'u aç"

@@ -233,6 +233,7 @@
     "notRegistered": "未注册",
     "keyTpm": "TPM 2.0（硬件，不可导出）",
     "keySoftware": "软件密钥（开发级别：最高为考察期等级）",
+    "capped": "未验证到硬件安全芯片，因此此设备将停留在考察期等级，收益受到限制。",
     "trustCeiling": "信任上限",
     "sandbox": "沙盒",
     "notUsedYet": "尚未使用",
@@ -362,6 +363,8 @@
       },
       "blocked": {
         "title": "这台电脑暂时无法注册",
+        "reasonHwIds": "这台电脑报告的硬件信息不足，无法注册。",
+        "reasonAttestation": "这台电脑目前无法注册以进行有报酬的工作。",
         "openDevices": "在网页上打开“设备”",
         "verify": "在网页上验证",
         "manage": "管理设备",
@@ -381,7 +384,6 @@
         "title": "设置完成",
         "lede": "这台电脑已注册。接下来将进行一次简短的基准测试；之后 Vouch Compute 会在您设定的限制内自动工作。",
         "infoOnly": "仅供参考。您能获得多少收益由基准测试决定，而不是由应用报告的信息决定。",
-        "noTpm": "没有硬件安全芯片，此设备将停留在考察期等级，收益受到限制。",
         "summary": "离开 {minutes, plural, other {# 分钟}}后开始，高于 {temp, number} °C 时暂停。您可以随时在“设置”中更改。",
         "summaryBattery": "离开 {minutes, plural, other {# 分钟}}后开始，高于 {temp, number} °C 时暂停，且绝不使用电池运行。您可以随时在“设置”中更改。",
         "open": "打开 Vouch Compute"

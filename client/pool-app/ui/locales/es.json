@@ -233,6 +233,7 @@
     "notRegistered": "No registrado",
     "keyTpm": "TPM 2.0 (hardware, no exportable)",
     "keySoftware": "Clave de software (nivel de desarrollo: limitado a periodo de prueba)",
+    "capped": "No se verificó ningún chip de seguridad de hardware, así que este dispositivo se queda en el nivel de periodo de prueba, con ganancias limitadas.",
     "trustCeiling": "Nivel de confianza máximo",
     "sandbox": "Entorno aislado",
     "notUsedYet": "Aún sin usar",
@@ -362,6 +363,8 @@
       },
       "blocked": {
         "title": "Este equipo aún no se puede registrar",
+        "reasonHwIds": "Este equipo no informó suficientes datos de hardware para registrarse.",
+        "reasonAttestation": "Este equipo no se puede registrar para trabajo pagado en este momento.",
         "openDevices": "Abrir Dispositivos en la web",
         "verify": "Verificar en la web",
         "manage": "Gestionar dispositivos",
@@ -381,7 +384,6 @@
         "title": "Todo listo",
         "lede": "Este equipo está registrado. Ahora viene una breve prueba de rendimiento; después Vouch Compute trabaja por su cuenta, dentro de tus límites.",
         "infoOnly": "Solo a título informativo. Lo que puedes ganar lo decide una prueba de rendimiento, nunca lo que informa la app.",
-        "noTpm": "Sin chip de seguridad de hardware, este dispositivo se queda en el nivel de periodo de prueba, con ganancias limitadas.",
         "summary": "Empieza tras {minutes, plural, one {# minuto} many {# minutos} other {# minutos}} de ausencia y se pausa por encima de {temp, number} °C. Puedes cambiarlo cuando quieras en Ajustes.",
         "summaryBattery": "Empieza tras {minutes, plural, one {# minuto} many {# minutos} other {# minutos}} de ausencia, se pausa por encima de {temp, number} °C y nunca funciona con batería. Puedes cambiarlo cuando quieras en Ajustes.",
         "open": "Abrir Vouch Compute"

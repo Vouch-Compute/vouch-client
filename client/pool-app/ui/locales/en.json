@@ -233,6 +233,7 @@
     "notRegistered": "Not registered",
     "keyTpm": "TPM 2.0 (hardware, non-exportable)",
     "keySoftware": "Software key (dev tier: capped at Probation)",
+    "capped": "No hardware security chip was verified, so this device stays in the Probation tier with capped earnings.",
     "trustCeiling": "Trust ceiling",
     "sandbox": "Sandbox",
     "notUsedYet": "Not used yet",
@@ -362,6 +363,8 @@
       },
       "blocked": {
         "title": "This computer can't be registered yet",
+        "reasonHwIds": "This computer did not report enough hardware details to register.",
+        "reasonAttestation": "This computer can't be registered for paid work right now.",
         "openDevices": "Open Devices on the web",
         "verify": "Verify on the web",
         "manage": "Manage devices",
@@ -381,7 +384,6 @@
         "title": "You're set",
         "lede": "This computer is registered. A short benchmark comes next; then Vouch Compute works on its own, within your limits.",
         "infoOnly": "For your information only. What you can earn is decided by a benchmark, never by what the app reports.",
-        "noTpm": "Without a hardware security chip this device stays in the Probation tier, with capped earnings.",
         "summary": "Starts after {minutes, plural, one {# minute} other {# minutes}} away and pauses above {temp, number} °C. You can change this any time in Settings.",
         "summaryBattery": "Starts after {minutes, plural, one {# minute} other {# minutes}} away, pauses above {temp, number} °C and never runs on battery. You can change this any time in Settings.",
         "open": "Open Vouch Compute"

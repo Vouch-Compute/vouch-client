@@ -115,6 +115,7 @@ fn fixture_manifest() -> ModelManifest {
         input_format: pool_proto::EMBED_BATCH_FORMAT.into(),
         issued_at: 1,
         approvals: vec!["alice".into(), "bob".into()],
+        approval_mode: None,
     }
 }
 

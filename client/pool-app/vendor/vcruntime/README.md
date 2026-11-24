@@ -14,10 +14,10 @@ The files are Microsoft-signed redistributable binaries (Visual C++ Redistributa
 
 How they are used:
 
-* `scripts/gpu-pack.mjs` copies them into the GPU backend pack only after their SHA-256 matches the pin list in
-  `crates/pool-runner/src/accel.rs` (`PINNED`); a mismatch stops the build.
+* `scripts/runtime-packs.mjs` copies them into the Windows ONNX Runtime pack only after their SHA-256 matches the pin
+  table `crates/pool-runner/packs.json`; a mismatch stops the build.
 * On every job start, the agent and the sandboxed runner both re-check every pinned file of the pack and load
   them by full path in a fixed order. There is no fallback to a system copy.
 
-Updating: replace the files, update the hashes in `PINNED` (and this table), rebuild the pack. A new pin only
+Updating: replace the files, update the hashes in `packs.json` (and this table), rebuild the pack. A new pin only
 reaches users through a signed app update.

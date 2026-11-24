@@ -1,47 +1,89 @@
-//! GPU acceleration through a pinned ONNX Runtime **backend pack**.
+//! Native runtime **packs** (ONNX Runtime today) and the GPU device choice for candle.
 //!
-//! On Windows, GPUs are used through DirectML: a DX12 API in Microsoft's prebuilt `onnxruntime.dll` (DirectML build)
-//! plus `DirectML.dll`, loaded at runtime (`ort` `load-dynamic`). It runs on any DX12 GPU (NVIDIA, AMD, Intel) and
-//! needs neither a CUDA toolkit nor an MSVC build.
+//! A pack is a fixed set of prebuilt library files for one runtime and one target. Which packs exist, their files,
+//! load order and SHA-256 are **data** (`packs.json` next to this crate's `Cargo.toml`, compiled into the binary), so
+//! another runtime or target is added by adding an entry, not code:
+//! * Windows x64 (`ort-directml`): Microsoft's ONNX Runtime DirectML build with `DirectML.dll` and the Visual C++
+//!   runtime. GPUs through DirectML (any DX12 GPU), with the pack's own CPU provider as fallback.
+//! * macOS arm64 and Linux x64 (`ort-cpu`): Microsoft's ONNX Runtime CPU library from the official
+//!   `Microsoft.ML.OnnxRuntime` nuget.org package (owner decision T-218). CPU provider only.
 //!
 //! Rules:
-//! * The pack is a fixed set of files whose SHA-256 is **pinned in this binary** ([`PINNED`]): Microsoft's releases,
-//!   all Authenticode-signed by Microsoft. Any other file or version is refused.
-//! * The pins are checked on **every job start**, by the agent (before it lets the sandbox read the pack) and again by
-//!   the runner (right before loading). A pin changes only with a signed app update.
-//! * Every pinned DLL is loaded by **full path** after its hash matched, in [`PINNED`] order: the Visual C++ runtime
-//!   first, then `DirectML.dll`, then `onnxruntime.dll`, so each import resolves to an already-loaded, checked module,
-//!   never to whatever copy the machine has installed or a DLL placed next to the runner.
-//! * The pack directory is only *readable* inside the sandbox (the agent grants read access like a model dir); the
-//!   runner gets no network or other file access for it. Models still come only from signed bundles.
-//! * A missing or mismatching pack refuses `onnxruntime` jobs: ONNX Runtime is never searched for on the default DLL
-//!   path, and there is no fallback through another library. With the pinned pack, a GPU failure (no DX12 GPU, a
-//!   driver error) falls back to the pack's own CPU provider; the backend actually used is reported
+//! * Every file is checked against its pin on **every job start**, by the agent (before it lets the sandbox read the
+//!   pack) and again by the runner (right before loading). Any other file or version is refused. A pin changes only
+//!   with a signed app update.
+//! * Every pinned file is loaded by **full path** after its hash matched, in the listed order, so each import resolves
+//!   to an already-loaded, checked module, never to a copy the machine has installed or a library placed next to the
+//!   runner. The runtime is then initialised from the pack's `library` by full path (`ort` `load-dynamic`).
+//! * The pack directory is only *readable* inside the sandbox (the agent grants read access like a model dir; on
+//!   Linux the runner adds it to its Landlock read set); the runner gets no network or other file access for it.
+//!   Models still come only from signed bundles.
+//! * A missing or mismatching pack refuses `onnxruntime` jobs: ONNX Runtime is never searched for on the default
+//!   library path, and there is no fallback through another library. The backend actually used is reported
 //!   (`onnxruntime-directml` / `onnxruntime-cpu`), never assumed.
 
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 /// Environment variable through which pool-core passes the verified pack directory to the sandboxed runner.
 pub const PACK_ENV: &str = "POOL_ORT_PACK_DIR";
 
-/// The pinned pack: file name and SHA-256 (hex), in load order. Windows x64:
-/// * the Visual C++ 2015-2022 runtime 14.51.36247.0 that `onnxruntime.dll` links against (`vcruntime140.dll`,
-///   `vcruntime140_1.dll`, `msvcp140.dll`; Microsoft's redistributable files, shipped app-local from
-///   `pool-app/vendor/vcruntime/`), so the GPU path never depends on what the machine has installed;
-/// * Microsoft.AI.DirectML 1.15.4 (`bin/x64-win/DirectML.dll`);
-/// * Microsoft.ML.OnnxRuntime.DirectML 1.22.0 (`runtimes/win-x64/native/onnxruntime.dll`).
-#[cfg(windows)]
-pub const PINNED: &[(&str, &str)] = &[
-    ("vcruntime140.dll", "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7"),
-    ("vcruntime140_1.dll", "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e"),
-    ("msvcp140.dll", "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca"),
-    ("DirectML.dll", "9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1"),
-    ("onnxruntime.dll", "95366724919f4e95ecc60010912ed538ad9804b6683fbd0aad389749102834b9"),
-];
-/// No pinned GPU pack on this OS: Linux GPUs use the `cuda` feature (candle), and Apple silicon Macs use the `metal`
-/// feature (candle on the system Metal framework, nothing to pin). Intel Macs have no GPU path and use the CPU.
-#[cfg(not(windows))]
-pub const PINNED: &[(&str, &str)] = &[];
+/// The pack table (`packs.json`).
+pub const PACKS_JSON: &str = include_str!("../packs.json");
+
+/// One pinned runtime pack.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Pack {
+    pub runtime: String,
+    /// `<os>-<arch>` as [`std::env::consts`] spells them, e.g. `macos-aarch64`.
+    pub target: String,
+    /// Directory name under `backends/` in the installed app.
+    pub dir: String,
+    /// The file the runtime is initialised from (one of `files`).
+    pub library: String,
+    /// In load order.
+    pub files: Vec<PackFile>,
+}
+
+/// One pinned file: its name in the pack directory and its SHA-256 (lower-case hex). Where it comes from is read
+/// only by the build scripts.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct PackFile {
+    pub name: String,
+    pub sha256: String,
+}
+
+#[derive(serde::Deserialize)]
+struct PackTable {
+    packs: Vec<Pack>,
+}
+
+/// Every pack in `packs.json`. A malformed table is a build defect caught by the tests; at run time it yields no
+/// packs, so every ONNX job is refused (fail closed).
+pub fn packs() -> &'static [Pack] {
+    static PACKS: OnceLock<Vec<Pack>> = OnceLock::new();
+    PACKS.get_or_init(|| serde_json::from_str::<PackTable>(PACKS_JSON).map(|t| t.packs).unwrap_or_default())
+}
+
+/// This binary's target key, e.g. `windows-x86_64`.
+pub fn this_target() -> String {
+    format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH)
+}
+
+/// The pack of `runtime` for `target`, if one is pinned.
+pub fn pack_for(runtime: &str, target: &str) -> Option<&'static Pack> {
+    packs().iter().find(|p| p.runtime == runtime && p.target == target)
+}
+
+/// The ONNX Runtime pack for this binary's target (`None`: ONNX jobs cannot run here).
+pub fn ort_pack() -> Option<&'static Pack> {
+    pack_for("onnxruntime", &this_target())
+}
+
+/// The pinned files of this target's ONNX Runtime pack, in load order (empty when there is none).
+pub fn pinned() -> &'static [PackFile] {
+    ort_pack().map(|p| p.files.as_slice()).unwrap_or(&[])
+}
 
 /// This build can run candle jobs on an Apple silicon GPU through Metal (`metal` feature, macOS, aarch64). Reported by
 /// `pool-runner capabilities`; the agent grants the GPU sandbox rules only when it is true.
@@ -130,9 +172,6 @@ fn metal_device_visible() -> bool {
     true
 }
 
-/// The ONNX Runtime library inside the pack.
-pub const ORT_LIB: &str = if cfg!(windows) { "onnxruntime.dll" } else { "libonnxruntime.so" };
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PackError {
     NoPack,
@@ -144,26 +183,32 @@ pub enum PackError {
 impl std::fmt::Display for PackError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PackError::NoPack => write!(f, "no GPU backend pack for this OS"),
-            PackError::Missing(n) => write!(f, "backend pack lacks {n}"),
-            PackError::HashMismatch(n) => write!(f, "backend pack file {n} does not match its pinned SHA-256"),
-            PackError::Load(e) => write!(f, "backend pack failed to load: {e}"),
+            PackError::NoPack => write!(f, "no ONNX Runtime pack for this OS"),
+            PackError::Missing(n) => write!(f, "runtime pack lacks {n}"),
+            PackError::HashMismatch(n) => write!(f, "runtime pack file {n} does not match its pinned SHA-256"),
+            PackError::Load(e) => write!(f, "runtime pack failed to load: {e}"),
         }
     }
 }
 
-/// Check every pinned file of the pack in `dir`. Used by pool-core before it grants the sandbox read access, and by
-/// the runner again right before loading.
+/// Check every pinned file of this target's ONNX Runtime pack in `dir`. Used by pool-core before it grants the
+/// sandbox read access, and by the runner again right before loading. Returns the files' full paths in load order.
 pub fn verify_pack(dir: &Path) -> Result<Vec<PathBuf>, PackError> {
-    if PINNED.is_empty() {
+    let Some(pack) = ort_pack() else { return Err(PackError::NoPack) };
+    verify_files(dir, &pack.files)
+}
+
+/// Check `files` in `dir` against their pins.
+pub fn verify_files(dir: &Path, files: &[PackFile]) -> Result<Vec<PathBuf>, PackError> {
+    if files.is_empty() {
         return Err(PackError::NoPack);
     }
-    let mut out = Vec::with_capacity(PINNED.len());
-    for (name, want) in PINNED {
-        let p = dir.join(name);
-        let bytes = std::fs::read(&p).map_err(|_| PackError::Missing((*name).into()))?;
-        if hex::encode(pool_proto::sha256(&bytes)) != *want {
-            return Err(PackError::HashMismatch((*name).into()));
+    let mut out = Vec::with_capacity(files.len());
+    for f in files {
+        let p = dir.join(&f.name);
+        let bytes = std::fs::read(&p).map_err(|_| PackError::Missing(f.name.clone()))?;
+        if hex::encode(pool_proto::sha256(&bytes)) != f.sha256 {
+            return Err(PackError::HashMismatch(f.name.clone()));
         }
         out.push(p);
     }
@@ -188,19 +233,42 @@ fn load_by_full_path(p: &Path) -> Result<(), PackError> {
     Ok(())
 }
 
-/// Verify and load the pack named by [`PACK_ENV`] and initialise `ort` from it. `Ok(true)` = the GPU pack is ready.
+#[cfg(all(unix, feature = "onnx"))]
+fn load_by_full_path(p: &Path) -> Result<(), PackError> {
+    use std::os::unix::ffi::OsStrExt;
+    let c = std::ffi::CString::new(p.as_os_str().as_bytes()).map_err(|e| PackError::Load(e.to_string()))?;
+    // SAFETY: a valid NUL-terminated path; the handle stays open for the process lifetime (one job).
+    let h = unsafe { libc::dlopen(c.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL) };
+    if h.is_null() {
+        // SAFETY: dlerror returns a thread-local C string or NULL, read right after the failing call
+        let e = unsafe { libc::dlerror() };
+        let msg = if e.is_null() {
+            "dlopen failed".to_string()
+        } else {
+            // SAFETY: non-null, NUL-terminated, valid until the next dl* call on this thread
+            unsafe { std::ffi::CStr::from_ptr(e) }.to_string_lossy().into_owned()
+        };
+        return Err(PackError::Load(format!("{}: {msg}", p.display())));
+    }
+    Ok(())
+}
+
+/// Verify and load the pack named by [`PACK_ENV`] and initialise `ort` from it. `Ok(true)` = the pack is ready.
 #[cfg(feature = "onnx")]
 pub fn init_from_env() -> Result<bool, PackError> {
     let Some(dir) = std::env::var_os(PACK_ENV).map(PathBuf::from) else {
         return Ok(false);
     };
-    let files = verify_pack(&dir)?;
-    #[cfg(windows)]
+    let pack = ort_pack().ok_or(PackError::NoPack)?;
+    let files = verify_files(&dir, &pack.files)?;
     for f in &files {
         load_by_full_path(f)?;
     }
-    let _ = files;
-    ort::init_from(dir.join(ORT_LIB).to_string_lossy()).commit().map_err(|e| PackError::Load(e.to_string()))?;
+    let lib = dir.join(&pack.library);
+    if !files.contains(&lib) {
+        return Err(PackError::Missing(pack.library.clone()));
+    }
+    ort::init_from(lib.to_string_lossy()).commit().map_err(|e| PackError::Load(e.to_string()))?;
     Ok(true)
 }
 
@@ -211,19 +279,40 @@ mod tests {
     #[test]
     fn pack_files_must_match_their_pins() {
         let d = tempfile::tempdir().unwrap();
-        if PINNED.is_empty() {
+        let pinned = pinned();
+        if pinned.is_empty() {
             assert_eq!(verify_pack(d.path()), Err(PackError::NoPack));
             return;
         }
-        assert_eq!(verify_pack(d.path()), Err(PackError::Missing(PINNED[0].0.into())));
-        for (name, _) in PINNED {
-            std::fs::write(d.path().join(name), b"not the pinned file").unwrap();
+        assert_eq!(verify_pack(d.path()), Err(PackError::Missing(pinned[0].name.clone())));
+        for f in pinned {
+            std::fs::write(d.path().join(&f.name), b"not the pinned file").unwrap();
         }
-        assert_eq!(verify_pack(d.path()), Err(PackError::HashMismatch(PINNED[0].0.into())));
-        // pins are lower-case hex SHA-256
-        for (_, h) in PINNED {
-            assert_eq!(h.len(), 64);
-            assert!(h.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)));
+        assert_eq!(verify_pack(d.path()), Err(PackError::HashMismatch(pinned[0].name.clone())));
+    }
+
+    /// The table parses, and every entry is well formed: one pack per runtime and target, plain file names,
+    /// lower-case hex SHA-256 pins, the library among the files.
+    #[test]
+    fn pack_table_is_well_formed() {
+        let t: PackTable = serde_json::from_str(PACKS_JSON).expect("packs.json parses");
+        assert_eq!(t.packs.len(), packs().len());
+        let plain = |n: &str| !n.is_empty() && !n.starts_with('.') && n.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c));
+        let mut seen = std::collections::HashSet::new();
+        for p in packs() {
+            assert!(seen.insert((p.runtime.clone(), p.target.clone())), "duplicate pack {} {}", p.runtime, p.target);
+            assert!(!p.files.is_empty(), "{}", p.target);
+            assert!(p.files.iter().any(|f| f.name == p.library), "{}: library not among the files", p.target);
+            assert!(plain(&p.dir), "{}", p.dir);
+            for f in &p.files {
+                assert!(plain(&f.name), "{}", f.name);
+                assert_eq!(f.sha256.len(), 64, "{}", f.name);
+                assert!(f.sha256.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)), "{}", f.name);
+            }
+        }
+        // the three desktop targets have an ONNX Runtime pack
+        for target in ["windows-x86_64", "macos-aarch64", "linux-x86_64"] {
+            assert!(pack_for("onnxruntime", target).is_some(), "{target}");
         }
     }
 }

@@ -21,49 +21,41 @@ fn sidecars_only_under_tauri_cli() {
     }
 }
 
-/// The Windows GPU backend pack (`backends/ort-directml/`, bundled by `tauri.windows.conf.json`). The real files come
-/// from `node scripts/gpu-pack.mjs`, which checks each against its pin in `crates/pool-runner/src/accel.rs` and replaces
-/// any file that does not match.
+/// The pinned runtime packs of the target (`crates/pool-runner/packs.json`: `backends/ort-directml/` on Windows x64,
+/// `backends/ort-cpu/` on macOS arm64 and Linux x64), bundled by `tauri.<os>.conf.json`. The real files come from
+/// `node scripts/runtime-packs.mjs`, which checks each against its pin and replaces any file that does not match.
 /// * Non-release builds: a missing file gets an empty placeholder so a fresh checkout can `cargo build/test/clippy`.
 ///   A placeholder never matches its pin, so the agent and the runner refuse the pack at job start (ONNX jobs
-///   do not run) and gpu-pack.mjs replaces it.
+///   do not run) and runtime-packs.mjs replaces it.
 /// * Release builds (`POOL_RELEASE=1`): every pinned file must be present with its pinned SHA-256; a missing file, a
 ///   placeholder or any other mismatch fails the build, so no release bundle ships without the exact pinned pack.
-fn gpu_pack() {
-    if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
-        return;
-    }
+fn runtime_packs() {
     use sha2::{Digest, Sha256};
-    let accel = "../../crates/pool-runner/src/accel.rs";
-    println!("cargo:rerun-if-changed={accel}");
-    let src = fs::read_to_string(accel).expect("read accel.rs pins").replace("\r\n", "\n");
-    let start = src.find("#[cfg(windows)]\npub const PINNED").expect("windows PINNED in accel.rs");
-    let block = &src[start..start + src[start..].find("];").expect("end of PINNED")];
-    let pins: Vec<(&str, &str)> = block
-        .lines()
-        .filter_map(|l| {
-            let mut q = l.split('"');
-            let (_, name, _, hash) = (q.next()?, q.next()?, q.next()?, q.next()?);
-            (hash.len() == 64).then_some((name, hash))
-        })
-        .collect();
-    assert!(!pins.is_empty(), "no GPU pack pins found in accel.rs");
+    let table = "../../crates/pool-runner/packs.json";
+    println!("cargo:rerun-if-changed={table}");
+    let os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    let target = format!("{os}-{arch}");
+    let doc: serde_json::Value = serde_json::from_str(&fs::read_to_string(table).expect("read packs.json")).expect("packs.json parses");
     let release = env::var("POOL_RELEASE").as_deref() == Ok("1");
-    let dir = PathBuf::from("backends").join("ort-directml");
-    fs::create_dir_all(&dir).unwrap();
-    for (name, pin) in pins {
-        let p = dir.join(name);
-        println!("cargo:rerun-if-changed={}", p.display());
-        if release {
-            let got = fs::read(&p).map(|b| hex(&Sha256::digest(&b))).unwrap_or_default();
-            assert!(
-                got == pin,
-                "release build: GPU pack file {} is missing, a placeholder or does not match its pin (run `node scripts/gpu-pack.mjs`)",
-                p.display()
-            );
-        } else if !p.exists() {
-            println!("cargo:warning=GPU pack file {} missing; writing a placeholder (run `node scripts/gpu-pack.mjs`)", p.display());
-            fs::write(&p, b"").unwrap();
+    for pack in doc["packs"].as_array().expect("packs array").iter().filter(|p| p["target"] == target.as_str()) {
+        let dir = PathBuf::from("backends").join(pack["dir"].as_str().expect("pack dir"));
+        fs::create_dir_all(&dir).unwrap();
+        for f in pack["files"].as_array().expect("pack files") {
+            let (name, pin) = (f["name"].as_str().expect("file name"), f["sha256"].as_str().expect("file sha256"));
+            let p = dir.join(name);
+            println!("cargo:rerun-if-changed={}", p.display());
+            if release {
+                let got = fs::read(&p).map(|b| hex(&Sha256::digest(&b))).unwrap_or_default();
+                assert!(
+                    got == pin,
+                    "release build: runtime pack file {} is missing, a placeholder or does not match its pin (run `node scripts/runtime-packs.mjs`)",
+                    p.display()
+                );
+            } else if !p.exists() {
+                println!("cargo:warning=runtime pack file {} missing; writing a placeholder (run `node scripts/runtime-packs.mjs`)", p.display());
+                fs::write(&p, b"").unwrap();
+            }
         }
     }
 }
@@ -109,7 +101,7 @@ fn main() {
     build_time();
     release_channel();
     sidecars_only_under_tauri_cli();
-    gpu_pack();
+    runtime_packs();
     let mut attrs = tauri_build::Attributes::new();
     if env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("windows") {
         let out = PathBuf::from(env::var("OUT_DIR").unwrap());

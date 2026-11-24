@@ -28,8 +28,8 @@ pub struct Config {
     pub model_cache_gb: u32,
     /// Try the TPM for the device key (Windows).
     pub prefer_tpm: bool,
-    /// The pinned GPU backend pack (default: `backends/ort-directml` next to the agent). Used only if every
-    /// file matches its pinned SHA-256; `use_gpu: false` turns the GPU path off.
+    /// The pinned ONNX Runtime pack (default: the app's `backends/<dir>`, see [`Config::ort_pack_dir`]). Used only
+    /// if every file matches its pinned SHA-256. Windows: `use_gpu: false` turns the DirectML path off.
     pub ort_pack_dir: Option<PathBuf>,
     pub use_gpu: bool,
     /// Dev builds only (`dev-trust`): KeySet root public keys (base64 SPKI) of the local dev server,
@@ -119,16 +119,18 @@ impl Config {
         cfg!(feature = "dev-trust") && self.dev
     }
 
-    /// Where to look for the GPU backend pack (`None` when the GPU path is off).
+    /// Where to look for the ONNX Runtime pack. Windows: `None` when the GPU path is off (its pack is the DirectML
+    /// build). macOS and Linux: always, because their pack is CPU-only.
     pub fn ort_pack_dir(&self) -> Option<PathBuf> {
-        if !self.use_gpu {
+        if cfg!(windows) && !self.use_gpu {
             return None;
         }
         if let Some(p) = &self.ort_pack_dir {
             return Some(p.clone());
         }
         let exe = std::env::current_exe().ok()?;
-        Some(exe.parent()?.join("backends").join("ort-directml"))
+        let dir = &pool_runner::accel::ort_pack()?.dir;
+        default_pack_dirs(&exe, dir).into_iter().find(|p| p.is_dir())
     }
 
     pub fn runner_exe(&self) -> PathBuf {
@@ -141,6 +143,27 @@ impl Config {
         // Tauri bundles sidecars with the target-triple suffix stripped, next to the app binary.
         dir.join(name)
     }
+}
+
+/// Product name of the app, as the bundler uses it for the Linux resource directory (`tauri.conf.json`
+/// `productName`; a pool-app test keeps the two equal).
+pub const PRODUCT_NAME: &str = "Vouch Compute";
+
+/// Where the installed app keeps a runtime pack `backends/<dir>`, relative to the agent binary (bundled next to the app
+/// binary), in the order tried. Every file is still checked against its pin before use.
+/// * next to the binary: Windows installs, and `cargo`/`tauri dev` target directories;
+/// * macOS `.app`: `Contents/MacOS/pool-core` -> `Contents/Resources/backends/<dir>`;
+/// * Linux `.deb` (`/usr/bin`) and AppImage (`$APPDIR/usr/bin`): `../lib/<product name>/backends/<dir>`.
+pub fn default_pack_dirs(exe: &Path, dir: &str) -> Vec<PathBuf> {
+    let Some(bin) = exe.parent() else { return vec![] };
+    let mut out = vec![bin.join("backends").join(dir)];
+    if cfg!(target_os = "macos") {
+        out.push(bin.join("..").join("Resources").join("backends").join(dir));
+    }
+    if cfg!(target_os = "linux") {
+        out.push(bin.join("..").join("lib").join(PRODUCT_NAME).join("backends").join(dir));
+    }
+    out
 }
 
 /// Persisted agent state.
@@ -167,6 +190,9 @@ pub struct State {
     pub hw_report_last_attempt_ms: Option<u64>,
     /// Persisted name of the TPM device key after a key rotation (`None` = the default name).
     pub tpm_key_name: Option<String>,
+    /// CR-T213-01: this device enrolled with a software key because its TPM could not attest. The TPM is then
+    /// skipped when the key is loaded, so the enrolled key is found again. Cleared by "Remove this device".
+    pub software_key: bool,
 }
 
 /// The consent the user gave (or refused) in the app, with the exact text version shown.
@@ -224,6 +250,24 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The pack is looked for next to the agent first, then where each OS's bundle puts resources.
+    #[test]
+    fn pack_dirs_follow_the_bundle_layout() {
+        let exe = Path::new("/opt/app/bin/pool-core");
+        let dirs = default_pack_dirs(exe, "ort-cpu");
+        assert_eq!(dirs[0], Path::new("/opt/app/bin/backends/ort-cpu"));
+        if cfg!(target_os = "macos") {
+            assert_eq!(dirs[1], Path::new("/opt/app/bin/../Resources/backends/ort-cpu"));
+        }
+        if cfg!(target_os = "linux") {
+            assert_eq!(dirs[1], Path::new("/opt/app/bin/../lib/Vouch Compute/backends/ort-cpu"));
+        }
+        assert_eq!(dirs.len(), if cfg!(windows) { 1 } else { 2 });
+        // an explicit directory wins; Windows without the GPU setting has no pack (DirectML build)
+        let c = Config { ort_pack_dir: Some("/x/pack".into()), use_gpu: false, ..Default::default() };
+        assert_eq!(c.ort_pack_dir(), if cfg!(windows) { None } else { Some(PathBuf::from("/x/pack")) });
+    }
 
     /// What a release build does with a config pointing at a dev stack or another host: the release hosts win.
     #[test]

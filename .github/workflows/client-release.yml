@@ -61,7 +61,7 @@ jobs:
       VOUCH_RELEASE_UPDATER_PUBKEYS: ${{ vars.VOUCH_RELEASE_UPDATER_PUBKEYS }}
       VOUCH_RELEASE_UPDATE_URL: ${{ vars.VOUCH_RELEASE_UPDATE_URL }}
     steps:
-      # Keep LF: pool-app/scripts/gpu-pack.mjs reads the GPU pack pins from accel.rs, and the sources are LF-only.
+      # Keep LF: the sources and test fixtures are LF-only.
       - name: Check out with LF line endings
         working-directory: .
         run: git config --global core.autocrlf false
@@ -88,17 +88,16 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libgtk-3-dev libssl-dev patchelf
       - name: Release guard (a release build with dev-trust must fail to compile)
         run: bash ci/release-guard.sh
-      - name: Release sidecars (POOL_RELEASE=1, no dev-trust; Windows also fetches the pinned GPU pack)
+      - name: Release sidecars (POOL_RELEASE=1, no dev-trust; also fetches the target's pinned runtime pack)
         working-directory: client/pool-app
         env:
           POOL_RELEASE: "1"
         run: |
           npm ci --no-audit --no-fund
           node scripts/sidecars.mjs --release
-      - name: GPU pack matches its pins (refuses placeholders and mismatches)
-        if: runner.os == 'Windows'
+      - name: Runtime pack matches its pins (refuses placeholders and mismatches)
         working-directory: client/pool-app
-        run: node scripts/gpu-pack.mjs --check
+        run: node scripts/runtime-packs.mjs --check
       - name: Marker check before signing (refuses dev-trust binaries)
         run: bash ci/release-marker-check.sh pool-app/src-tauri/binaries
       # updater.rs passes each release key to the updater explicitly (current, then next); the overlay's `pubkey` is only
@@ -188,6 +187,8 @@ jobs:
             --bundles ${{ matrix.bundles }}
       - name: Marker check on the packaged app (refuses dev-trust builds)
         run: bash ci/release-marker-check.sh target/release/bundle pool-app/src-tauri/binaries
+      - name: Runtime pack in the packaged app (pinned bytes where the agent looks)
+        run: bash ci/release-pack-check.sh ${{ matrix.name }} target/release/bundle
       - name: No dev update channel or dev bundle id in the packaged app
         run: |
           if grep -r -a -l -F -e 'updates/vouchcompute-dev' -e 'com.vouchcompute.app.dev' target/release/bundle; then
