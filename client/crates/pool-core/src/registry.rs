@@ -45,7 +45,7 @@ pub fn file_download_limit(size: u64) -> std::time::Duration {
 struct Downloading<'a>(&'a Registry, [u8; 32]);
 impl Drop for Downloading<'_> {
     fn drop(&mut self) {
-        self.0.downloading.lock().unwrap().remove(&self.1);
+        self.0.downloading.lock().unwrap_or_else(|e| e.into_inner()).remove(&self.1);
     }
 }
 

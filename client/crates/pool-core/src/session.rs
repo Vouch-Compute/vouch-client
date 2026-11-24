@@ -967,9 +967,11 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
                 if pct < 100 {
                     let busy = now_ms() - s0;
                     let pause = busy * (100 - pct) / pct;
+                    let p0 = now_ms();
                     tokio::time::sleep(Duration::from_millis(pause)).await;
                     if t_start != 0 {
-                        slept_ms += pause;
+                        // the time really slept (timers overshoot), so the shown speed is not understated
+                        slept_ms += now_ms().saturating_sub(p0);
                     }
                 }
             }

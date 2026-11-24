@@ -227,8 +227,17 @@ impl Agent {
     }
 
     fn save(&self) {
-        if let Err(e) = self.state.lock().unwrap().save(&self.data_dir) {
-            tracing::error!("saving state: {e}");
+        let _ = self.try_save();
+    }
+
+    /// Save the state; `false` (logged) when it could not be written.
+    fn try_save(&self) -> bool {
+        match self.state.lock().unwrap().save(&self.data_dir) {
+            Ok(()) => true,
+            Err(e) => {
+                tracing::error!("saving state: {e}");
+                false
+            }
         }
     }
 
@@ -719,9 +728,12 @@ impl Agent {
         }
         *self.key.write().unwrap() = key.clone();
         self.set_enrollment(&reg.device_id, &reg.trust_ceiling);
-        // Housekeeping (vault follow-up to CR-T215-01): the TPM is skipped from now on, so its unused key is deleted.
+        // Housekeeping (vault follow-up to CR-T215-01): the TPM is skipped from now on, so its unused key is deleted,
+        // but only once `software_key` is safely on disk (else the next start would look for the TPM key again).
         if let Some(unused) = unused_tpm_key {
-            identity::discard_unused_key(unused.as_ref(), key.as_ref());
+            if self.try_save() {
+                identity::discard_unused_key(unused.as_ref(), key.as_ref());
+            }
         }
         Ok(())
     }

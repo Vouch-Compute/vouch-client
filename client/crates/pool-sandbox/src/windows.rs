@@ -202,11 +202,11 @@ fn grant_exe(path: &Path, sid: PSID) -> io::Result<()> {
     static DONE: OnceLock<Mutex<Vec<PathBuf>>> = OnceLock::new();
     let done = DONE.get_or_init(|| Mutex::new(Vec::new()));
     let canon = path.canonicalize()?;
-    if done.lock().unwrap().contains(&canon) {
+    if done.lock().unwrap_or_else(|e| e.into_inner()).contains(&canon) {
         return Ok(());
     }
     set_ace(path, sid, GRANT_ACCESS)?;
-    done.lock().unwrap().push(canon);
+    done.lock().unwrap_or_else(|e| e.into_inner()).push(canon);
     Ok(())
 }
 

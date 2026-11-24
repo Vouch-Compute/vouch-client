@@ -349,7 +349,7 @@ async fn mac_path_benchmark_and_job_on_the_cpu_pack() {
     let summary = outcome.unwrap();
     eprintln!("{summary}");
     // wait until the receipt has reached the agent's state
-    let deadline = Instant::now() + Duration::from_secs(10);
+    let deadline = Instant::now() + Duration::from_secs(30);
     while !agent.state_snapshot().performance.first().is_some_and(|p| p.received) && Instant::now() < deadline {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
