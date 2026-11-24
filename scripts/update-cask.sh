@@ -10,7 +10,7 @@
 #
 # VOUCH_DOWNLOAD_BASE is the per-version folder the release files are served from, as an https URL with Homebrew's
 # "#{version}" placeholder (two options, see the tap's README):
-#   https://github.com/MetehanAydemir/vouch-client/releases/download/client-macos-v#{version}   public GitHub release
+#   https://github.com/Vouch-Compute/vouch-client/releases/download/client-macos-v#{version}   public GitHub release
 #   https://downloads.vouchcompute.com/macos/#{version}                                        our download address
 #
 # When the Tauri config is found (VOUCH_TAURI_CONF, or client/pool-app/src-tauri/tauri.conf.json in this checkout),

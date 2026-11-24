@@ -21,8 +21,8 @@
 #                        placeholder (default: this repo's GitHub release download URL, which needs the repository to
 #                        be public; the other option is https://downloads.vouchcompute.com/macos/#{version}). The same
 #                        variable drives scripts/update-cask.sh, so the updater manifest and the Homebrew cask agree.
-#   RELEASE_REPO         default MetehanAydemir/vouch-client.
-#   VOUCH_TAP_DIR        a checkout of the Homebrew tap (MetehanAydemir/homebrew-tap); when set, the cask in it is
+#   RELEASE_REPO         default Vouch-Compute/vouch-client.
+#   VOUCH_TAP_DIR        a checkout of the Homebrew tap (Vouch-Compute/homebrew-tap); when set, the cask in it is
 #                        updated from SHA256SUMS at the end (nothing is committed).
 #
 # Secrets: the updater PRIVATE key is read from the environment only. This script never prints it, never writes it to
@@ -78,7 +78,7 @@ version="$(node -p 'require("./client/pool-app/src-tauri/tauri.conf.json").versi
 # Not "client-v<version>": pushing that tag starts the release workflow on GitHub Actions. This tag does not match it.
 tag="client-macos-v$version"
 commit="$(git rev-parse HEAD)"
-repo="${RELEASE_REPO:-MetehanAydemir/vouch-client}"
+repo="${RELEASE_REPO:-Vouch-Compute/vouch-client}"
 download_base="${VOUCH_DOWNLOAD_BASE:-https://github.com/$repo/releases/download/client-macos-v#{version}}"
 case "$download_base" in https://*) ;; *) die "VOUCH_DOWNLOAD_BASE must be https" ;; esac
 case "$download_base" in *'#{version}'*) ;; *) die 'VOUCH_DOWNLOAD_BASE must contain the #{version} placeholder' ;; esac
@@ -192,6 +192,6 @@ echo
 if [ -n "${VOUCH_TAP_DIR:-}" ]; then
   VOUCH_DOWNLOAD_BASE="$download_base" bash scripts/update-cask.sh "$out/SHA256SUMS" "$VOUCH_TAP_DIR/Casks/vouch-compute.rb"
 else
-  echo "Homebrew: to update the cask in a checkout of MetehanAydemir/homebrew-tap, run"
+  echo "Homebrew: to update the cask in a checkout of Vouch-Compute/homebrew-tap, run"
   printf "  VOUCH_DOWNLOAD_BASE=%q scripts/update-cask.sh %q <tap>/Casks/vouch-compute.rb\n" "$download_base" "$out/SHA256SUMS"
 fi

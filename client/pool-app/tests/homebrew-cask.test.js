@@ -93,9 +93,9 @@ function run(base, sumsFile = "SHA256SUMS") {
 const cases = [
   ["https://downloads.vouchcompute.com/macos/#{version}",
     'url "https://downloads.vouchcompute.com/macos/#{version}/VouchCompute-#{version}-macos-arm64.dmg",', 'verified: "downloads.vouchcompute.com/macos/"'],
-  ["https://github.com/MetehanAydemir/vouch-client/releases/download/client-macos-v#{version}/",
-    'url "https://github.com/MetehanAydemir/vouch-client/releases/download/client-macos-v#{version}/VouchCompute-#{version}-macos-arm64.dmg",',
-    'verified: "github.com/MetehanAydemir/vouch-client/"'],
+  ["https://github.com/Vouch-Compute/vouch-client/releases/download/client-macos-v#{version}/",
+    'url "https://github.com/Vouch-Compute/vouch-client/releases/download/client-macos-v#{version}/VouchCompute-#{version}-macos-arm64.dmg",',
+    'verified: "github.com/Vouch-Compute/vouch-client/"'],
 ];
 for (const [base, urlLine, verifiedLine] of cases) {
   const r = run(base);
