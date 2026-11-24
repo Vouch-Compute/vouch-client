@@ -36,8 +36,8 @@ const run = (target, bundle, env) => {
 };
 const tar = (args, cwd) => spawnSync(bash, ["-c", `tar ${args}`], { cwd, encoding: "utf8" });
 
-// a macOS bundle: the .app and its updater archive
-function macBundle(name, appBytes, tgzBytes) {
+// a macOS bundle: the .app and its updater archive (with its signature unless `sig` is false)
+function macBundle(name, appBytes, tgzBytes, sig = true) {
   const b = path.join(root, name);
   const app = path.join(b, "macos", `${product}.app`);
   const res = path.join(app, "Contents", "Resources", "backends", "ort-cpu");
@@ -51,6 +51,7 @@ function macBundle(name, appBytes, tgzBytes) {
     // to stdout: GNU tar would read "C:/..." as a remote host name
     const r = tar(`-czf - "${product}.app" > "${toPosix(path.join(b, "macos", `${product}.app.tar.gz`))}"`, stage);
     ok(r.status === 0, `tar: ${r.stderr}`);
+    if (sig) fs.writeFileSync(path.join(b, "macos", `${product}.app.tar.gz.sig`), "stand-in updater signature");
   }
   return b;
 }
@@ -67,6 +68,8 @@ r = run("macos-aarch64", macBundle("ok2", good, good), { RELEASE_PACK_REQUIRE: "
 ok(r.code !== 0 && /MISSING FORM: no dmg/.test(r.out), `a required form that is absent fails: ${r.out}`);
 r = run("macos-aarch64", macBundle("ok3", good, good), { RELEASE_PACK_REQUIRE: "app,updater" });
 ok(r.code === 0, `required forms present pass: ${r.out}`);
+r = run("macos-aarch64", macBundle("nosig", good, good, false), { RELEASE_PACK_REQUIRE: "app,updater" });
+ok(r.code !== 0 && /MISSING: no updater signature .*\.app\.tar\.gz\.sig/.test(r.out), `an updater archive without its signature fails: ${r.out}`);
 const empty = path.join(root, "empty");
 fs.mkdirSync(path.join(empty, "macos"), { recursive: true });
 r = run("macos-aarch64", empty);

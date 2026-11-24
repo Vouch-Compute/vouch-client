@@ -9,8 +9,9 @@
 #
 # Checked:
 # * macOS: each `<App>.app/Contents/Resources/backends/<dir>/`, the same inside every `.dmg` (mounted read-only) and
-#   inside every updater archive `<App>.app.tar.gz` (what auto-update installs); where `codesign` exists, each `.app`
-#   must also pass `codesign --verify --strict` (a valid seal over the bytes that were checked).
+#   inside every updater archive `<App>.app.tar.gz` (what auto-update installs), which must also have its non-empty
+#   updater signature `<App>.app.tar.gz.sig` next to it; where `codesign` exists, each `.app` must also pass
+#   `codesign --verify --strict` (a valid seal over the bytes that were checked).
 # * Linux: `.deb` and AppImage `usr/lib/<productName>/backends/<dir>/`.
 # * Windows: the NSIS installer is not unpacked here; its resources are the files build.rs already checked against the
 #   pins (POOL_RELEASE=1). A target without packs passes.
@@ -72,6 +73,7 @@ case "$target" in
     done
     for tgz in "$bundle"/macos/*.app.tar.gz; do
       [ -f "$tgz" ] || continue; saw updater
+      [ -s "$tgz.sig" ] || { echo "MISSING: no updater signature $(basename "$tgz").sig"; bad=1; }
       d="$work/updater$RANDOM"; mkdir -p "$d"; tar -xzf "$tgz" -C "$d"
       found=0
       for app in "$d"/*.app; do [ -d "$app" ] && { found=1; check_app "$app" "$(basename "$tgz")"; }; done
