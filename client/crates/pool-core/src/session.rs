@@ -902,8 +902,11 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
     });
     // The app's own view of the rate (display only): units the runtime reported for the runs that finished inside
     // the measured window, over the time from the window start to the end of the last of them.
+    // Pauses for the power slider are left out, so the number is this computer's speed while it works.
     let mut meter = Meter::default();
     let mut last_end = 0u64;
+    let mut slept_ms = 0u64;
+    let mut slept_at_end = 0u64;
     let mut backend: Option<String> = None;
     let slice_ms = (job.duration_s * 1000).div_ceil(BENCHMARK_SEGMENTS).max(1);
     let mut t_start = 0u64;
@@ -937,13 +940,14 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
                     }
                     meter.add(o.units_device_milli);
                     last_end = now;
+                    slept_at_end = slept_ms;
                 }
                 if o.backend.is_some() {
                     backend = o.backend.clone();
                 }
                 last_output = sha256(&o.output);
                 let n = segments.len() as u64;
-                let measured = meter.measured(unit, last_end.saturating_sub(t_start), backend.clone());
+                let measured = meter.measured(unit, last_end.saturating_sub(t_start).saturating_sub(slept_at_end), backend.clone());
                 deps.status.update(|s| {
                     if let Some(b) = &mut s.benchmark {
                         b.segments = n;
@@ -962,7 +966,11 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
                 let pct = u64::from(deps.settings_rx.borrow().power_pct.clamp(10, 100));
                 if pct < 100 {
                     let busy = now_ms() - s0;
-                    tokio::time::sleep(Duration::from_millis(busy * (100 - pct) / pct)).await;
+                    let pause = busy * (100 - pct) / pct;
+                    tokio::time::sleep(Duration::from_millis(pause)).await;
+                    if t_start != 0 {
+                        slept_ms += pause;
+                    }
                 }
             }
             Err(e) => {
@@ -991,7 +999,7 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
     };
     let state = if body.is_some() { "sent" } else { "stopped" };
     if body.is_some() {
-        if let Some(m) = meter.measured(unit, last_end.saturating_sub(t_start), backend.clone()) {
+        if let Some(m) = meter.measured(unit, last_end.saturating_sub(t_start).saturating_sub(slept_at_end), backend.clone()) {
             (deps.perf)(PerfUpdate::Measured(MeasuredPerformance { model_id, benchmark_id: id.clone(), measured: m, finished_ms: now_ms(), received: false }));
         }
     }

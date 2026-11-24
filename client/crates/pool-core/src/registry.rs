@@ -163,6 +163,11 @@ impl Registry {
             return if self.index.lock().unwrap().contains_key(&hash) { Ok(hash) } else { anyhow::bail!("the download of this model failed") };
         }
         let _guard = Downloading(self, hash);
+        // another download may have finished between the index check and taking the slot: never fetch (and replace
+        // the directory of) a model that is already cached
+        if self.index.lock().unwrap().contains_key(&hash) {
+            return Ok(hash);
+        }
         let total: u64 = manifest.files.iter().map(|f| f.size).sum();
         self.evict_for(total);
         let dir = self.root.join(hex::encode(hash));

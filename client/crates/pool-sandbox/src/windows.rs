@@ -227,7 +227,7 @@ impl JobGrant {
     fn new(path: &Path) -> io::Result<Self> {
         let sid = container_sid()?;
         let key = path.canonicalize()?;
-        let mut live = live_grants().lock().unwrap();
+        let mut live = live_grants().lock().unwrap_or_else(|e| e.into_inner());
         let n = live.get(&key).copied().unwrap_or(0);
         if n == 0 {
             set_ace(path, sid, GRANT_ACCESS)?;
@@ -239,7 +239,8 @@ impl JobGrant {
 
 impl Drop for JobGrant {
     fn drop(&mut self) {
-        let mut live = live_grants().lock().unwrap();
+        // never panic in Drop (a poisoned lock still holds a usable count)
+        let mut live = live_grants().lock().unwrap_or_else(|e| e.into_inner());
         let n = live.get(&self.key).copied().unwrap_or(1);
         if n > 1 {
             live.insert(self.key.clone(), n - 1);
@@ -257,7 +258,7 @@ impl Drop for JobGrant {
 /// calls it at start for its model cache and runtime pack directories. Missing paths are skipped.
 pub fn revoke_stale_grants(dirs: &[PathBuf]) {
     let Ok(sid) = container_sid() else { return };
-    let live = live_grants().lock().unwrap();
+    let live = live_grants().lock().unwrap_or_else(|e| e.into_inner());
     for d in dirs {
         let Ok(key) = d.canonicalize() else { continue };
         if !live.contains_key(&key) {
@@ -413,7 +414,7 @@ impl SandboxProcess for WinProcess {
             let mut code = 0u32;
             GetExitCodeProcess(self.h.process, &mut code).map_err(os_err)?;
             // the job is over: its directories are no longer readable by the container SID
-            self.h.grants.lock().unwrap().clear();
+            self.h.grants.lock().unwrap_or_else(|e| e.into_inner()).clear();
             Ok(code as i32)
         }
     }
