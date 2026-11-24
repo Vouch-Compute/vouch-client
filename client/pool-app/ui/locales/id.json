@@ -147,7 +147,7 @@
     "progress": "{ratio, number, percent} · {rounds, plural, other {# putaran}} selesai. Anda tetap bisa memakai komputer untuk hal ringan; jika Anda memilih “Jalankan sekarang”, menggerakkan mouse tidak membatalkannya.",
     "finished": "Uji kinerja selesai. Hasilnya diperiksa oleh server.",
     "stopped": "Uji kinerja berhenti sebelum selesai. Uji ini akan dimulai lagi nanti.",
-    "about": "Uji berkelanjutan bertanda tangan selama 20 menit mengukur kemampuan nyata komputer ini. Uji ini tidak pernah dibayar, dan Anda bisa menghentikannya kapan saja.",
+    "about": "Uji kecepatan bertanda tangan berjalan dengan kecepatan penuh selama sekitar 20 menit. Uji ini berhenti jika Anda memakai komputer, jika komputer terlalu panas, atau jika komputer beralih ke baterai. Pengaturan “Penggunaan daya” Anda berlaku untuk pekerjaan berbayar, bukan untuk uji ini. Uji ini tidak pernah dibayar, dan Anda bisa menghentikannya kapan saja.",
     "runNow": "Jalankan sekarang",
     "runAtIdle": "Jalankan saat pertama kali menganggur"
   },

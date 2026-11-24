@@ -147,7 +147,7 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# ronda completada} many {# rondas completadas} other {# rondas completadas}}. Puedes seguir usando el equipo para tareas ligeras; si elegiste «Ejecutar ahora», mover el ratón no la cancela.",
     "finished": "Prueba de rendimiento terminada. El servidor comprueba los resultados.",
     "stopped": "La prueba de rendimiento se detuvo antes de terminar. Volverá a empezar más tarde.",
-    "about": "Una prueba firmada y sostenida de 20 minutos mide lo que este equipo puede hacer de verdad. Nunca se paga y puedes detenerla en cualquier momento.",
+    "about": "Una prueba de velocidad firmada se ejecuta a máxima velocidad durante unos 20 minutos. Se detiene si usas el equipo, si el equipo se calienta demasiado o si pasa a funcionar con batería. Tu ajuste «Uso de energía» se aplica al trabajo pagado, no a esta prueba. La prueba nunca se paga y puedes detenerla en cualquier momento.",
     "runNow": "Ejecutar ahora",
     "runAtIdle": "Ejecutar en la primera inactividad"
   },

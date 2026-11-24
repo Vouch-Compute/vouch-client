@@ -147,7 +147,7 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# round} other {# rounds}} done. You can keep using your computer lightly; moving the mouse doesn't cancel it if you chose “Run now”.",
     "finished": "Benchmark finished. Results are checked by the server.",
     "stopped": "The benchmark stopped before it finished. It will start again later.",
-    "about": "A signed, 20-minute sustained test measures what this computer can really do. It is never paid, and you can stop it at any time.",
+    "about": "A signed speed test runs at full speed for about 20 minutes. It stops if you use the computer, if the computer gets too hot or if it switches to battery. Your “Power use” setting applies to paid work, not to this test. The test is never paid, and you can stop it at any time.",
     "runNow": "Run now",
     "runAtIdle": "Run at first idle instead"
   },

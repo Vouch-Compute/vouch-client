@@ -147,7 +147,7 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# passe terminée} many {# passes terminées} other {# passes terminées}}. Vous pouvez continuer à utiliser votre ordinateur pour des tâches légères ; si vous avez choisi « Lancer maintenant », bouger la souris ne l’annule pas.",
     "finished": "Test de performance terminé. Les résultats sont contrôlés par le serveur.",
     "stopped": "Le test de performance s’est arrêté avant la fin. Il redémarrera plus tard.",
-    "about": "Un test signé et soutenu de 20 minutes mesure ce dont cet ordinateur est réellement capable. Il n’est jamais payé et vous pouvez l’arrêter à tout moment.",
+    "about": "Un test de vitesse signé tourne à pleine vitesse pendant environ 20 minutes. Il s’arrête si vous utilisez l’ordinateur, si l’ordinateur chauffe trop ou s’il passe sur batterie. Votre réglage « Consommation » s’applique au travail payé, pas à ce test. Le test n’est jamais payé et vous pouvez l’arrêter à tout moment.",
     "runNow": "Lancer maintenant",
     "runAtIdle": "Lancer plutôt à la première inactivité"
   },

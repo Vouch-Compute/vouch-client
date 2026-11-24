@@ -11,7 +11,7 @@
 //!   Every job shares the container SID, so without this a job could read every model dir granted to an earlier job
 //!   (T-218 design review). Overlapping jobs on one directory share its ACE (counted). ACEs left behind by a crash
 //!   are removed at the next start ([`revoke_stale_grants`]). The 0.1.0 profile (`vouchcompute.runner.v1`), whose
-//!   ACEs were never removed, is deleted, so nothing runs under that SID any more.
+//!   ACEs were never removed, is deleted, so nothing runs under that SID any more, and the sweep clears its ACEs.
 //! * Job Object: kill-on-close, one active process, process memory cap, die on unhandled exception,
 //!   UI restrictions (no clipboard, desktop, global atoms, system parameters).
 //! * Child-process policy: the runner can't create processes.
@@ -43,7 +43,7 @@ use windows::Win32::Security::Isolation::{
     CreateAppContainerProfile, DeleteAppContainerProfile, DeriveAppContainerSidFromAppContainerName, GetAppContainerFolderPath,
 };
 use windows::Win32::Security::{
-    GetSecurityDescriptorDacl, GetTokenInformation, TokenUser, ACE_FLAGS, ACL, DACL_SECURITY_INFORMATION, NO_INHERITANCE,
+    FreeSid, GetSecurityDescriptorDacl, GetTokenInformation, TokenUser, ACE_FLAGS, ACL, DACL_SECURITY_INFORMATION, NO_INHERITANCE,
     PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID, SECURITY_ATTRIBUTES, SECURITY_CAPABILITIES,
     SUB_CONTAINERS_AND_OBJECTS_INHERIT, TOKEN_QUERY, TOKEN_USER,
 };
@@ -257,6 +257,17 @@ impl Drop for JobGrant {
 /// Remove the container SID's ACEs from directories that no running job uses: grants a crash left behind. The agent
 /// calls it at start for its model cache and runtime pack directories. Missing paths are skipped.
 pub fn revoke_stale_grants(dirs: &[PathBuf]) {
+    // 0.1.0 granted the same directories to its own profile and never removed them; nothing runs under that SID any
+    // more, so its ACEs are cleared too (the SID is derived from the name, the profile need not exist).
+    for old in OLD_PROFILE_NAMES {
+        let name = wide(OsStr::new(old));
+        if let Ok(old_sid) = unsafe { DeriveAppContainerSidFromAppContainerName(PCWSTR(name.as_ptr())) } {
+            for d in dirs {
+                let _ = set_ace(d, old_sid, REVOKE_ACCESS);
+            }
+            unsafe { FreeSid(old_sid) };
+        }
+    }
     let Ok(sid) = container_sid() else { return };
     let live = live_grants().lock().unwrap_or_else(|e| e.into_inner());
     for d in dirs {
@@ -661,7 +672,11 @@ mod tests {
 
     /// Does `path`'s DACL hold an allow ACE (explicit or inherited) for the container SID?
     fn container_can_read(path: &Path) -> bool {
-        let sid = container_sid().unwrap();
+        sid_can_read(path, container_sid().unwrap())
+    }
+
+    /// Does `path`'s DACL hold an allow ACE (explicit or inherited) for `sid`?
+    fn sid_can_read(path: &Path, sid: PSID) -> bool {
         let w = wide(path.as_os_str());
         unsafe {
             let mut dacl: *mut ACL = std::ptr::null_mut();
@@ -728,6 +743,19 @@ mod tests {
         assert!(container_can_read(busy.path()), "a running job keeps its grant");
         drop(running);
         assert!(!container_can_read(busy.path()));
+    }
+
+    /// The start-up sweep also clears ACEs that 0.1.0 left for its own profile's SID.
+    #[test]
+    fn stale_v1_grants_are_revoked() {
+        let dir = tempfile::tempdir().unwrap();
+        let name = wide(OsStr::new(OLD_PROFILE_NAMES[0]));
+        let v1 = unsafe { DeriveAppContainerSidFromAppContainerName(PCWSTR(name.as_ptr())) }.unwrap();
+        set_ace(dir.path(), v1, GRANT_ACCESS).unwrap();
+        assert!(sid_can_read(dir.path(), v1));
+        revoke_stale_grants(&[dir.path().to_path_buf()]);
+        assert!(!sid_can_read(dir.path(), v1), "the 0.1.0 grant is removed");
+        unsafe { FreeSid(v1) };
     }
 
     #[test]
