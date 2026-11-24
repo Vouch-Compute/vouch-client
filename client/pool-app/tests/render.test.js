@@ -190,6 +190,12 @@ for (const [b, label, accel] of [["candle-metal", "Graphics card (Metal)", true]
   if (!states.blocked.includes("registered for paid work right now") || !retry(states.blocked)) fail("enroll step: refused shows the reason and Try again");
   if (!states.blockedOther.includes("Ask support.")) fail("enroll step: other refusals show the agent's words");
   if (!states.choose.includes('data-replace="d1"')) fail("enroll step: replace choice");
+  const coded = api.enrollStepHtml({ state: "error", code: "signin_expired", message: "English from the agent" }, idle);
+  if (!coded.includes("Your sign-in has expired") || coded.includes("English from the agent")) fail("enroll step: coded errors are translated");
+  if (!api.enrollStepHtml({ state: "error", code: "no_answer", message: "x" }, idle).includes("did not answer in time")) fail("enroll step: no_answer");
+  if (!api.enrollStepHtml({ state: "error", code: "key_changed", message: "x" }, idle).includes("key changed")) fail("enroll step: key_changed");
+  const limit = api.enrollStepHtml({ state: "blocked", code: "device_limit", message: "x" }, idle);
+  if (!limit.includes('data-link="verify"') || !retry(limit)) fail("enroll step: a refusal keeps its fix and offers Try again");
   const hostile = api.enrollStepHtml({ state: XSS, message: XSS }, idle) + api.enrollStepHtml({ state: "error", message: XSS }, idle)
     + api.enrollStepHtml({ state: XSS }, idle);
   noRaw(hostile, "enroll step");

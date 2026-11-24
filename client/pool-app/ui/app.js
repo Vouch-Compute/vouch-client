@@ -419,6 +419,11 @@ function stepsHtml(current) {
 // of its own enroll call ({ busy, timedOut }). The spinner shows only while an enroll call runs and is within its time
 // limit. "Back to sign-in" and "Start over" are always there and safe mid-call (the app cancels and ignores the late
 // result). A state this app doesn't know is an error with the agent's words, never a spinner.
+// The agent's errors with a code are translated; others keep the agent's English words.
+const ENROLL_ERRORS = { signin_expired: "onboarding.device.errors.signinExpired", no_answer: "onboarding.device.errors.noAnswer", key_changed: "onboarding.device.errors.keyChanged" };
+function enrollErrorText(si) {
+  return si && ENROLL_ERRORS[si.code] ? tx(ENROLL_ERRORS[si.code]) : esc(si && si.message);
+}
 function enrollStepHtml(si, ui) {
   const st = si && si.state;
   const head = (key) => `<p class="eyebrow">${tx("onboarding.step", { current: 3, total: 3 })}</p><h1 id="ob-title">${tx(key)}</h1>`;
@@ -442,13 +447,14 @@ function enrollStepHtml(si, ui) {
     const fix = si.code === "hardware_in_use" ? `<button type="button" class="btn" data-link="devices">${icon("external")}${tx("onboarding.device.blocked.openDevices")}</button>`
       : si.code === "device_limit" ? `<button type="button" class="btn" data-link="verify">${icon("external")}${tx("onboarding.device.blocked.verify")}</button><button type="button" class="btn" data-link="devices">${tx("onboarding.device.blocked.manage")}</button>`
       : si.code === "consent_refused" || si.code === "consent_required" ? `<button type="button" class="btn btn-primary" data-go="consent">${tx("onboarding.device.blocked.reviewPermission")}</button>`
-      : si.code === "replace_not_confirmed" ? `<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.blocked.registerNew")}</button>` : retry;
+      : si.code === "replace_not_confirmed" ? `<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.blocked.registerNew")}</button>` : "";
+    const again = si.code === "consent_refused" || si.code === "consent_required" || si.code === "replace_not_confirmed" ? "" : retry;
     // reasons with a translation; others show the agent's English text
     const reason = si.code === "hw_ids_required" ? tx("onboarding.device.blocked.reasonHwIds")
       : si.code === "attestation_invalid" ? tx("onboarding.device.blocked.reasonAttestation") : esc(si.message);
-    return `${head("onboarding.device.blocked.title")}<div class="note note-warn" role="alert">${icon("alert")}<span>${reason}</span></div>${nav(fix)}`;
+    return `${head("onboarding.device.blocked.title")}<div class="note note-warn" role="alert">${icon("alert")}<span>${reason}</span></div>${nav(fix + again)}`;
   }
-  if (st === "error") return failed(esc(si.message));
+  if (st === "error") return failed(enrollErrorText(si));
   if (!st || st === "idle" || st === "done") {
     return `${head("onboarding.device.ready.title")}<p class="lede">${tx("onboarding.device.ready.lede")}</p>
       ${nav(`<button type="button" class="btn btn-primary" data-replace="">${tx("onboarding.device.ready.button")}</button>`)}`;
@@ -776,7 +782,10 @@ async function startEnroll(replaces) {
   if (enrollUi.seq === seq) return refresh();
 }
 function trackEnroll(s) {
-  const running = enrollUi.busy || !!(s && s.signin && s.signin.state === "enrolling");
+  // a later answer from the agent (a refusal, a choice, an error, registered, signed out) replaces the timeout message
+  const st = s && s.signin && s.signin.state;
+  if (enrollUi.timedOut && (!s || !s.signed_in || s.device_id || ["blocked", "choose_replace", "error", "done", "pending"].includes(st))) enrollReset();
+  const running = enrollUi.busy || st === "enrolling";
   if (!running) { if (!enrollUi.timedOut) enrollUi.since = 0; return; }
   if (!enrollUi.since) enrollUi.since = Date.now();
   if (!enrollUi.timedOut && Date.now() - enrollUi.since >= ENROLL_TIMEOUT_MS) {
@@ -846,7 +855,7 @@ function renderOnboarding() {
           <span class="row muted small"><span class="spinner" aria-hidden="true"></span> ${tx("onboarding.signin.waiting")}</span></div>
         <p class="muted small">${tx("onboarding.signin.readOnly")}</p>`;
     } else {
-      const err = si && si.state === "error" ? `<div class="note note-danger" role="alert">${icon("alert")}<span>${esc(si.message)}</span></div>` : "";
+      const err = si && si.state === "error" ? `<div class="note note-danger" role="alert">${icon("alert")}<span>${enrollErrorText(si)}</span></div>` : "";
       const down = snap && snap.error ? `<div class="note note-warn">${icon("alert")}<span>${esc(snap.error)}</span></div>` : "";
       body = `
         <div class="ob-hero"><div class="ob-mark ob-mark-soft">${icon("user")}</div>
@@ -1255,7 +1264,7 @@ document.addEventListener("click", async (e) => {
       case "resume": await core("resume"); announce(t("toast.resumed")); return refresh();
       case "reconnect": await core("reconnect"); announce(t("toast.reconnecting")); toast(t("toast.reconnecting")); return refresh();
       case "start-core": await invoke("ensure_core"); return refresh();
-      case "signout": await core("signout"); return refresh();
+      case "signout": enrollReset(); await core("signout"); return refresh();
       case "enroll-back": return await leaveEnroll(false);
       case "enroll-reset": return await leaveEnroll(true);
       case "check-update": {

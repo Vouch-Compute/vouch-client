@@ -66,7 +66,8 @@ function render() {
   api.reliabilityHtml({ tier: "probation", benefits: { bonus_pct: 0 }, improve: [] }));
   for (const st of ["welcome", "signin", "consent", "device"]) out.push(api.stepsHtml(st));
   const ui = { busy: false, timedOut: false };
-  for (const si of [{ state: "idle" }, { state: "enrolling" }, { state: "error", message: "m" }, { state: "blocked", code: "hw_ids_required" },
+  for (const si of [{ state: "idle" }, { state: "enrolling" }, { state: "error", message: "m" }, { state: "error", code: "signin_expired" }, { state: "error", code: "no_answer" },
+    { state: "error", code: "key_changed" }, { state: "blocked", code: "hw_ids_required" },
     { state: "blocked", code: "device_limit" }, { state: "choose_replace", candidates: [{ device_id: "d", name: "" }] }, { state: "new_state" }]) {
     out.push(api.enrollStepHtml(si, ui));
   }

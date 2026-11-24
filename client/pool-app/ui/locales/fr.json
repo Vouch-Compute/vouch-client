@@ -413,6 +413,11 @@
       },
       "timeout": "L’enregistrement prend trop de temps. Vérifiez votre connexion internet, puis réessayez.",
       "unknownState": "L’application a signalé une étape qu’elle ne reconnaît pas ({state}). Réessayez ou recommencez.",
+      "errors": {
+        "signinExpired": "Votre connexion a expiré. Connectez-vous à nouveau.",
+        "noAnswer": "Le serveur de comptes n’a pas répondu à temps. Vérifiez votre connexion internet, puis réessayez.",
+        "keyChanged": "La clé de cet ordinateur a changé depuis son enregistrement. Choisissez « Réessayer » pour l’enregistrer à nouveau."
+      },
       "ready": {
         "title": "Enregistrer cet ordinateur",
         "lede": "Vous êtes connecté, mais cet ordinateur n’est pas encore enregistré.",

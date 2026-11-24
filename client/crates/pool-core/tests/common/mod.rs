@@ -51,6 +51,8 @@ pub struct V {
     /// Enrollment challenges requested, and a delay before each answer (a slow server).
     pub challenges: AtomicUsize,
     pub challenge_delay_ms: std::sync::atomic::AtomicU64,
+    /// A delay before `POST /v1/devices` registers (a slow answer to the registration itself).
+    pub register_delay_ms: std::sync::atomic::AtomicU64,
 }
 
 impl V {
@@ -127,6 +129,10 @@ fn field<'a>(v: &'a Value, k: &str) -> Option<&'a Value> {
 }
 
 async fn register(State(v): State<Arc<V>>, Json(b): Json<J>) -> axum::response::Response {
+    let delay = v.register_delay_ms.load(Ordering::SeqCst);
+    if delay > 0 {
+        tokio::time::sleep(Duration::from_millis(delay)).await;
+    }
     v.registrations.fetch_add(1, Ordering::SeqCst);
     let spki = keys::b64_decode(b["public_key"].as_str().unwrap_or("")).unwrap_or_default();
     let Ok(key) = keys::parse_spki(&spki) else {
@@ -369,7 +375,7 @@ pub async fn wait_signin(agent: &Agent, done: impl Fn(&SignIn) -> bool) -> SignI
         if done(&s) {
             return s;
         }
-        if let SignIn::Error { message } = &s {
+        if let SignIn::Error { message, .. } = &s {
             panic!("sign-in failed: {message}");
         }
         assert!(Instant::now() < deadline, "timeout; state {s:?}");

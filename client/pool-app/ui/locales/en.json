@@ -413,6 +413,11 @@
       },
       "timeout": "Registering is taking too long. Check your internet connection, then try again.",
       "unknownState": "The app reported a step it doesn't recognize ({state}). Try again, or start over.",
+      "errors": {
+        "signinExpired": "Your sign-in has expired. Sign in again.",
+        "noAnswer": "The account server did not answer in time. Check your internet connection and try again.",
+        "keyChanged": "This computer's key changed since it was registered. Choose Try again to register it again."
+      },
       "ready": {
         "title": "Register this computer",
         "lede": "You're signed in, but this computer isn't registered yet.",
