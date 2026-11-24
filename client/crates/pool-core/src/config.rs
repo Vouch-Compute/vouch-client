@@ -312,4 +312,27 @@ mod tests {
         let c = Config::load(d.path());
         assert!(c.engine_ws_url.starts_with("ws"));
     }
+
+    /// The measured speed reads back bit-for-bit after a restart. Both values came out 1 ULP off with the default
+    /// serde_json float parser (they are real rates from CI runs).
+    #[test]
+    fn measured_speed_survives_a_save_and_load_exactly() {
+        use crate::status::{Measured, MeasuredPerformance};
+        let d = tempfile::tempdir().unwrap();
+        let mut s = State::default();
+        for (i, rate) in [120.83847102342787_f64, 42.132416165090284, 0.1 + 0.2, f64::MIN_POSITIVE, 1e300].into_iter().enumerate() {
+            s.performance.push(MeasuredPerformance {
+                model_id: format!("m{i}"),
+                benchmark_id: format!("b{i}"),
+                measured: Measured { unit: "token".into(), per_second: rate, runs: 4, backend: Some("onnxruntime-cpu".into()) },
+                finished_ms: 1,
+                received: true,
+            });
+        }
+        s.save(d.path()).unwrap();
+        let back = State::load(d.path());
+        let bits = |s: &State| s.performance.iter().map(|p| p.measured.per_second.to_bits()).collect::<Vec<_>>();
+        assert_eq!(bits(&back), bits(&s));
+        assert_eq!(back, s);
+    }
 }

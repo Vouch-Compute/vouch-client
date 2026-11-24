@@ -957,19 +957,20 @@ impl Agent {
     }
 
     /// Keep the app's own benchmark measurement (display only) in `state.json`.
+    /// Saved under the same lock, so the app never shows a result (or its receipt) that is not on disk yet.
     fn record_performance(&self, u: session::PerfUpdate) {
-        let changed = {
-            let mut st = self.state.lock().unwrap();
-            match u {
-                session::PerfUpdate::Measured(p) => {
-                    crate::status::record_performance(&mut st.performance, p);
-                    true
-                }
-                session::PerfUpdate::Received(id) => crate::status::mark_received(&mut st.performance, &id),
+        let mut st = self.state.lock().unwrap();
+        let changed = match u {
+            session::PerfUpdate::Measured(p) => {
+                crate::status::record_performance(&mut st.performance, p);
+                true
             }
+            session::PerfUpdate::Received(id) => crate::status::mark_received(&mut st.performance, &id),
         };
         if changed {
-            self.save();
+            if let Err(e) = st.save(&self.data_dir) {
+                tracing::error!("saving state: {e}");
+            }
         }
     }
 

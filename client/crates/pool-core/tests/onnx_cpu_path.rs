@@ -353,7 +353,9 @@ async fn mac_path_benchmark_and_job_on_the_cpu_pack() {
     while !agent.state_snapshot().performance.first().is_some_and(|p| p.received) && Instant::now() < deadline {
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
+    // stop the agent and wait until it has really stopped, so nothing writes state.json after this point
     run.abort();
+    let _ = run.await;
 
     // 4. what the app shows
     let status = agent.status.get();
