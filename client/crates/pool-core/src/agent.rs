@@ -651,7 +651,8 @@ impl Agent {
         // key and `none` instead: a capped device in Probation for good.
         if identity::needs_software_fallback(&att.format, att.blob.as_deref(), dev) {
             tracing::warn!("this TPM gave no tpm2 attestation: enrolling with a software key (capped, Probation tier)");
-            key = self.switch_to_software_key()?;
+            // in memory only: the choice is saved once the server has accepted this key
+            key = identity::software_key(&self.data_dir)?;
             att = self.enrollment_attestation(key.as_ref(), &token, dev).await?;
         }
         let (ch, att_format, att_blob) = (att.challenge, att.format, att.blob);
@@ -692,7 +693,11 @@ impl Agent {
             st.hw_report_last_sent_ms = Some(now_ms());
             st.hw_report_last_attempt_ms = None;
             st.tpm_key_name = key.key_name().filter(|n| n.as_str() != crate::identity::TPM_KEY_NAME);
+            // The key the server now knows decides which key loads at start: a software key (the TPM fallback above, or
+            // a TPM that failed to open in `load_or_create`) keeps the TPM skipped from now on (CR-T213-01).
+            st.software_key = key.storage() == KeyStorage::SoftwareDev;
         }
+        *self.key.write().unwrap() = key.clone();
         self.set_enrollment(&reg.device_id, &reg.trust_ceiling);
         Ok(())
     }
@@ -723,20 +728,6 @@ impl Agent {
         let att_ch = identity::ChallengeForAttestation { challenge_id: &ch.challenge_id, nonce: &nonce, tpm_activation: activation.as_ref() };
         let (format, blob) = identity::attestation(key, platform::os_name(), &att_ch, publics.as_ref(), dev);
         Ok(EnrollmentAttestation { challenge: ch, nonce, format: format.to_string(), blob })
-    }
-
-    /// CR-T213-01: make the sealed software key the device key (created if needed) and remember the choice, so the
-    /// unusable TPM is skipped from now on.
-    fn switch_to_software_key(&self) -> anyhow::Result<Arc<dyn DeviceKey>> {
-        let sw: Arc<dyn DeviceKey> = Arc::new(identity::SoftwareDeviceKey::load_or_create(&identity::software_key_path(&self.data_dir))?);
-        *self.key.write().unwrap() = sw.clone();
-        {
-            let mut st = self.state.lock().unwrap();
-            st.software_key = true;
-            st.tpm_key_name = None;
-        }
-        self.save();
-        Ok(sw)
     }
 
     pub fn sign_out(&self) {

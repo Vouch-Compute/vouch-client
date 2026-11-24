@@ -1,7 +1,8 @@
 //! ONNX Runtime embeddings (feature `onnx`). `ort` is built with `load-dynamic`: the ONNX Runtime shared library
-//! comes from the pinned backend pack ([`crate::accel`]), whose verified directory pool-core passes in
-//! `POOL_ORT_PACK_DIR`. With the pack, the DirectML execution provider (any DX12 GPU) runs the model; without it,
-//! or if the GPU provider fails, the CPU provider does.
+//! comes from this OS's pinned runtime pack ([`crate::accel`]), whose verified directory pool-core passes in
+//! `POOL_ORT_PACK_DIR`; without a pack no ONNX job runs. Windows: the DirectML execution provider (any DX12 GPU)
+//! runs the model, or the CPU provider if DirectML fails or the GPU is switched off. macOS arm64 and Linux x64: the
+//! pack is CPU-only, so the CPU provider runs it.
 //!
 //! Two bundle layouts:
 //! * **WordPiece**: `model.onnx` + `vocab.txt` at the bundle root, optional `pooling.json` (same schema as the candle

@@ -485,6 +485,9 @@ fn check_approvals(approvals: &[String], approval_mode: Option<&str>) -> Result<
     if distinct.len() != approvals.len() {
         return Err(Error::Malformed("manifest approvals must be distinct"));
     }
+    if approvals.iter().any(String::is_empty) {
+        return Err(Error::Malformed("empty manifest approval"));
+    }
     match approval_mode {
         None if approvals.len() >= 2 => Ok(()),
         None => Err(Error::Malformed("manifest needs >= 2 distinct approvals")),
@@ -1056,7 +1059,9 @@ mod tests {
         one.approval_mode = Some(APPROVAL_MODE_SINGLE_OWNER.into());
         assert_eq!(ModelManifest::from_value(&enc(&one)).unwrap(), one);
 
-        let cases: [(&[&str], Option<&str>); 8] = [
+        let cases: [(&[&str], Option<&str>); 10] = [
+            (&[""], Some("single_owner")),                       // empty approver name
+            (&["alice", ""], None),
             (&["owner"], None),                                  // one approver without the claim
             (&[], Some("single_owner")),                         // claim without an approver
             (&["alice", "bob"], Some("single_owner")),           // claim with two approvers

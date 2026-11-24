@@ -159,6 +159,11 @@ pub fn load_or_create(data_dir: &Path, prefer_tpm: bool, tpm_key_name: Option<&s
     Ok(Arc::new(SoftwareDeviceKey::load_or_create(&software_key_path(data_dir))?))
 }
 
+/// The sealed software device key in `data_dir` (created if needed), whatever the TPM setting.
+pub fn software_key(data_dir: &Path) -> anyhow::Result<Arc<dyn DeviceKey>> {
+    Ok(Arc::new(SoftwareDeviceKey::load_or_create(&software_key_path(data_dir))?))
+}
+
 pub fn software_key_path(data_dir: &Path) -> std::path::PathBuf {
     data_dir.join("device-key.sealed")
 }

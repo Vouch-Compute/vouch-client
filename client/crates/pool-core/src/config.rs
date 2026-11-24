@@ -110,6 +110,8 @@ impl Config {
         }
         self.dev = false;
         self.bench_duration_override_s = None;
+        // the runtime pack comes only from the installed app (a planted directory would widen the runner's read grant)
+        self.ort_pack_dir = None;
         self.dev_trust_roots.clear();
         self
     }
@@ -130,7 +132,9 @@ impl Config {
         }
         let exe = std::env::current_exe().ok()?;
         let dir = &pool_runner::accel::ort_pack()?.dir;
-        default_pack_dirs(&exe, dir).into_iter().find(|p| p.is_dir())
+        // the first candidate whose files match the pins; else the first that exists (refused later, with a log line)
+        let dirs = default_pack_dirs(&exe, dir);
+        dirs.iter().find(|p| pool_runner::accel::verify_pack(p).is_ok()).or_else(|| dirs.iter().find(|p| p.is_dir())).cloned()
     }
 
     pub fn runner_exe(&self) -> PathBuf {
@@ -279,9 +283,11 @@ mod tests {
             dev: true,
             bench_duration_override_s: Some(5),
             dev_trust_roots: vec!["AAAA".into()],
+            ort_pack_dir: Some("/home/user".into()),
             ..Config::default()
         };
         let c = planted.pinned_to_release();
+        assert_eq!(c.ort_pack_dir, None, "the runtime pack comes only from the installed app");
         assert_eq!(c.engine_ws_url, "wss://api.vouchcompute.com/node/v1/connect");
         assert_eq!(c.vault_url, "https://enroll.vouchcompute.com");
         assert_eq!(c.web_url, "https://www.vouchcompute.com");

@@ -83,11 +83,13 @@ fn run(fx: &testutil::BundleFixture, inputs: &[String], pack: &Path) -> (RunResp
     drop(std::mem::replace(&mut s.stdin, Box::new(std::io::sink())));
     let resp: RunResponse = serde_json::from_slice(&read_frame(&mut s.stdout, 1 << 20).unwrap()).unwrap();
     let out = read_frame(&mut s.stdout, 16 << 20).unwrap_or_default();
-    let _ = s.process.wait();
+    let code = s.process.wait().expect("wait");
     let err = drain.join().unwrap_or_default();
     if !err.trim().is_empty() {
         eprintln!("runner stderr: {}", err.trim());
     }
+    // a job ends with a clean exit, not an abort after the answer (ONNX Runtime's static destructors on macOS)
+    assert_eq!(code, if resp.ok { 0 } else { 3 }, "runner exit code; stderr: {}", err.trim());
     (resp, out)
 }
 
