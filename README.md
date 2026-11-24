@@ -6,7 +6,7 @@
 <h3 align="center">Earn US dollars by lending your idle PC to verified AI jobs</h3>
 
 <p align="center">
-  <a href="https://github.com/MetehanAydemir/vouch-client/actions/workflows/client.yml"><img src="https://github.com/MetehanAydemir/vouch-client/actions/workflows/client.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Vouch-Compute/vouch-client/actions/workflows/client.yml"><img src="https://github.com/Vouch-Compute/vouch-client/actions/workflows/client.yml/badge.svg" alt="CI"></a>
   <a href="https://www.vouchcompute.com"><img src="https://img.shields.io/badge/website-vouchcompute.com-2b55c9" alt="Website"></a>
   <a href="https://www.vouchcompute.com/download"><img src="https://img.shields.io/badge/download-first%20release%20soon-0e7353" alt="Download"></a>
   <img src="https://img.shields.io/badge/macOS-coming%20soon-55607a" alt="macOS coming soon">
@@ -85,8 +85,8 @@ below. Without Apple's signing, the app can't use a Secure Enclave key or Apple'
 with the lower, capped earning limits that apply to every device without hardware attestation.
 
 **Homebrew.** Once the first macOS build is published, the app can also be installed from the project's own tap:
-`brew install --cask metehanaydemir/tap/vouch-compute`. The "Open Anyway" step above still applies once. The cask pins
-the release's SHA-256, and the tap's README ([MetehanAydemir/homebrew-tap](https://github.com/MetehanAydemir/homebrew-tap))
+`brew install --cask vouch-compute/tap/vouch-compute`. The "Open Anyway" step above still applies once. The cask pins
+the release's SHA-256, and the tap's README ([Vouch-Compute/homebrew-tap](https://github.com/Vouch-Compute/homebrew-tap))
 explains how to verify, update and uninstall. The official Homebrew repository only lists signed and notarized apps,
 which is why it is a separate tap.
 
