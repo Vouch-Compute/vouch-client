@@ -152,6 +152,15 @@ jobs:
         if: runner.os == 'macOS' && vars.MACOS_SIGNING != 'on'
         working-directory: client/pool-app
         run: echo '{"bundle":{"macOS":{"signingIdentity":"-"}}}' > src-tauri/tauri.signing.conf.json
+      # The pinned ONNX Runtime dylib carries Microsoft's bytes: under a Developer ID, library validation refuses it and
+      # notarization wants it re-signed, which breaks its SHA-256 pin. Ad-hoc builds load it (measured). Until vault
+      # decides how the pin follows our signature (CR-T215-01), a Developer ID build stops here instead of shipping an
+      # app whose embedding jobs cannot run.
+      - name: Developer ID builds need a decision on the runtime pack pin
+        if: runner.os == 'macOS' && vars.MACOS_SIGNING == 'on'
+        run: |
+          echo "MACOS_SIGNING=on: re-signing the pinned libonnxruntime.dylib changes its bytes; pin the signed copy first (CR-T215-01)"
+          exit 1
       - name: macOS Developer ID signing and notarization
         if: runner.os == 'macOS' && vars.MACOS_SIGNING == 'on'
         env:

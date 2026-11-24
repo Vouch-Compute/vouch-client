@@ -82,7 +82,7 @@ pub fn runtime_sandbox(runtime: &str, pack: Option<&std::path::Path>) -> (Vec<Pa
             false,
         ),
         Some((p, Err(e))) => {
-            tracing::warn!("GPU backend pack at {} not used: {e}", p.display());
+            tracing::warn!("runtime pack at {} not used: {e}", p.display());
             (vec![], vec![], true)
         }
         None => (vec![], vec![], true),
