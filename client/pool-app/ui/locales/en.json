@@ -411,6 +411,14 @@
         "backToSignin": "Back to sign-in",
         "tryAgain": "Try again"
       },
+      "timeout": "Registering is taking too long. Check your internet connection, then try again.",
+      "unknownState": "The app reported a step it doesn't recognize ({state}). Try again, or start over.",
+      "ready": {
+        "title": "Register this computer",
+        "lede": "You're signed in, but this computer isn't registered yet.",
+        "button": "Register"
+      },
+      "startOver": "Start over",
       "done": {
         "title": "You're set",
         "lede": "This computer is registered. A short benchmark comes next; then Vouch Compute works on its own, within your limits.",

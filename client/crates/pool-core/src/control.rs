@@ -95,6 +95,12 @@ pub async fn dispatch(agent: &Arc<Agent>, method: &str, params: Value) -> Result
             agent.sign_out();
             Ok(json!({}))
         }
+        // T-225: stop a running enrollment ("Cancel" / "Back"); "Start over" on a computer that is not registered
+        "enroll.cancel" => Ok(json!(agent.cancel_enrollment())),
+        "signin.reset" => {
+            agent.reset_signin().map_err(e)?;
+            Ok(json!(agent.signin_state()))
+        }
         "estimate" => agent.estimate().await.map_err(e),
         "wallets" => agent.wallets().await.map_err(e),
         "earnings" => agent.earnings().await.map_err(e),

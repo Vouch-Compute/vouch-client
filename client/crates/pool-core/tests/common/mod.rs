@@ -46,6 +46,11 @@ pub struct V {
     /// (`smbios_uuid`, `board_serial`, `disk_serial`, `gpu_uuid`), else `422 hw_ids_required`. vault applies the
     /// identifier rule to macOS and Windows; this mock applies it on every OS so the Linux CI checks the same path.
     pub t213: std::sync::atomic::AtomicBool,
+    /// The refresh grant answers `400 invalid_grant` (an expired or revoked sign-in).
+    pub refresh_refused: std::sync::atomic::AtomicBool,
+    /// Enrollment challenges requested, and a delay before each answer (a slow server).
+    pub challenges: AtomicUsize,
+    pub challenge_delay_ms: std::sync::atomic::AtomicU64,
 }
 
 impl V {
@@ -68,6 +73,9 @@ async fn device_auth(State(v): State<Arc<V>>, Form(f): Form<HashMap<String, Stri
 async fn token(State(v): State<Arc<V>>, Form(f): Form<HashMap<String, String>>) -> axum::response::Response {
     match f.get("grant_type").map(String::as_str) {
         Some("refresh_token") => {
+            if v.refresh_refused.load(Ordering::SeqCst) {
+                return (StatusCode::BAD_REQUEST, Json(json!({"error": "invalid_grant", "error_description": "refresh token expired"}))).into_response();
+            }
             return Json(json!({"access_token": "at-2", "token_type": "Bearer", "expires_in": 300, "refresh_token": "rt-2"})).into_response()
         }
         Some("urn:ietf:params:oauth:grant-type:device_code") => {}
@@ -83,6 +91,11 @@ async fn token(State(v): State<Arc<V>>, Form(f): Form<HashMap<String, String>>) 
 }
 
 async fn challenge(State(v): State<Arc<V>>) -> impl IntoResponse {
+    v.challenges.fetch_add(1, Ordering::SeqCst);
+    let delay = v.challenge_delay_ms.load(Ordering::SeqCst);
+    if delay > 0 {
+        tokio::time::sleep(Duration::from_millis(delay)).await;
+    }
     let nonce: Vec<u8> = (0..32u8).map(|i| i.wrapping_mul(7)).collect();
     *v.nonce.lock().unwrap() = nonce.clone();
     let challenge_id = uuid::Uuid::new_v4().to_string();

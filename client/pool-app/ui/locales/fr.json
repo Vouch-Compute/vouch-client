@@ -411,6 +411,14 @@
         "backToSignin": "Retour à la connexion",
         "tryAgain": "Réessayer"
       },
+      "timeout": "L’enregistrement prend trop de temps. Vérifiez votre connexion internet, puis réessayez.",
+      "unknownState": "L’application a signalé une étape qu’elle ne reconnaît pas ({state}). Réessayez ou recommencez.",
+      "ready": {
+        "title": "Enregistrer cet ordinateur",
+        "lede": "Vous êtes connecté, mais cet ordinateur n’est pas encore enregistré.",
+        "button": "Enregistrer"
+      },
+      "startOver": "Recommencer",
       "done": {
         "title": "C’est prêt",
         "lede": "Cet ordinateur est enregistré. Un court test de performance suit ; ensuite, Vouch Compute travaille tout seul, dans vos limites.",

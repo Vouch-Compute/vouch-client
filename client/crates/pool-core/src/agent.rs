@@ -81,6 +81,34 @@ pub struct Agent {
     /// Dev builds in dev mode only: an idle-time override for headless e2e tests (`dev.simulate`), so "the user
     /// came back" can be driven without a keyboard. `None` = the real OS reading.
     sim_idle_s: Arc<Mutex<Option<u64>>>,
+    /// The current enrollment attempt. A new attempt, "Cancel" or "Start over" bumps it: an older attempt stops before it
+    /// sends anything more and never overwrites the newer sign-in state.
+    enroll_gen: watch::Sender<u64>,
+    /// One enrollment at a time, so a retry never registers this computer twice.
+    enroll_lock: tokio::sync::Mutex<()>,
+}
+
+/// The time limit of each enrollment step (preparing, then registering). The app gives up waiting after about 60 s.
+pub const ENROLL_STEP_TIMEOUT: Duration = Duration::from_secs(40);
+
+const NO_ANSWER: &str = "The account server did not answer in time. Check your internet connection and try again.";
+
+/// The saved sign-in can no longer be used (expired, revoked, or unreadable): the user signs in again.
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
+#[error("Your sign-in has expired. Sign in again.")]
+pub struct SignInExpired;
+
+/// The enrollment attempt was cancelled or replaced by a newer one.
+#[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
+#[error("cancelled")]
+struct EnrollCancelled;
+
+/// An enrollment request ready to send: everything is computed, nothing is registered yet.
+struct PreparedEnrollment {
+    key: Arc<dyn DeviceKey>,
+    unused_tpm_key: Option<Arc<dyn DeviceKey>>,
+    token: String,
+    body: Value,
 }
 
 fn local_day() -> u64 {
@@ -202,6 +230,8 @@ impl Agent {
             worked_ms: Arc::new(AtomicU64::new(0)),
             wake: tokio::sync::Notify::new(),
             sim_idle_s,
+            enroll_gen: watch::channel(0u64).0,
+            enroll_lock: tokio::sync::Mutex::new(()),
         }))
     }
 
@@ -436,6 +466,8 @@ impl Agent {
     }
 
     pub async fn run(self: Arc<Self>) {
+        let me = self.clone();
+        tokio::spawn(async move { me.resume_enrollment().await });
         let g = tokio::spawn(self.clone().governor_loop());
         let s = tokio::spawn(self.clone().session_loop());
         let h = tokio::spawn(self.clone().hw_report_loop());
@@ -451,8 +483,17 @@ impl Agent {
             }
         }
         let sealed = self.state.lock().unwrap().refresh_token_sealed.clone().ok_or_else(|| anyhow::anyhow!("not signed in"))?;
-        let rt = String::from_utf8(unseal_b64(&sealed)?)?;
-        let tokens = self.vault.refresh(&rt).await?;
+        // a token that can't be unsealed (another OS user, a damaged file) is as unusable as an expired one
+        let rt = unseal_b64(&sealed).ok().and_then(|b| String::from_utf8(b).ok()).ok_or(SignInExpired)?;
+        let tokens = match self.vault.refresh(&rt).await {
+            Ok(t) => t,
+            // RFC 6749 section 5.2: an expired, revoked or unknown refresh token is a 400 (`invalid_grant`) or a 401
+            Err(e) if e.downcast_ref::<VaultError>().is_some_and(|v| v.status == 400 || v.status == 401) => {
+                tracing::warn!("the saved sign-in was refused ({e}): sign in again");
+                return Err(SignInExpired.into());
+            }
+            Err(e) => return Err(e),
+        };
         self.store_tokens(&tokens);
         Ok(tokens.access_token)
     }
@@ -534,7 +575,19 @@ impl Agent {
 
     /// The next enrollment step after sign-in or a user choice: consent, then "is this a reinstall?", then register.
     /// `choice`: `None` = not asked yet; `Some(None)` = a new computer; `Some(Some(id))` = replaces that device.
+    ///
+    /// A new call supersedes an attempt still running. Every outcome is a state the app can show, never a silent wait:
+    /// each step has a time limit, and a sign-in the server no longer accepts sends the user back to sign-in.
     pub async fn continue_enrollment(&self, choice: Option<Option<String>>) {
+        let mut my = 0;
+        self.enroll_gen.send_modify(|g| {
+            *g += 1;
+            my = *g;
+        });
+        let _one = self.enroll_lock.lock().await;
+        if *self.enroll_gen.borrow() != my {
+            return; // superseded while the previous attempt finished
+        }
         if self.device_id().is_some() {
             self.set_signin(SignIn::Done);
             return;
@@ -543,35 +596,150 @@ impl Agent {
             self.set_signin(SignIn::ConsentRequired);
             return;
         }
-        let replaces = match choice {
-            Some(c) => c,
-            None => match self.replace_candidates().await {
-                Ok(c) if !c.is_empty() => {
-                    self.set_signin(SignIn::ChooseReplace { candidates: c });
-                    return;
-                }
-                Ok(_) => None,
-                Err(e) => {
-                    tracing::warn!("could not list this account's devices: {e}");
-                    None
-                }
-            },
-        };
+        if self.state.lock().unwrap().refresh_token_sealed.is_none() {
+            self.set_signin(SignIn::Idle);
+            self.status.update(|s| s.connection = Connection::NotSignedIn);
+            return;
+        }
         self.set_signin(SignIn::Enrolling);
-        let r = self.enroll(replaces.as_deref()).await;
-        self.set_signin(match r {
-            Ok(()) => SignIn::Done,
-            Err(e) => match e.downcast_ref::<VaultError>() {
-                Some(v) if enrollment_refusal_message(&v.code).is_some() => {
-                    SignIn::Blocked { code: v.code.clone(), message: enrollment_refusal_message(&v.code).unwrap_or_default().into() }
+        let prepared = self
+            .guarded(my, async {
+                self.access_token().await?;
+                let replaces = match choice {
+                    Some(c) => c,
+                    None => match self.replace_candidates().await {
+                        Ok(c) if !c.is_empty() => return Ok(Err(c)),
+                        Ok(_) => None,
+                        Err(e) => {
+                            tracing::warn!("could not list this account's devices: {e}");
+                            None
+                        }
+                    },
+                };
+                let p = self.prepare_enrollment(replaces.as_deref()).await?;
+                Ok(Ok((p, replaces)))
+            })
+            .await;
+        let (prepared, replaces) = match prepared {
+            Ok(Ok(p)) => p,
+            Ok(Err(candidates)) => return self.set_signin_if(my, SignIn::ChooseReplace { candidates }),
+            Err(e) => return self.enrollment_failed(my, &e, false),
+        };
+        if *self.enroll_gen.borrow() != my {
+            return; // cancelled after the last step: nothing was sent
+        }
+        // From here the request goes out. It is not cancelled (the server may register it), only time-limited.
+        let r = match tokio::time::timeout(ENROLL_STEP_TIMEOUT, self.submit_enrollment(prepared)).await {
+            Ok(r) => r,
+            Err(_) => Err(anyhow::anyhow!(NO_ANSWER)),
+        };
+        match r {
+            Ok(()) => self.set_signin_if(my, SignIn::Done),
+            Err(e) => self.enrollment_failed(my, &e, replaces.is_some()),
+        }
+    }
+
+    /// Run `fut` (the steps before anything is registered) unless attempt `my` is cancelled or superseded, within
+    /// [`ENROLL_STEP_TIMEOUT`].
+    async fn guarded<T>(&self, my: u64, fut: impl std::future::Future<Output = anyhow::Result<T>>) -> anyhow::Result<T> {
+        let mut rx = self.enroll_gen.subscribe();
+        let cancelled = async move {
+            while *rx.borrow_and_update() == my {
+                if rx.changed().await.is_err() {
+                    std::future::pending::<()>().await;
                 }
-                Some(v) if replaces.is_some() && (v.status == 409 || v.status == 404) => SignIn::Blocked {
-                    code: "replace_not_confirmed".into(),
-                    message: "Vouch Compute couldn't confirm that this is the same computer. Register it as a new device instead.".into(),
-                },
-                _ => SignIn::Error { message: e.to_string() },
+            }
+        };
+        tokio::select! {
+            r = tokio::time::timeout(ENROLL_STEP_TIMEOUT, fut) => r.unwrap_or_else(|_| Err(anyhow::anyhow!(NO_ANSWER))),
+            () = cancelled => Err(EnrollCancelled.into()),
+        }
+    }
+
+    fn set_signin_if(&self, my: u64, s: SignIn) {
+        if *self.enroll_gen.borrow() == my {
+            self.set_signin(s);
+        }
+    }
+
+    /// The state an enrollment failure leaves, in plain words.
+    fn enrollment_failed(&self, my: u64, e: &anyhow::Error, replacing: bool) {
+        if e.downcast_ref::<EnrollCancelled>().is_some() || *self.enroll_gen.borrow() != my {
+            return;
+        }
+        if e.downcast_ref::<SignInExpired>().is_some() {
+            // this computer has no device id here, so nothing of a registered device is touched
+            self.forget_sign_in();
+            self.set_signin(SignIn::Error { message: SignInExpired.to_string() });
+            return;
+        }
+        tracing::warn!("enrollment failed: {e:#}");
+        self.set_signin(match e.downcast_ref::<VaultError>() {
+            Some(v) if enrollment_refusal_message(&v.code).is_some() => {
+                SignIn::Blocked { code: v.code.clone(), message: enrollment_refusal_message(&v.code).unwrap_or_default().into() }
+            }
+            Some(v) if replacing && (v.status == 409 || v.status == 404) => SignIn::Blocked {
+                code: "replace_not_confirmed".into(),
+                message: "Vouch Compute couldn't confirm that this is the same computer. Register it as a new device instead.".into(),
             },
+            _ => SignIn::Error { message: e.to_string() },
         });
+    }
+
+    /// At start: a computer that is signed in but not registered (an earlier attempt was refused or cancelled, or the
+    /// app was closed or updated mid-way) picks up where it stopped. The sign-in state in memory does not survive a
+    /// restart, so without this the app would show a step as running that nothing runs.
+    pub async fn resume_enrollment(&self) {
+        let (signed_in, registered_before) = {
+            let st = self.state.lock().unwrap();
+            (st.refresh_token_sealed.is_some(), st.device_id.is_some())
+        };
+        if !signed_in || self.device_id().is_some() || !matches!(self.signin_state(), SignIn::Idle) {
+            return;
+        }
+        if registered_before {
+            // registered with a key this computer no longer has: the user decides, nothing is sent on its own
+            self.set_signin(SignIn::Error {
+                message: "This computer's key changed since it was registered. Choose Try again to register it again.".into(),
+            });
+            return;
+        }
+        tracing::info!("signed in but not registered: resuming enrollment");
+        self.continue_enrollment(None).await;
+    }
+
+    /// "Cancel" or "Back" while registering: the running attempt stops before it sends anything more, and its late result
+    /// is ignored. A registration request already sent still completes, so a device the server registered is never lost.
+    pub fn cancel_enrollment(&self) -> SignIn {
+        self.enroll_gen.send_modify(|g| *g += 1);
+        if matches!(self.signin_state(), SignIn::Enrolling | SignIn::ChooseReplace { .. }) {
+            self.set_signin(SignIn::Idle);
+        }
+        self.signin_state()
+    }
+
+    /// "Start over" on a computer that is not registered: forget the saved sign-in and the enrollment progress, so the
+    /// user signs in again. Refused once this computer has a device id: a registered device keeps everything ("Sign out"
+    /// and "Remove this device" are the actions there). The device key and the hardware consent stay.
+    pub fn reset_signin(&self) -> anyhow::Result<()> {
+        if self.state.lock().unwrap().device_id.is_some() {
+            anyhow::bail!("This computer is registered, so it keeps its sign-in. Use Sign out or Remove this device in Settings.");
+        }
+        self.cancel_enrollment();
+        self.forget_sign_in();
+        self.set_signin(SignIn::Idle);
+        tracing::info!("start over: the saved sign-in of this unregistered computer was cleared");
+        Ok(())
+    }
+
+    /// Drop the access token and the saved refresh token.
+    fn forget_sign_in(&self) {
+        *self.access.lock().unwrap() = None;
+        self.state.lock().unwrap().refresh_token_sealed = None;
+        self.save();
+        if self.device_id().is_none() {
+            self.status.update(|s| s.connection = Connection::NotSignedIn);
+        }
     }
 
     /// Own, non-revoked devices with this OS: the ones this computer may be a reinstall of (the server confirms by a
@@ -666,6 +834,13 @@ impl Agent {
 
     /// Register this device's key with the server. Needs the hardware-identifier consent.
     pub async fn enroll(&self, replaces_device_id: Option<&str>) -> anyhow::Result<()> {
+        let p = self.prepare_enrollment(replaces_device_id).await?;
+        self.submit_enrollment(p).await
+    }
+
+    /// Everything up to the registration request: challenge, key attestation, signed hardware identifiers. Nothing is
+    /// registered and nothing is saved, so this part can be cancelled at any point.
+    async fn prepare_enrollment(&self, replaces_device_id: Option<&str>) -> anyhow::Result<PreparedEnrollment> {
         if !self.consent_given() {
             return Err(VaultError { status: 0, code: "consent_required".into(), details: Value::Null }.into());
         }
@@ -713,6 +888,12 @@ impl Agent {
         if let Some(r) = replaces_device_id {
             body["replaces_device_id"] = json!(r);
         }
+        Ok(PreparedEnrollment { key, unused_tpm_key, token, body })
+    }
+
+    /// Send the registration and save its result.
+    async fn submit_enrollment(&self, p: PreparedEnrollment) -> anyhow::Result<()> {
+        let PreparedEnrollment { key, unused_tpm_key, token, body } = p;
         let reg = self.vault.register_device(&token, &body).await?;
         if reg.device_key_id != key.device_key_id() {
             anyhow::bail!("vault registered a different key id");
@@ -767,6 +948,7 @@ impl Agent {
     }
 
     pub fn sign_out(&self) {
+        self.cancel_enrollment();
         *self.access.lock().unwrap() = None;
         {
             let mut st = self.state.lock().unwrap();

@@ -411,6 +411,14 @@
         "backToSignin": "Kembali ke halaman masuk",
         "tryAgain": "Coba lagi"
       },
+      "timeout": "Pendaftaran terlalu lama. Periksa koneksi internet Anda, lalu coba lagi.",
+      "unknownState": "Aplikasi melaporkan langkah yang tidak dikenalinya ({state}). Coba lagi, atau mulai dari awal.",
+      "ready": {
+        "title": "Daftarkan komputer ini",
+        "lede": "Anda sudah masuk, tetapi komputer ini belum terdaftar.",
+        "button": "Daftarkan"
+      },
+      "startOver": "Mulai dari awal",
       "done": {
         "title": "Semua siap",
         "lede": "Komputer ini sudah terdaftar. Berikutnya ada uji kinerja singkat; setelah itu Vouch Compute bekerja sendiri, sesuai batasan Anda.",
