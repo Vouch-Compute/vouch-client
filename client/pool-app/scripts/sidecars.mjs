@@ -48,9 +48,12 @@ for (const [pkg, feats] of builds) {
 mkdirSync(binDir, { recursive: true });
 const profile = release ? "release" : "debug";
 for (const [pkg] of builds) {
-  const candidates = [join(targetDir, triple, profile, pkg + exe), join(targetDir, profile, pkg + exe)];
-  const src = candidates.find((p) => existsSync(p));
-  if (!src) throw new Error(`built ${pkg} not found in ${candidates.join(", ")}`);
+  // exactly where the build above put it: with --target under <target>/<triple>/, without it under <target>/. Never
+  // fall back to the other one, which can hold a stale binary from an earlier build (a dev-trust one, say).
+  const src = process.env.TAURI_ENV_TARGET_TRIPLE
+    ? join(targetDir, triple, profile, pkg + exe)
+    : join(targetDir, profile, pkg + exe);
+  if (!existsSync(src)) throw new Error(`built ${pkg} not found at ${src}`);
   const dst = join(binDir, `${pkg}-${triple}${exe}`);
   copyFileSync(src, dst);
   console.log(`[sidecars] ${src} -> ${dst}`);
