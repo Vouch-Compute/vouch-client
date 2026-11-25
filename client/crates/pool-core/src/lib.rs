@@ -31,3 +31,27 @@ pub mod runner_client;
 pub mod session;
 pub mod status;
 pub mod vault;
+
+/// The version shown to the user and in the log: the package version, or `<version>-test.<sha>` for a test build
+/// (T-227: built from a branch with `POOL_TEST_BUILD=<short commit>`, never published or offered as an update). The
+/// server always gets the plain package version.
+pub fn display_version() -> String {
+    test_build_suffix(option_env!("POOL_TEST_BUILD")).map_or_else(|| env!("CARGO_PKG_VERSION").to_string(), |s| format!("{}-test.{s}", env!("CARGO_PKG_VERSION")))
+}
+
+/// A short commit id (4 to 12 hex digits), or nothing.
+fn test_build_suffix(v: Option<&str>) -> Option<&str> {
+    v.map(str::trim).filter(|s| (4..=12).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
+#[cfg(test)]
+mod version_tests {
+    #[test]
+    fn test_build_suffix_is_a_short_commit_only() {
+        assert_eq!(super::test_build_suffix(Some("16bebc8")), Some("16bebc8"));
+        for bad in [None, Some(""), Some("abc"), Some("16bebc8!"), Some("0123456789abc"), Some("main")] {
+            assert_eq!(super::test_build_suffix(bad), None, "{bad:?}");
+        }
+        assert!(super::display_version().starts_with(env!("CARGO_PKG_VERSION")));
+    }
+}

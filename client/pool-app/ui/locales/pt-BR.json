@@ -55,7 +55,8 @@
       "title": "Sem conexão",
       "connecting": "Conectando…",
       "sub": "Não é possível acessar a rede do Vouch Compute no momento.",
-      "subRetry": "Não é possível acessar a rede do Vouch Compute no momento. Nova tentativa em {seconds, plural, one {# segundo} many {# segundos} other {# segundos}}."
+      "subRetry": "Não é possível acessar a rede do Vouch Compute no momento. Nova tentativa em {seconds, plural, one {# segundo} many {# segundos} other {# segundos}}.",
+      "untrustedKeys": "Este app não consegue verificar as chaves de segurança da rede Vouch Compute, então não vai se conectar. Instale a versão mais recente do app."
     },
     "setup": {
       "title": "Configurando este dispositivo",

@@ -180,6 +180,11 @@ pub struct Status {
     pub benchmark: Option<BenchProgress>,
     pub sandbox: Option<String>,
     pub last_error: Option<String>,
+    /// Why the last attempt did not reach the job server, for the app to explain: `untrusted_keys` (the server's
+    /// signing keys did not verify against the keys built into this app) or `network` (could not reach it). `None`
+    /// once a session is up.
+    #[serde(default)]
+    pub connect_problem: Option<String>,
     pub reconnect_in_s: Option<u64>,
     /// Account notices from the server (node protocol 1.2.0 `AccountNotice`): banners only, no reason text.
     pub notices: Notices,
@@ -230,6 +235,7 @@ impl Default for Status {
             benchmark: None,
             sandbox: None,
             last_error: None,
+            connect_problem: None,
             reconnect_in_s: None,
             notices: Notices::default(),
             clock_offset_s: None,

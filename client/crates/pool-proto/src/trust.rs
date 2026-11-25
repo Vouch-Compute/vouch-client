@@ -1,4 +1,4 @@
-//! Trust distribution: KeySet verification against the two embedded root keys, rollback protection,
+//! Trust distribution: KeySet verification against the embedded root keys, rollback protection,
 //! and lookup of the server keys by purpose (`dispatch`, `registry`, `benchmark`,...).
 //!
 //! Model bundles are trusted only through a ModelManifest signed by a `registry` key from a
@@ -10,12 +10,11 @@ use crate::cose::{parse_sign1, Sign1};
 use crate::objects::{BenchmarkWorkload, KeySet, LeaseEnvelope, ModelManifest};
 use crate::{keys, object_types as t, Error};
 
-/// Placeholder KeySet root public keys (SPKI DER, base64), DEV ONLY. They are replaced with the
-/// two offline root keys from the server's key ceremony before any production build.
-/// Dev keys; the private halves are in `client/dev-keys/` (gitignored), for the server's dev KeySet.
-pub const EMBEDDED_ROOTS_B64: [&str; 2] = [
-    "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJk1NUIMkiup7aDynS0iO3CSglPObQk0K3CvTohrHl7QNvSb41o39OW2/tW5BQpBiWzEgv2EHpR5oNdsC49pUzw==",
-    "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq9cjKKkk6peDs8Z6UoGLfk4UZ7dc7ImIVJysxraGLLDlmzgngb5b2h30rhT4YxLgFmGQSQg7TibNQTEwCRGTcA==",
+/// The production KeySet root public keys (SPKI DER, base64) that release builds trust. vault's production KeySet
+/// root (`vk_keyset_202611_1`, T-225; vault sign-off). A second, offline backup root from the owner's key ceremony is
+/// added here when it exists. Dev builds trust the dev roots instead ([`DEV_PLACEHOLDER_ROOTS_B64`]).
+pub const EMBEDDED_ROOTS_B64: &[&str] = &[
+    "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE3Bvw7EB41RjBt/qFyLNaqw83mwVyXj/jtj0RxbHBEdpWM6ci/2jZDgOPA4mkQE1i8IW5uz2IgJOIHjdHSKRxGg==",
 ];
 
 /// Environment variable that overrides the roots (comma-separated base64 SPKI). Exists (and is honoured) only in
@@ -26,7 +25,8 @@ pub const DEV_ROOTS_ENV: &str = "POOL_DEV_TRUST_ROOTS";
 
 /// The KeySet roots that count as **dev** roots: the placeholder roots whose private halves
 /// are in `client/dev-keys/` (the server's dev KeySet), plus any root supplied through [`DEV_ROOTS_ENV`]. Only dev-trust
-/// builds have a dev root at all; the production roots (which replace [`EMBEDDED_ROOTS_B64`]) never count.
+/// builds have a dev root at all, and only they trust these; the production roots ([`EMBEDDED_ROOTS_B64`]) never count.
+/// The release marker check refuses any packaged binary that contains these strings.
 #[cfg(feature = "dev-trust")]
 pub const DEV_PLACEHOLDER_ROOTS_B64: [&str; 2] = [
     "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJk1NUIMkiup7aDynS0iO3CSglPObQk0K3CvTohrHl7QNvSb41o39OW2/tW5BQpBiWzEgv2EHpR5oNdsC49pUzw==",
@@ -42,11 +42,17 @@ fn env_roots() -> Option<Result<Vec<VerifyingKey>, Error>> {
     Some(v.split(',').map(|s| keys::parse_spki(&keys::b64_decode(s)?)).collect())
 }
 
+/// The KeySet roots this build trusts: release builds the production roots only; dev builds the roots in
+/// [`DEV_ROOTS_ENV`], else the dev placeholder roots (the local dev stack signs its KeySet with those).
 pub fn trust_roots() -> Result<Vec<VerifyingKey>, Error> {
     #[cfg(feature = "dev-trust")]
-    if let Some(r) = env_roots() {
-        return r;
+    {
+        if let Some(r) = env_roots() {
+            return r;
+        }
+        DEV_PLACEHOLDER_ROOTS_B64.iter().map(|s| keys::parse_spki(&keys::b64_decode(s)?)).collect()
     }
+    #[cfg(not(feature = "dev-trust"))]
     EMBEDDED_ROOTS_B64.iter().map(|s| keys::parse_spki(&keys::b64_decode(s)?)).collect()
 }
 
@@ -145,9 +151,30 @@ mod tests {
 
     #[test]
     fn embedded_roots_parse() {
-        assert_eq!(EMBEDDED_ROOTS_B64.len(), 2);
+        assert!(!EMBEDDED_ROOTS_B64.is_empty());
         for r in EMBEDDED_ROOTS_B64 {
             keys::parse_spki(&keys::b64_decode(r).unwrap()).unwrap();
+        }
+    }
+
+    /// T-225: 0.2.x shipped with the dev placeholder roots as its only roots, so no release build could verify the
+    /// production KeySet. The release roots are never a dev placeholder (strings copied here, so the check holds in
+    /// builds without the `dev-trust` feature too).
+    #[test]
+    fn release_roots_are_not_dev_placeholders() {
+        const DEV: [&str; 2] = [
+            "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJk1NUIMkiup7aDynS0iO3CSglPObQk0K3CvTohrHl7QNvSb41o39OW2/tW5BQpBiWzEgv2EHpR5oNdsC49pUzw==",
+            "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq9cjKKkk6peDs8Z6UoGLfk4UZ7dc7ImIVJysxraGLLDlmzgngb5b2h30rhT4YxLgFmGQSQg7TibNQTEwCRGTcA==",
+        ];
+        for r in EMBEDDED_ROOTS_B64 {
+            assert!(!DEV.contains(r), "a dev placeholder root is embedded as a release root");
+        }
+        #[cfg(feature = "dev-trust")]
+        assert_eq!(DEV_PLACEHOLDER_ROOTS_B64, DEV, "keep this test's copy in step with the dev roots");
+        #[cfg(not(feature = "dev-trust"))]
+        {
+            let embedded: Vec<_> = EMBEDDED_ROOTS_B64.iter().map(|s| keys::parse_spki(&keys::b64_decode(s).unwrap()).unwrap()).collect();
+            assert_eq!(trust_roots().unwrap(), embedded, "release builds trust exactly the embedded roots");
         }
     }
 

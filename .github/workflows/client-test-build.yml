@@ -1,0 +1,133 @@
+# Test builds (owner rule T-227): the release configuration (production hosts, the embedded production KeySet root,
+# no dev trust, POOL_RELEASE=1) built from any branch, for the owner to check on their own machine before a version is
+# tagged. A test build is a workflow artifact only:
+#   * never signed with the updater key and no updater archive or latest.json is made, so no installed app can update
+#     to it;
+#   * never uploaded to the download host;
+#   * the app shows its version as <version>-test.<short commit> (pool-core `display_version`), while the updater and
+#     the servers see the plain package version, so a later stable release updates it as usual.
+# Manual dispatch only (macOS minutes cost 10x): pick the branch under "Use workflow from".
+name: client-test-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: "macos (arm64 .dmg) or all (also Windows and Linux)"
+        type: choice
+        default: macos
+        options: [macos, all]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-test-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  test-build:
+    name: test-build-${{ matrix.name }}
+    # tags belong to client-release; a test build is never made from a release tag
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.platforms == 'all' && '[{"name":"macos-arm64","os":"macos-latest","bundles":"app,dmg"},{"name":"windows-x64","os":"windows-latest","bundles":"nsis"},{"name":"linux-x64","os":"ubuntu-22.04","bundles":"appimage,deb"}]' || '[{"name":"macos-arm64","os":"macos-latest","bundles":"app,dmg"}]') }}
+    defaults:
+      run:
+        working-directory: client
+        shell: bash
+    env:
+      # public values (repository variables): build.rs needs them for any POOL_RELEASE=1 build
+      VOUCH_RELEASE_UPDATER_PUBKEYS: ${{ vars.VOUCH_RELEASE_UPDATER_PUBKEYS }}
+      VOUCH_RELEASE_UPDATE_URL: ${{ vars.VOUCH_RELEASE_UPDATE_URL }}
+    steps:
+      - name: Check out with LF line endings
+        working-directory: .
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test build label
+        run: |
+          sha="$(git rev-parse --short=7 HEAD)"
+          version="$(node -p 'require("./pool-app/src-tauri/tauri.conf.json").version')"
+          echo "POOL_TEST_BUILD=$sha" >> "$GITHUB_ENV"
+          echo "TEST_LABEL=VouchCompute-test-$sha-${{ matrix.name }}" >> "$GITHUB_ENV"
+          echo "test build $version-test.$sha (${{ matrix.name }}) from $GITHUB_REF_NAME"
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Linux system packages
+        if: runner.os == 'Linux'
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libgtk-3-dev libssl-dev patchelf
+      - name: Release guard (a release build with dev-trust must fail to compile)
+        run: bash ci/release-guard.sh
+      - name: Release sidecars (POOL_RELEASE=1, no dev-trust; also fetches the target's pinned runtime pack)
+        working-directory: client/pool-app
+        env:
+          POOL_RELEASE: "1"
+        run: |
+          npm ci --no-audit --no-fund
+          node scripts/sidecars.mjs --release
+      - name: Runtime pack matches its pins
+        working-directory: client/pool-app
+        run: node scripts/runtime-packs.mjs --check
+      - name: Marker check (refuses dev-trust binaries and the dev KeySet roots)
+        run: bash ci/release-marker-check.sh pool-app/src-tauri/binaries
+      - name: Test build config (no updater artifacts; ad-hoc signature on macOS)
+        working-directory: client/pool-app
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            echo '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"-"}}}' > src-tauri/tauri.test.conf.json
+          else
+            echo '{"bundle":{"createUpdaterArtifacts":false}}' > src-tauri/tauri.test.conf.json
+          fi
+      - name: Bundle (release configuration, no updater key)
+        working-directory: client/pool-app
+        env:
+          POOL_RELEASE: "1"
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          npx tauri build --config src-tauri/tauri.release.conf.json --config src-tauri/tauri.test.conf.json \
+            --bundles ${{ matrix.bundles }}
+      - name: Marker check on the packaged app
+        run: bash ci/release-marker-check.sh target/release/bundle pool-app/src-tauri/binaries
+      - name: Runtime pack in every packaged form
+        env:
+          RELEASE_PACK_REQUIRE: ${{ runner.os == 'macOS' && 'app,dmg' || runner.os == 'Linux' && 'deb,appimage' || '' }}
+        run: bash ci/release-pack-check.sh ${{ matrix.name == 'macos-arm64' && 'macos-aarch64' || matrix.name == 'windows-x64' && 'windows-x86_64' || 'linux-x86_64' }} target/release/bundle
+      - name: Test build checks (label in the agent, no updater archive, no dev channel)
+        run: |
+          grep -a -q -F -e "$POOL_TEST_BUILD" -r pool-app/src-tauri/binaries || { echo "test label missing from the agent"; exit 1; }
+          if find target/release/bundle -name '*.sig' -o -name '*.app.tar.gz' | grep -q .; then echo "updater artifacts in a test build"; exit 1; fi
+          if grep -r -a -l -F -e 'updates/vouchcompute-dev' -e 'com.vouchcompute.app.dev' target/release/bundle; then
+            echo "dev updater endpoint or dev bundle id found"; exit 1
+          fi
+      - name: Name the files after the test build
+        run: |
+          mkdir -p test-build
+          for f in target/release/bundle/dmg/*.dmg target/release/bundle/nsis/*.exe target/release/bundle/appimage/*.AppImage target/release/bundle/deb/*.deb; do
+            [ -f "$f" ] || continue
+            cp "$f" "test-build/$TEST_LABEL.${f##*.}"
+          done
+          (cd test-build && { command -v sha256sum >/dev/null && sha256sum * || shasum -a 256 *; } | tee SHA256SUMS.txt)
+      - name: Upload the test build (workflow artifact only)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ env.TEST_LABEL }}
+          if-no-files-found: error
+          retention-days: 14
+          path: client/test-build/*

@@ -55,7 +55,8 @@
       "title": "Tidak terhubung",
       "connecting": "Menghubungkan…",
       "sub": "Jaringan Vouch Compute tidak dapat dijangkau saat ini.",
-      "subRetry": "Jaringan Vouch Compute tidak dapat dijangkau saat ini. Mencoba lagi dalam {seconds, plural, other {# detik}}."
+      "subRetry": "Jaringan Vouch Compute tidak dapat dijangkau saat ini. Mencoba lagi dalam {seconds, plural, other {# detik}}.",
+      "untrustedKeys": "Aplikasi ini tidak dapat memverifikasi kunci keamanan jaringan Vouch Compute, jadi tidak akan terhubung. Instal versi terbaru aplikasi."
     },
     "setup": {
       "title": "Menyiapkan perangkat ini",

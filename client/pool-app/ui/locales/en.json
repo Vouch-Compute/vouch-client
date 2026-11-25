@@ -55,7 +55,8 @@
       "title": "Offline",
       "connecting": "Connecting…",
       "sub": "Can't reach the Vouch Compute network right now.",
-      "subRetry": "Can't reach the Vouch Compute network right now. Retrying in {seconds, plural, one {# second} other {# seconds}}."
+      "subRetry": "Can't reach the Vouch Compute network right now. Retrying in {seconds, plural, one {# second} other {# seconds}}.",
+      "untrustedKeys": "This app can't verify the Vouch Compute network's security keys, so it won't connect. Install the latest version of the app."
     },
     "setup": {
       "title": "Setting up this device",

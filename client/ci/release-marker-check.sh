@@ -13,7 +13,10 @@
 set -euo pipefail
 [ $# -ge 1 ] || { echo "usage: $0 <file-or-dir>..." >&2; exit 2; }
 
-FORBIDDEN=("POOL_DEV_TRUST_ROOTS" "VOUCH-DEV-REFERENCE-BACKEND" "VOUCH-BUILD-INFO dev-trust=yes")
+# the last two: the dev KeySet roots (private halves in client/dev-keys/), which 0.2.x shipped as its only roots (T-225)
+FORBIDDEN=("POOL_DEV_TRUST_ROOTS" "VOUCH-DEV-REFERENCE-BACKEND" "VOUCH-BUILD-INFO dev-trust=yes"
+  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJk1NUIMkiup7aDynS0iO3CSglPObQk0K3CvTohrHl7QNvSb41o39OW2/tW5BQpBiWzEgv2EHpR5oNdsC49pUzw=="
+  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq9cjKKkk6peDs8Z6UoGLfk4UZ7dc7ImIVJysxraGLLDlmzgngb5b2h30rhT4YxLgFmGQSQg7TibNQTEwCRGTcA==")
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 files=()

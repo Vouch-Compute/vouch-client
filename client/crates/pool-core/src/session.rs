@@ -394,6 +394,7 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
         s.connection = Connection::Connected;
         s.reconnect_attempts = 0;
         s.last_error = None;
+        s.connect_problem = None;
         s.reconnect_in_s = None;
         // the server re-sends the account notices that still apply on connect
         s.notices = Default::default();

@@ -20,6 +20,7 @@ const cases = [
   [snap({ notices: { paused_by: "user" } }), "paused", "Paused", "resume-server"],
   [snap({ decision: { state: "run" } }), "idle", "Idle, waiting for jobs", "pause"],
   [snap({ connection: "offline", reconnect_in_s: 12 }), "offline", "Offline", "reconnect"],
+  [snap({ connection: "offline", reconnect_in_s: 12, connect_problem: "untrusted_keys" }), "offline", "Offline", "update"],
   [snap({ connection: "not_signed_in" }), "signed_out", "Signed out", "signin"],
   [snap({ connection: "auth_failed" }), "signed_out", "Signed out", "signin"],
   [{ error: "agent not running" }, "down", "Agent not running", "start"],

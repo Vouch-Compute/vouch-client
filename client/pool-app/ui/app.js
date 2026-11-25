@@ -125,6 +125,8 @@ function heroState(s, now) {
   if (c === "auth_failed") return { key: "signed_out", tone: "danger", icon: "user", title: t("hero.signedOut.title"), sub: t("hero.signedOut.authFailed"), action: "signin" };
   if (c === "offline" || c === "connecting") {
     const r = n0(st.reconnect_in_s);
+    // T-225: the server's signing keys don't verify against this app's keys: retrying can't help, an update can
+    if (st.connect_problem === "untrusted_keys") return { key: "offline", tone: "danger", icon: "alert", title: t("hero.offline.title"), sub: t("hero.offline.untrustedKeys"), action: "update" };
     return { key: "offline", tone: "muted", icon: "wifiOff", title: c === "offline" ? t("hero.offline.title") : t("hero.offline.connecting"),
       sub: r === null ? t("hero.offline.sub") : t("hero.offline.subRetry", { seconds: r }), action: "reconnect" };
   }

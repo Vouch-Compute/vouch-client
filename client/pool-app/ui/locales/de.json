@@ -55,7 +55,8 @@
       "title": "Offline",
       "connecting": "Verbindung wird hergestellt…",
       "sub": "Das Vouch Compute-Netzwerk ist gerade nicht erreichbar.",
-      "subRetry": "Das Vouch Compute-Netzwerk ist gerade nicht erreichbar. Neuer Versuch in {seconds, plural, one {# Sekunde} other {# Sekunden}}."
+      "subRetry": "Das Vouch Compute-Netzwerk ist gerade nicht erreichbar. Neuer Versuch in {seconds, plural, one {# Sekunde} other {# Sekunden}}.",
+      "untrustedKeys": "Diese App kann die Sicherheitsschlüssel des Vouch Compute-Netzwerks nicht prüfen und verbindet sich daher nicht. Installieren Sie die neueste Version der App."
     },
     "setup": {
       "title": "Gerät wird eingerichtet",

@@ -55,7 +55,8 @@
       "title": "オフライン",
       "connecting": "接続中…",
       "sub": "現在 Vouch Compute ネットワークに接続できません。",
-      "subRetry": "現在 Vouch Compute ネットワークに接続できません。{seconds, plural, other {#秒}}後に再試行します。"
+      "subRetry": "現在 Vouch Compute ネットワークに接続できません。{seconds, plural, other {#秒}}後に再試行します。",
+      "untrustedKeys": "このアプリは Vouch Compute ネットワークのセキュリティ鍵を検証できないため、接続しません。アプリの最新版をインストールしてください。"
     },
     "setup": {
       "title": "このデバイスを設定中",

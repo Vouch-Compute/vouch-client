@@ -23,7 +23,7 @@ const snap = (status, extra) => ({ settings: { ...settings, ...(extra && extra.s
 const heroInputs = [
   null, { error: "agent not running" },
   snap({ connection: "not_signed_in" }), snap({ connection: "auth_failed" }), snap({ connection: "offline", reconnect_in_s: 1 }),
-  snap({ connection: "offline", reconnect_in_s: 12 }), snap({ connection: "connecting" }), snap({ connection: "not_enrolled" }),
+  snap({ connection: "offline", reconnect_in_s: 12 }), snap({ connection: "offline", connect_problem: "untrusted_keys" }), snap({ connection: "connecting" }), snap({ connection: "not_enrolled" }),
   snap({ connection: "update_required" }), snap({ connection: "revoked" }), snap({ job: { model_id: "whisper-small" } }), snap({ job: {} }),
   snap({ benchmark: { state: "running" } }), snap({ notices: { paused_by: "tally" } }), snap({ notices: { paused_by: "user" } }),
   snap({ decision: { state: "pause", reason: "paused_by_user" } }, { settings: { paused_until_ms: now + 3600e3 } }),

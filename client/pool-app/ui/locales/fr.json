@@ -55,7 +55,8 @@
       "title": "Hors ligne",
       "connecting": "Connexion…",
       "sub": "Impossible de joindre le réseau Vouch Compute pour le moment.",
-      "subRetry": "Impossible de joindre le réseau Vouch Compute pour le moment. Nouvel essai dans {seconds, plural, one {# seconde} many {# secondes} other {# secondes}}."
+      "subRetry": "Impossible de joindre le réseau Vouch Compute pour le moment. Nouvel essai dans {seconds, plural, one {# seconde} many {# secondes} other {# secondes}}.",
+      "untrustedKeys": "Cette application ne peut pas vérifier les clés de sécurité du réseau Vouch Compute, elle ne se connectera donc pas. Installez la dernière version de l’application."
     },
     "setup": {
       "title": "Configuration de cet appareil",

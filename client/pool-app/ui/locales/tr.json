@@ -55,7 +55,8 @@
       "title": "Çevrimdışı",
       "connecting": "Bağlanılıyor…",
       "sub": "Şu anda Vouch Compute ağına ulaşılamıyor.",
-      "subRetry": "Şu anda Vouch Compute ağına ulaşılamıyor. {seconds, plural, one {# saniye} other {# saniye}} sonra yeniden denenecek."
+      "subRetry": "Şu anda Vouch Compute ağına ulaşılamıyor. {seconds, plural, one {# saniye} other {# saniye}} sonra yeniden denenecek.",
+      "untrustedKeys": "Bu uygulama Vouch Compute ağının güvenlik anahtarlarını doğrulayamıyor, bu yüzden bağlanmayacak. Uygulamanın en son sürümünü yükleyin."
     },
     "setup": {
       "title": "Bu cihaz hazırlanıyor",

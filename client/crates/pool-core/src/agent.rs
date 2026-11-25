@@ -97,6 +97,8 @@ pub struct Agent {
     enroll_gen: watch::Sender<u64>,
     /// One enrollment at a time, so a retry never registers this computer twice.
     enroll_lock: tokio::sync::Mutex<()>,
+    /// One token refresh at a time (see [`Agent::access_token`]).
+    refresh_lock: tokio::sync::Mutex<()>,
 }
 
 /// The time limit of the enrollment steps before the registration request (refresh, device list, challenge,
@@ -117,6 +119,11 @@ struct NoAnswer;
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
 #[error("Your sign-in has expired. Sign in again.")]
 pub struct SignInExpired;
+
+/// The server's KeySet did not verify against the roots built into this app: no session is attempted.
+#[derive(Debug, thiserror::Error)]
+#[error("the server's signing keys did not verify against this app's built-in keys: {0}")]
+struct UntrustedKeySet(pool_proto::Error);
 
 /// The enrollment attempt was cancelled or replaced by a newer one.
 #[derive(Debug, Clone, Copy, PartialEq, thiserror::Error)]
@@ -252,6 +259,7 @@ impl Agent {
             sim_idle_s,
             enroll_gen: watch::channel(0u64).0,
             enroll_lock: tokio::sync::Mutex::new(()),
+            refresh_lock: tokio::sync::Mutex::new(()),
         }))
     }
 
@@ -355,7 +363,7 @@ impl Agent {
         let bytes = self.vault.keyset().await?;
         let roots = trust::trust_roots().map_err(|e| anyhow::anyhow!("{e}"))?;
         let min = self.state.lock().unwrap().keyset_max_version;
-        let ks = trust::verify_keyset(&bytes, &roots, min).map_err(|e| anyhow::anyhow!("KeySet rejected: {e}"))?;
+        let ks = trust::verify_keyset(&bytes, &roots, min).map_err(UntrustedKeySet)?;
         if ks.keyset.version > min {
             self.state.lock().unwrap().keyset_max_version = ks.keyset.version;
             self.save();
@@ -376,14 +384,23 @@ impl Agent {
             });
             let end = match self.trusted_keyset().await {
                 Err(e) => {
-                    self.status.update(|s| s.last_error = Some(e.to_string()));
+                    let problem = if e.downcast_ref::<UntrustedKeySet>().is_some() { "untrusted_keys" } else { "network" };
+                    tracing::warn!("job server not contacted: fetching or checking the signing keys failed: {e:#}");
+                    self.status.update(|s| {
+                        s.last_error = Some(e.to_string());
+                        s.connect_problem = Some(problem.into());
+                    });
                     SessionEnd::Reconnect(None)
                 }
                 Ok(ks) => {
                     self.registry.load_index(&ks);
                     match session::connect(&self.cfg).await {
                         Err(e) => {
-                            self.status.update(|s| s.last_error = Some(format!("connect: {e}")));
+                            tracing::warn!("could not connect to the job server at {}: {e:#}", self.cfg.engine_ws_url);
+                            self.status.update(|s| {
+                                s.last_error = Some(format!("connect: {e}"));
+                                s.connect_problem = Some("network".into());
+                            });
                             SessionEnd::Reconnect(None)
                         }
                         Ok((ws, edge)) => {
@@ -425,7 +442,10 @@ impl Agent {
                     }
                 }
             };
-            tracing::info!("session ended: {end:?}");
+            match self.status.get().last_error {
+                Some(err) if !matches!(end, SessionEnd::Stopped) => tracing::info!("session ended: {end:?}; last error: {err}"),
+                _ => tracing::info!("session ended: {end:?}"),
+            }
             let wait = match end {
                 SessionEnd::Reconnect(Some(d)) => d,
                 SessionEnd::Reconnect(None) | SessionEnd::ProtocolError(_) => {
@@ -496,27 +516,44 @@ impl Agent {
 
     // ------------------------------------------------------------------ sign-in and enrollment
 
-    async fn access_token(&self) -> anyhow::Result<String> {
-        if let Some((t, exp)) = self.access.lock().unwrap().clone() {
-            if exp > now_ms() + 30_000 {
-                return Ok(t);
-            }
+    /// A valid access token for the account reads (estimate, earnings, wallets, device view). The node session never
+    /// needs it: it signs in with the device key.
+    pub async fn access_token(&self) -> anyhow::Result<String> {
+        if let Some(t) = self.cached_access_token() {
+            return Ok(t);
+        }
+        // One refresh at a time. vault rotates the refresh token on every use and treats a used one coming back as
+        // theft (the whole sign-in is revoked), so two concurrent refreshes with the same token sign the user out.
+        let _one = self.refresh_lock.lock().await;
+        if let Some(t) = self.cached_access_token() {
+            return Ok(t); // refreshed by the caller we waited for
         }
         let sealed = self.state.lock().unwrap().refresh_token_sealed.clone().ok_or_else(|| anyhow::anyhow!("not signed in"))?;
         // a token that can't be unsealed (another OS user, a damaged file) is as unusable as an expired one
-        let rt = unseal_b64(&sealed).ok().and_then(|b| String::from_utf8(b).ok()).ok_or(SignInExpired)?;
+        let Some(rt) = unseal_b64(&sealed).ok().and_then(|b| String::from_utf8(b).ok()) else {
+            tracing::warn!("the saved sign-in can't be read on this computer: sign in again");
+            self.forget_sign_in();
+            return Err(SignInExpired.into());
+        };
         let tokens = match self.vault.refresh(&rt).await {
             Ok(t) => t,
             // RFC 6749 section 5.2: an expired, revoked or unknown refresh token is `invalid_grant` (400, some servers
             // 401). Other refusals (`invalid_client`, `invalid_request`: a server or proxy problem) keep the sign-in.
             Err(e) if e.downcast_ref::<VaultError>().is_some_and(|v| (v.status == 400 || v.status == 401) && v.code == "invalid_grant") => {
                 tracing::warn!("the saved sign-in was refused ({e}): sign in again");
+                // forget it, so the app offers "Sign in" instead of failing every read; a registered device keeps its
+                // registration and its node session (those use the device key, never this token)
+                self.forget_sign_in();
                 return Err(SignInExpired.into());
             }
             Err(e) => return Err(e),
         };
         self.store_tokens(&tokens);
         Ok(tokens.access_token)
+    }
+
+    fn cached_access_token(&self) -> Option<String> {
+        self.access.lock().unwrap().clone().filter(|(_, exp)| *exp > now_ms() + 30_000).map(|(t, _)| t)
     }
 
     fn store_tokens(&self, t: &crate::vault::Tokens) {
@@ -906,7 +943,7 @@ impl Agent {
     /// registered and nothing is saved, so this part can be cancelled at any point.
     async fn prepare_enrollment(&self, replaces_device_id: Option<&str>) -> anyhow::Result<PreparedEnrollment> {
         if !self.consent_given() {
-            return Err(VaultError { status: 0, code: "consent_required".into(), details: Value::Null }.into());
+            return Err(VaultError { status: 0, code: "consent_required".into(), details: Value::Null, message: String::new() }.into());
         }
         let mut key = self.key();
         let token = self.access_token().await?;
@@ -1225,7 +1262,7 @@ impl Agent {
         let status: Status = self.status.get();
         let key = self.key();
         json!({
-            "version": env!("CARGO_PKG_VERSION"),
+            "version": crate::display_version(),
             "build": { "dev_build": pool_proto::DEV_BUILD, "info": pool_proto::BUILD_INFO },
             "status": status,
             "signed_in": st.refresh_token_sealed.is_some(),
