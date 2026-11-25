@@ -20,6 +20,7 @@ const cases = [
   [snap({ notices: { paused_by: "user" } }), "paused", "Paused", "resume-server"],
   [snap({ decision: { state: "run" } }), "idle", "Idle, waiting for jobs", "pause"],
   [snap({ connection: "offline", reconnect_in_s: 12 }), "offline", "Offline", "reconnect"],
+  [snap({ connection: "offline", reconnect_in_s: 12, connect_problem: "untrusted_keys" }), "offline", "Offline", "update"],
   [snap({ connection: "not_signed_in" }), "signed_out", "Signed out", "signin"],
   [snap({ connection: "auth_failed" }), "signed_out", "Signed out", "signin"],
   [{ error: "agent not running" }, "down", "Agent not running", "start"],
@@ -140,6 +141,14 @@ for (const [b, label, accel] of [["candle-metal", "Graphics card (Metal)", true]
   const running = api.benchHtml({ state: "running", started_ms: now - 600e3, duration_s: 1200, segments: 10, measured: m }, now, false);
   if (!running.includes("Measured so far: 418 tokens per second")) fail("running benchmark shows the rate so far");
   if (api.benchHtml({ state: "sent" }, now, false).includes("per second")) fail("no rate shown without a measurement");
+  // M9: a stopped or declined benchmark says why, in words; unknown codes and model names are never shown raw
+  const failed = api.benchHtml({ state: "stopped", model_id: "bge-m3", stop_reason: "runtime_failed" }, now, false);
+  if (!failed.includes("stopped before it finished") || !failed.includes("could not load what the model needs")) fail("stopped benchmark shows its reason");
+  const declined = api.benchHtml({ state: "declined", model_id: "bge-small", stop_reason: "model_not_downloaded" }, now, false);
+  if (!declined.includes("The benchmark for bge-small could not start.") || !declined.includes("did not finish downloading")) fail("declined benchmark shows model and reason");
+  const odd = api.benchHtml({ state: "declined", model_id: XSS, stop_reason: "<b>x</b>" }, now, false);
+  if (odd.includes("<b>x</b>") || odd.includes("Reason:") || odd.includes("<img")) fail("an unknown reason or a hostile model id is not rendered raw");
+  if (api.benchHtml({ state: "stopped" }, now, false).includes("Reason:")) fail("no reason line without a reason");
   const dv = { status: "probation", tier: "probation", benchmark_date: "2026-11-24" };
   const perf = api.perfHtml([{ model_id: "bge-m3", benchmark_id: "b", measured: m, finished_ms: now, received: true }], dv, false);
   for (const want of ["418 tokens per second", "bge-m3 on Processor (CPU)", "Received by the server", "Status on the server", "Probation",

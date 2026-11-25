@@ -55,7 +55,8 @@
       "title": "Sem conexão",
       "connecting": "Conectando…",
       "sub": "Não é possível acessar a rede do Vouch Compute no momento.",
-      "subRetry": "Não é possível acessar a rede do Vouch Compute no momento. Nova tentativa em {seconds, plural, one {# segundo} many {# segundos} other {# segundos}}."
+      "subRetry": "Não é possível acessar a rede do Vouch Compute no momento. Nova tentativa em {seconds, plural, one {# segundo} many {# segundos} other {# segundos}}.",
+      "untrustedKeys": "Este app não consegue verificar as chaves de segurança da rede Vouch Compute, então não vai se conectar. Instale a versão mais recente do app."
     },
     "setup": {
       "title": "Configurando este dispositivo",
@@ -147,6 +148,8 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# rodada concluída} many {# rodadas concluídas} other {# rodadas concluídas}}. Se você começar a usar o computador, o teste para, mesmo que você tenha escolhido “Executar agora”.",
     "finished": "Teste de desempenho concluído. O servidor confere os resultados.",
     "stopped": "O teste de desempenho parou antes de terminar. Ele vai começar de novo mais tarde.",
+    "declined": "O teste de desempenho de {model} não conseguiu começar.",
+    "whyStopped": "{reason, select, paused {Motivo: você estava usando o computador, ele esquentou demais ou passou a funcionar na bateria.} thermal {Motivo: o computador esquentou demais.} on_battery {Motivo: o computador passou a funcionar na bateria.} model_not_downloaded {Motivo: o modelo não terminou de baixar a tempo.} runtime_failed {Motivo: este computador não conseguiu carregar o que o modelo precisa para rodar. É preciso atualizar o app.} other {Motivo: o teste enviado pelo servidor não pôde ser usado neste computador.}}",
     "about": "Um teste de velocidade assinado roda em velocidade máxima por cerca de 20 minutos. Ele para se você usar o computador, se o computador esquentar demais ou se passar a funcionar na bateria. Sua configuração “Uso de energia” vale para o trabalho pago, não para este teste. O teste nunca é pago, e você pode interrompê-lo a qualquer momento.",
     "runNow": "Executar agora",
     "runAtIdle": "Executar na primeira ociosidade"

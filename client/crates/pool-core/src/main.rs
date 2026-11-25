@@ -16,7 +16,7 @@ use pool_core::{agent::Agent, config};
 async fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("version") {
-        println!("pool-core {} (protocol {}; {})", env!("CARGO_PKG_VERSION"), pool_proto::PROTOCOL_VERSION, pool_proto::BUILD_INFO);
+        println!("pool-core {} (protocol {}; {})", pool_core::display_version(), pool_proto::PROTOCOL_VERSION, pool_proto::BUILD_INFO);
         return Ok(());
     }
     // no crash dump may carry hardware identifiers or job data
@@ -44,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
         // edition 2021: set before any thread reads the environment; inherited by the sandboxed runner
         std::env::set_var(pool_proto::trust::DEV_ROOTS_ENV, cfg.dev_trust_roots.join(","));
     }
-    tracing::info!("pool-core {} starting; data dir {}; {}", env!("CARGO_PKG_VERSION"), data_dir.display(), pool_proto::BUILD_INFO);
+    tracing::info!("pool-core {} starting; data dir {}; {}", pool_core::display_version(), data_dir.display(), pool_proto::BUILD_INFO);
     // single instance: bind the control endpoint before starting any session
     let listener = match pool_core::control::bind(&data_dir) {
         Ok(l) => l,

@@ -163,8 +163,8 @@ jobs:
   # crates/pool-runner/packs.json (fails on any SHA-256 mismatch), then run the bge-m3 stand-in tests (tiny XLM-R
   # graph with external weights, tests/fixtures/xlmr-tiny) in the real runner inside the OS sandbox, CPU only, against
   # the reference worker's embeddings. POOL_REQUIRE_ORT_PACK=1 turns "no pack" into a failure. No real weights, no GPU.
-  # macOS runs it twice: as cargo builds the runner, and ad-hoc signed with the hardened runtime as the app bundle
-  # signs it (library validation then applies to the pinned dylib).
+  # macOS runs it twice: as cargo builds the runner, and signed exactly as the app bundle signs it (ad hoc, hardened
+  # runtime, the app's entitlements), so library validation applies to the pinned dylib as it does in the app.
   onnx-cpu:
     name: onnx-cpu ${{ matrix.name }}
     needs: quick
@@ -206,13 +206,18 @@ jobs:
           node pool-app/scripts/runtime-packs.mjs --check
       - name: bge-m3 stand-in in the sandboxed runner, CPU
         run: cargo test -p pool-runner --features onnx --test onnx_xlmr -- --nocapture
-      - name: Same, runner ad-hoc signed with the hardened runtime (as in the app bundle)
+      # The test binary is run directly: `cargo test` would re-link pool-runner and drop the signature, which is how
+      # this step passed for a runner that macOS 27 refuses in the app ("different Team IDs").
+      - name: Same, runner signed as in the app bundle (ad hoc, hardened runtime, app entitlements)
         if: runner.os == 'macOS'
         run: |
-          cargo test -p pool-runner --features onnx --test onnx_xlmr --no-run
-          codesign --force --sign - --options runtime target/debug/pool-runner
+          test_bin="$(cargo test -p pool-runner --features onnx --test onnx_xlmr --no-run --message-format=json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const l of s.split("\n")){if(!l)continue;const m=JSON.parse(l);if(m.reason==="compiler-artifact"&&m.executable&&m.target.name==="onnx_xlmr")console.log(m.executable)}})')"
+          test -x "$test_bin"
+          codesign --force --sign - --options runtime --entitlements pool-app/src-tauri/macos/VouchCompute.entitlements target/debug/pool-runner
           codesign --display --verbose=2 target/debug/pool-runner 2>&1 | grep -E 'flags|Signature'
-          cargo test -p pool-runner --features onnx --test onnx_xlmr -- --nocapture
+          "$test_bin" --nocapture
+          codesign --display --verbose=2 target/debug/pool-runner 2>&1 | grep -q 'flags=0x10002(adhoc,runtime)' || { echo "the runner lost its signature during the test"; exit 1; }
       # The Mac path (T-219): the real agent links as a capped device, runs the probation benchmark and a job for the
       # bge-m3 stand-in on this pack (CPU), and keeps the speed it measured for the app. macOS and Linux (CPU packs).
       - name: Agent end to end on the CPU pack (benchmark, job, measured speed)

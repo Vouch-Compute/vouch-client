@@ -53,6 +53,15 @@ pub struct V {
     pub challenge_delay_ms: std::sync::atomic::AtomicU64,
     /// A delay before `POST /v1/devices` registers (a slow answer to the registration itself).
     pub register_delay_ms: std::sync::atomic::AtomicU64,
+    /// Refresh grants served, and the refresh tokens already used: a used one coming back is reuse, which revokes the
+    /// sign-in as vault does (accounts/routes.py, refresh grant).
+    pub refreshes: AtomicUsize,
+    pub used_refresh: Mutex<HashSet<String>>,
+    pub revoked: std::sync::atomic::AtomicBool,
+    /// Lifetime of the access tokens the refresh grant issues (default 300 s when 0 is not set explicitly).
+    pub access_ttl_s: Mutex<Option<u64>>,
+    /// What `GET /v1/keys` serves (`None`: 404).
+    pub keyset: Mutex<Option<Vec<u8>>>,
 }
 
 impl V {
@@ -78,7 +87,15 @@ async fn token(State(v): State<Arc<V>>, Form(f): Form<HashMap<String, String>>) 
             if v.refresh_refused.load(Ordering::SeqCst) {
                 return (StatusCode::BAD_REQUEST, Json(json!({"error": "invalid_grant", "error_description": "refresh token expired"}))).into_response();
             }
-            return Json(json!({"access_token": "at-2", "token_type": "Bearer", "expires_in": 300, "refresh_token": "rt-2"})).into_response()
+            let rt = f.get("refresh_token").cloned().unwrap_or_default();
+            if v.revoked.load(Ordering::SeqCst) || !v.used_refresh.lock().unwrap().insert(rt) {
+                v.revoked.store(true, Ordering::SeqCst);
+                return err(400, "invalid_grant");
+            }
+            let n = v.refreshes.fetch_add(1, Ordering::SeqCst) + 2;
+            let ttl = v.access_ttl_s.lock().unwrap().unwrap_or(300);
+            return Json(json!({"access_token": format!("at-{n}"), "token_type": "Bearer", "expires_in": ttl, "refresh_token": format!("rt-{n}")}))
+                .into_response();
         }
         Some("urn:ietf:params:oauth:grant-type:device_code") => {}
         _ => return err(400, "unsupported_grant_type"),
@@ -87,7 +104,8 @@ async fn token(State(v): State<Arc<V>>, Form(f): Form<HashMap<String, String>>) 
         // the server's shape: 400 with the OAuth code in error.code
         return err(400, "authorization_pending");
     }
-    Json(json!({"access_token": "at-1", "token_type": "Bearer", "expires_in": 300, "refresh_token": "rt-1",
+    let ttl = v.access_ttl_s.lock().unwrap().unwrap_or(300);
+    Json(json!({"access_token": "at-1", "token_type": "Bearer", "expires_in": ttl, "refresh_token": "rt-1",
         "scope": "earnings:read devices:read devices:enroll"}))
     .into_response()
 }
@@ -317,7 +335,12 @@ pub async fn spawn_vault() -> (Arc<V>, String) {
         .route("/v1/devices/{id}/key-rotations", post(rotate))
         .route("/v1/auth/recovery-cases/{case}/device-proof", post(recovery_proof))
         .route("/v1/me", get(|| async { Json(json!({"account_id": ACCOUNT_ID, "username": "alice"})) }))
-        .route("/v1/keys", get(|| async { StatusCode::NOT_FOUND }))
+        .route("/v1/keys", get(|State(v): State<Arc<V>>| async move {
+            match v.keyset.lock().unwrap().clone() {
+                Some(b) => ([("content-type", "application/cose")], b).into_response(),
+                None => StatusCode::NOT_FOUND.into_response(),
+            }
+        }))
         .with_state(v.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();

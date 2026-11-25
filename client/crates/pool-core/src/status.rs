@@ -37,6 +37,10 @@ pub struct BenchProgress {
     /// What this app has measured so far in the benchmark window (display only, see [`Measured`]).
     #[serde(default)]
     pub measured: Option<Measured>,
+    /// Why a `stopped` or `declined` benchmark did not finish, as a code the app puts in words (M9): `paused`,
+    /// `thermal`, `on_battery`, `model_not_downloaded`, `runtime_failed` or `other`. Never free text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
 }
 
 /// Throughput the app measured on this computer during a benchmark, for the user to see. **Display only:** it is
@@ -180,6 +184,10 @@ pub struct Status {
     pub benchmark: Option<BenchProgress>,
     pub sandbox: Option<String>,
     pub last_error: Option<String>,
+    /// A connection problem the app explains on its own (beyond `last_error`). Set at each KeySet check, `None` once
+    /// the keys verify.
+    #[serde(default)]
+    pub connect_problem: Option<ConnectProblem>,
     pub reconnect_in_s: Option<u64>,
     /// Account notices from the server (node protocol 1.2.0 `AccountNotice`): banners only, no reason text.
     pub notices: Notices,
@@ -193,6 +201,15 @@ pub struct Status {
     /// The runtime that ran the last job (`onnxruntime-directml`, `candle-cuda`, `candle-cpu`,...).
     #[serde(default)]
     pub backend: Option<String>,
+}
+
+/// See [`Status::connect_problem`].
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ConnectProblem {
+    /// The server's KeySet is signed, but not by a root built into this app: no session is attempted, and only an app
+    /// update can fix it.
+    UntrustedKeys,
 }
 
 /// The banners `AccountNotice` drives. Reset at every new session: the server sends the ones that apply on connect.
@@ -230,6 +247,7 @@ impl Default for Status {
             benchmark: None,
             sandbox: None,
             last_error: None,
+            connect_problem: None,
             reconnect_in_s: None,
             notices: Notices::default(),
             clock_offset_s: None,

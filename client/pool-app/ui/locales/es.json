@@ -55,7 +55,8 @@
       "title": "Sin conexión",
       "connecting": "Conectando…",
       "sub": "Ahora mismo no se puede acceder a la red de Vouch Compute.",
-      "subRetry": "Ahora mismo no se puede acceder a la red de Vouch Compute. Reintentando en {seconds, plural, one {# segundo} many {# segundos} other {# segundos}}."
+      "subRetry": "Ahora mismo no se puede acceder a la red de Vouch Compute. Reintentando en {seconds, plural, one {# segundo} many {# segundos} other {# segundos}}.",
+      "untrustedKeys": "Esta app no puede verificar las claves de seguridad de la red de Vouch Compute, así que no se conectará. Instala la versión más reciente de la app."
     },
     "setup": {
       "title": "Configurando este dispositivo",
@@ -147,6 +148,8 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# ronda completada} many {# rondas completadas} other {# rondas completadas}}. Si empiezas a usar el equipo, la prueba se detiene, aunque hayas elegido «Ejecutar ahora».",
     "finished": "Prueba de rendimiento terminada. El servidor comprueba los resultados.",
     "stopped": "La prueba de rendimiento se detuvo antes de terminar. Volverá a empezar más tarde.",
+    "declined": "La prueba de rendimiento de {model} no pudo empezar.",
+    "whyStopped": "{reason, select, paused {Motivo: estabas usando el equipo, se calentó demasiado o pasó a funcionar con batería.} thermal {Motivo: el equipo se calentó demasiado.} on_battery {Motivo: el equipo pasó a funcionar con batería.} model_not_downloaded {Motivo: el modelo no terminó de descargarse a tiempo.} runtime_failed {Motivo: este equipo no pudo cargar lo que el modelo necesita para funcionar. Hace falta actualizar la app.} other {Motivo: la prueba enviada por el servidor no se pudo usar en este equipo.}}",
     "about": "Una prueba de velocidad firmada se ejecuta a máxima velocidad durante unos 20 minutos. Se detiene si usas el equipo, si el equipo se calienta demasiado o si pasa a funcionar con batería. Tu ajuste «Uso de energía» se aplica al trabajo pagado, no a esta prueba. La prueba nunca se paga y puedes detenerla en cualquier momento.",
     "runNow": "Ejecutar ahora",
     "runAtIdle": "Ejecutar en la primera inactividad"

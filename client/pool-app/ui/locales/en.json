@@ -55,7 +55,8 @@
       "title": "Offline",
       "connecting": "Connecting…",
       "sub": "Can't reach the Vouch Compute network right now.",
-      "subRetry": "Can't reach the Vouch Compute network right now. Retrying in {seconds, plural, one {# second} other {# seconds}}."
+      "subRetry": "Can't reach the Vouch Compute network right now. Retrying in {seconds, plural, one {# second} other {# seconds}}.",
+      "untrustedKeys": "This app can't verify the Vouch Compute network's security keys, so it won't connect. Install the latest version of the app."
     },
     "setup": {
       "title": "Setting up this device",
@@ -147,6 +148,8 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# round} other {# rounds}} done. If you start using the computer, it stops, even if you chose “Run now”.",
     "finished": "Benchmark finished. Results are checked by the server.",
     "stopped": "The benchmark stopped before it finished. It will start again later.",
+    "declined": "The benchmark for {model} could not start.",
+    "whyStopped": "{reason, select, paused {Reason: you were using the computer, it got too hot or it switched to battery.} thermal {Reason: the computer got too hot.} on_battery {Reason: the computer switched to battery.} model_not_downloaded {Reason: the model did not finish downloading in time.} runtime_failed {Reason: this computer could not load what the model needs to run. An app update is needed.} other {Reason: the test sent by the server could not be used on this computer.}}",
     "about": "A signed speed test runs at full speed for about 20 minutes. It stops if you use the computer, if the computer gets too hot or if it switches to battery. Your “Power use” setting applies to paid work, not to this test. The test is never paid, and you can stop it at any time.",
     "runNow": "Run now",
     "runAtIdle": "Run at first idle instead"

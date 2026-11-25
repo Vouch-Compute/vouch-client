@@ -61,6 +61,8 @@ pub struct VaultError {
     pub status: u16,
     pub code: String,
     pub details: Value,
+    /// The server's own words (`error.message`, or OAuth's `error_description`): logged, never shown (English).
+    pub message: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -123,7 +125,16 @@ async fn json_or_err(resp: reqwest::Response) -> anyhow::Result<Value> {
         Ok(body)
     } else {
         let code = body.pointer("/error/code").or_else(|| body.get("error")).and_then(|v| v.as_str()).unwrap_or("error");
-        Err(VaultError { status: status.as_u16(), code: code.to_string(), details: body.pointer("/error/details").cloned().unwrap_or(Value::Null) }.into())
+        let message = body.pointer("/error/message").or_else(|| body.get("error_description")).and_then(|v| v.as_str()).unwrap_or("");
+        let message: String = message.chars().filter(|c| !c.is_control()).take(200).collect();
+        tracing::info!("vault answered {status} {code}: {message}");
+        Err(VaultError {
+            status: status.as_u16(),
+            code: code.to_string(),
+            details: body.pointer("/error/details").cloned().unwrap_or(Value::Null),
+            message,
+        }
+        .into())
     }
 }
 

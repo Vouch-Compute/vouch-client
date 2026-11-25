@@ -153,7 +153,8 @@ jobs:
         working-directory: client/pool-app
         run: echo '{"bundle":{"macOS":{"signingIdentity":"-"}}}' > src-tauri/tauri.signing.conf.json
       # The pinned ONNX Runtime dylib carries Microsoft's bytes: under a Developer ID, library validation refuses it and
-      # notarization wants it re-signed, which breaks its SHA-256 pin. Ad-hoc builds load it (measured). Until vault
+      # notarization wants it re-signed, which breaks its SHA-256 pin. Ad-hoc builds load it only because the app's
+      # entitlements turn library validation off (macOS 27 refuses it otherwise, T-225). Until vault
       # decides how the pin follows our signature (CR-T215-01), a Developer ID build stops here instead of shipping an
       # app whose embedding jobs cannot run.
       - name: Developer ID builds need a decision on the runtime pack pin

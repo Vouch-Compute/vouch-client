@@ -55,7 +55,8 @@
       "title": "Hors ligne",
       "connecting": "Connexion…",
       "sub": "Impossible de joindre le réseau Vouch Compute pour le moment.",
-      "subRetry": "Impossible de joindre le réseau Vouch Compute pour le moment. Nouvel essai dans {seconds, plural, one {# seconde} many {# secondes} other {# secondes}}."
+      "subRetry": "Impossible de joindre le réseau Vouch Compute pour le moment. Nouvel essai dans {seconds, plural, one {# seconde} many {# secondes} other {# secondes}}.",
+      "untrustedKeys": "Cette application ne peut pas vérifier les clés de sécurité du réseau Vouch Compute, elle ne se connectera donc pas. Installez la dernière version de l’application."
     },
     "setup": {
       "title": "Configuration de cet appareil",
@@ -147,6 +148,8 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# passe terminée} many {# passes terminées} other {# passes terminées}}. Si vous commencez à utiliser l’ordinateur, le test s’arrête, même si vous avez choisi « Lancer maintenant ».",
     "finished": "Test de performance terminé. Les résultats sont contrôlés par le serveur.",
     "stopped": "Le test de performance s’est arrêté avant la fin. Il redémarrera plus tard.",
+    "declined": "Le test de performance pour {model} n’a pas pu démarrer.",
+    "whyStopped": "{reason, select, paused {Raison : vous utilisiez l’ordinateur, il a trop chauffé ou il est passé sur batterie.} thermal {Raison : l’ordinateur a trop chauffé.} on_battery {Raison : l’ordinateur est passé sur batterie.} model_not_downloaded {Raison : le modèle n’a pas fini de se télécharger à temps.} runtime_failed {Raison : cet ordinateur n’a pas pu charger ce dont le modèle a besoin pour fonctionner. Une mise à jour de l’app est nécessaire.} other {Raison : le test envoyé par le serveur n’a pas pu être utilisé sur cet ordinateur.}}",
     "about": "Un test de vitesse signé tourne à pleine vitesse pendant environ 20 minutes. Il s’arrête si vous utilisez l’ordinateur, si l’ordinateur chauffe trop ou s’il passe sur batterie. Votre réglage « Consommation » s’applique au travail payé, pas à ce test. Le test n’est jamais payé et vous pouvez l’arrêter à tout moment.",
     "runNow": "Lancer maintenant",
     "runAtIdle": "Lancer plutôt à la première inactivité"
