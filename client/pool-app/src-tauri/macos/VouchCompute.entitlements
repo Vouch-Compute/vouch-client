@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Hardened runtime with no exceptions, for the app and its two helpers (pool-core, pool-runner), which the
-     bundler signs with the same identity. Not App Sandboxed: the app starts the agent, and the agent confines
-     each job runner with its own deny-by-default sandbox profile (no network, no user files). No JIT, no
-     unsigned libraries, no debugger attachment. -->
+<!-- Hardened runtime for the app and its two helpers (pool-core, pool-runner), which the bundler signs with the same
+     identity and this one file. Not App Sandboxed: the app starts the agent, and the agent confines each job runner
+     with its own deny-by-default sandbox profile (no network, no user files). No JIT, no DYLD_* environment, no
+     debugger attachment.
+
+     One exception: library validation is off. The runner loads the pinned ONNX Runtime pack
+     (Resources/backends/ort-cpu/libonnxruntime.dylib), which keeps Microsoft's signature because re-signing it would
+     change its pinned bytes. With library validation on, macOS refuses it in our ad-hoc build ("mapping process and
+     mapped file (non-platform) have different Team IDs"), and also refuses a copy re-signed ad hoc by us, so no
+     embedding job or benchmark can run on a Mac (measured on macOS 27, T-225). What still decides which library
+     loads: the agent and the runner both check the pack's SHA-256 pins right before it is loaded, by full path, and
+     the job runs in the sandbox. The bundler cannot give one helper its own entitlements, so the exception applies
+     to all three; to be narrowed to pool-runner, or dropped, once a Developer ID signs the pack (CR-T215-01). -->
 <plist version="1.0">
 <dict>
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
 </dict>
 </plist>
