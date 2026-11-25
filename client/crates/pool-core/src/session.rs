@@ -260,6 +260,37 @@ fn decline_reason(d: &Decision) -> pb::DeclineReason {
     }
 }
 
+/// The app's `benchmark.stop_reason` code for a DeclineReason (see [`crate::status::BenchProgress`]).
+fn stop_reason_code(r: pb::DeclineReason) -> &'static str {
+    match r {
+        pb::DeclineReason::UserActive => "paused",
+        pb::DeclineReason::Thermal => "thermal",
+        pb::DeclineReason::OnBattery => "on_battery",
+        pb::DeclineReason::ModelNotCached => "model_not_downloaded",
+        _ => "other",
+    }
+}
+
+/// Show a benchmark that was declined before it started, with its reason (M9). A Busy decline keeps whatever the
+/// card shows: the benchmark that made it busy.
+fn show_declined(deps: &Deps, benchmark_id: &str, model_id: &str, r: pb::DeclineReason) {
+    if r == pb::DeclineReason::Busy {
+        return;
+    }
+    deps.status.update(|s| {
+        s.benchmark = Some(BenchProgress {
+            benchmark_id: benchmark_id.to_string(),
+            state: "declined".into(),
+            started_ms: now_ms(),
+            duration_s: 0,
+            segments: 0,
+            model_id: model_id.to_string(),
+            measured: None,
+            stop_reason: Some(stop_reason_code(r).into()),
+        })
+    });
+}
+
 fn check_challenge_nonce(deps: &Deps, nonce: &[u8]) -> Result<(), String> {
     if nonce.len() != 32 {
         return Err("challenge nonce must be 32 bytes".into());
@@ -324,7 +355,17 @@ where
             },
             Some(Ok(Message::Text(_))) => return Err(SessionEnd::ProtocolError("text frame".into())),
             Some(Ok(Message::Ping(_) | Message::Pong(_) | Message::Frame(_))) => continue,
-            Some(Ok(Message::Close(_))) | None => return Err(SessionEnd::Reconnect(None)),
+            Some(Ok(Message::Close(frame))) => {
+                match frame {
+                    Some(f) => tracing::warn!("the job server closed the connection: code {}, {:?}", u16::from(f.code), f.reason.as_str()),
+                    None => tracing::warn!("the job server closed the connection without a close code"),
+                }
+                return Err(SessionEnd::Reconnect(None));
+            }
+            None => {
+                tracing::warn!("the connection to the job server ended without a close frame");
+                return Err(SessionEnd::Reconnect(None));
+            }
             Some(Err(e)) => return Err(SessionEnd::ProtocolError(format!("websocket: {e}"))),
         }
     }
@@ -371,7 +412,8 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
         Ok(h) => h,
         Err(e) => return SessionEnd::ProtocolError(format!("hello: {e}")),
     };
-    if ws.send(Message::Binary(out.encode(NB::Hello(hello)).into())).await.is_err() {
+    if let Err(e) = ws.send(Message::Binary(out.encode(NB::Hello(hello)).into())).await {
+        tracing::warn!("could not send Hello to the job server: {e}");
         return SessionEnd::Reconnect(None);
     }
     let welcome = loop {
@@ -460,7 +502,7 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
                             None => tracker.accept(&job_id, now_ms()).map(NB::Accept),
                         };
                         if let Ok(m) = msg {
-                            if send(&mut sink, &mut out, m).await.is_err() { fire_all(&current, &bench); return SessionEnd::Reconnect(None); }
+                            if let Err(e) = send(&mut sink, &mut out, m).await { tracing::warn!("send to the job server failed: {e}"); fire_all(&current, &bench); return SessionEnd::Reconnect(None); }
                         }
                     }
                     SB::LeaseGrant(g) => {
@@ -493,6 +535,7 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
                         // device eligible for one model only.
                         if current.is_some() || bench.is_some() {
                             if bench_queue.len() >= 16 {
+                                tracing::warn!("benchmark {} declined: Busy: 16 benchmarks already queued", b.benchmark_id);
                                 let resp = pb::BenchmarkResponse { benchmark_id: b.benchmark_id.clone(), accept: false, reason: pb::DeclineReason::Busy as i32 };
                                 let _ = send(&mut sink, &mut out, NB::BenchmarkResponse(resp)).await;
                             } else {
@@ -547,7 +590,7 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
                             NB::Result(_) => { let _ = tracker.on_result_sent(&job_id); deps.status.update(|s| s.jobs_completed += 1); }
                             _ => { tracker.on_abandon(&job_id); deps.status.update(|s| s.jobs_abandoned += 1); }
                         }
-                        if send(&mut sink, &mut out, body).await.is_err() { return SessionEnd::Reconnect(None); }
+                        if let Err(e) = send(&mut sink, &mut out, body).await { tracing::warn!("send to the job server failed: {e}"); return SessionEnd::Reconnect(None); }
                     }
                     Some(Event::BenchDone(b)) => {
                         bench = None;
@@ -565,10 +608,10 @@ pub async fn run(deps: Arc<Deps>, mut ws: WebSocketStream<Conn>, edge: Option<Ed
             }
             _ = hb.tick() => {
                 tracker.sweep(now_ms());
-                if send(&mut sink, &mut out, heartbeat(&deps, current.is_some())).await.is_err() { fire_all(&current, &bench); return SessionEnd::Reconnect(None); }
+                if let Err(e) = send(&mut sink, &mut out, heartbeat(&deps, current.is_some())).await { tracing::warn!("heartbeat to the job server failed: {e}"); fire_all(&current, &bench); return SessionEnd::Reconnect(None); }
             }
             _ = ping.tick() => {
-                if sink.send(Message::Ping(Vec::new().into())).await.is_err() { fire_all(&current, &bench); return SessionEnd::Reconnect(None); }
+                if let Err(e) = sink.send(Message::Ping(Vec::new().into())).await { tracing::warn!("ping to the job server failed: {e}"); fire_all(&current, &bench); return SessionEnd::Reconnect(None); }
             }
             changed = decision_rx.changed() => {
                 if changed.is_err() { fire_all(&current, &bench); return SessionEnd::DoNotReconnect; }
@@ -789,9 +832,11 @@ async fn prepare_and_run_bench(
             let _ = tx.send(Event::Send(NB::BenchmarkResponse(resp))).await;
             run_bench(deps, job, preempt, tx).await;
         }
-        Ok(_) => {
+        Ok((_, job)) => {
             let d = *decision_rx.borrow();
             let r = if d.is_run() { pb::DeclineReason::Other } else { decline_reason(&d) };
+            tracing::warn!("benchmark {} declined: {r:?}: stopped before it started (governor: {d:?})", b.benchmark_id);
+            show_declined(&deps, &b.benchmark_id, job.as_ref().map_or("", |j| j.model.manifest.model_id.as_str()), r);
             let resp = pb::BenchmarkResponse { benchmark_id: b.benchmark_id.clone(), accept: false, reason: r as i32 };
             let _ = tx.send(Event::BenchDone(Some(NB::BenchmarkResponse(resp)))).await;
         }
@@ -826,26 +871,40 @@ async fn handle_bench_offer(
     decision_rx: &watch::Receiver<Decision>,
     preempt: &Preempt,
 ) -> Result<(pb::BenchmarkResponse, Option<BenchJob>), pb::BenchmarkResponse> {
-    let decline = |r: pb::DeclineReason| pb::BenchmarkResponse { benchmark_id: b.benchmark_id.clone(), accept: false, reason: r as i32 };
+    // every decline is logged with its own reason (the server only sees the DeclineReason code)
+    let decline = |r: pb::DeclineReason, model: &str, why: &str| {
+        tracing::warn!("benchmark {} ({model}) declined: {r:?}: {why}", b.benchmark_id);
+        show_declined(deps, &b.benchmark_id, if model == "?" { "" } else { model }, r);
+        pb::BenchmarkResponse { benchmark_id: b.benchmark_id.clone(), accept: false, reason: r as i32 }
+    };
     let now = now_ms();
-    let w = deps.keyset.verify_benchmark_workload(&b.workload, now).map_err(|_| decline(pb::DeclineReason::Other))?;
-    if w.benchmark_id != b.benchmark_id || w.device_id != deps.me.device_id || w.device_key_id != deps.me.device_key_id || w.expires_at <= now {
-        return Err(decline(pb::DeclineReason::Other));
+    let w = deps
+        .keyset
+        .verify_benchmark_workload(&b.workload, now)
+        .map_err(|e| decline(pb::DeclineReason::Other, "?", &format!("workload did not verify: {e}")))?;
+    let m = w.model_id.as_str();
+    if w.benchmark_id != b.benchmark_id || w.device_id != deps.me.device_id || w.device_key_id != deps.me.device_key_id {
+        return Err(decline(pb::DeclineReason::Other, m, "workload is for another benchmark or device"));
+    }
+    if w.expires_at <= now {
+        return Err(decline(pb::DeclineReason::Other, m, "workload expired"));
     }
     // A dev server may sign workloads under 1200 s (VAULT_DEV_BENCHMARK_MIN_DURATION_S); only dev builds in dev
     // mode accept them. Release builds already refuse them when decoding the workload.
     if w.min_duration_s < pool_proto::objects::MIN_BENCHMARK_DURATION_S && !deps.cfg.allow_insecure_dev() {
-        return Err(decline(pb::DeclineReason::Other));
+        return Err(decline(pb::DeclineReason::Other, m, "workload shorter than the release minimum"));
     }
     let d = *decision_rx.borrow();
     let now_requested = deps.settings_rx.borrow().benchmark_now;
     if busy {
-        return Err(decline(pb::DeclineReason::Busy));
+        return Err(decline(pb::DeclineReason::Busy, m, "another job or benchmark is running"));
     }
     if !d.is_run() && !(now_requested && !matches!(d, Decision::Pause(PauseReason::Thermal | PauseReason::OnBattery | PauseReason::BatteryLow))) {
-        return Err(decline(decline_reason(&d)));
+        return Err(decline(decline_reason(&d), m, &format!("governor: {d:?}")));
     }
-    let model = wait_for_model(deps, &w.model_hash, w.expires_at, preempt).await.ok_or_else(|| decline(pb::DeclineReason::ModelNotCached))?;
+    let model = wait_for_model(deps, &w.model_hash, w.expires_at, preempt)
+        .await
+        .ok_or_else(|| decline(pb::DeclineReason::ModelNotCached, m, "model not downloaded in time"))?;
     let url = if b.bundle_url.starts_with('/') { format!("{}{}", crate::registry::http_base(&deps.cfg.engine_ws_url), b.bundle_url) } else { b.bundle_url.clone() };
     // One retry. A declined onboarding benchmark is never re-issued by the server, and the first GET can fail on a
     // pooled keep-alive connection the server has just closed (seen intermittently in a test).
@@ -853,17 +912,19 @@ async fn handle_bench_offer(
     let bundle = match fetch().await {
         Ok(b) => b,
         Err(e) => {
-            tracing::warn!("benchmark bundle fetch failed ({e}); retrying once");
+            tracing::warn!("benchmark bundle fetch failed ({}); retrying once", e.without_url());
             tokio::time::sleep(Duration::from_millis(500)).await;
             fetch().await.map_err(|e| {
-                tracing::warn!("benchmark bundle fetch failed again ({e}); declining");
-                decline(pb::DeclineReason::Other)
+                decline(pb::DeclineReason::Other, m, &format!("benchmark bundle fetch failed twice: {}", e.without_url()))
             })?
         }
     }
     .to_vec();
-    if sha256(&bundle) != w.bundle_sha256 || pool_runner::input::validate(&model.manifest.input_format, &bundle).is_err() {
-        return Err(decline(pb::DeclineReason::Other));
+    if sha256(&bundle) != w.bundle_sha256 {
+        return Err(decline(pb::DeclineReason::Other, m, "benchmark bundle sha256 mismatch"));
+    }
+    if let Err(e) = pool_runner::input::validate(&model.manifest.input_format, &bundle) {
+        return Err(decline(pb::DeclineReason::Other, m, &format!("benchmark bundle is not valid {} input: {e}", model.manifest.input_format)));
     }
     let duration_s = match deps.cfg.bench_duration_override_s {
         Some(s) if deps.cfg.allow_insecure_dev() => s,
@@ -898,6 +959,7 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
             segments: 0,
             model_id: model_id.clone(),
             measured: None,
+            stop_reason: None,
         })
     });
     let slice_ms = (job.duration_s * 1000).div_ceil(BENCHMARK_SEGMENTS).max(1);
@@ -935,6 +997,7 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
         None
     };
     let state = if body.is_some() { "sent" } else { "stopped" };
+    let body_is_none = body.is_none();
     if body.is_some() {
         if let Some(m) = out.measured(unit) {
             (deps.perf)(PerfUpdate::Measured(MeasuredPerformance { model_id, benchmark_id: id.clone(), measured: m, finished_ms: now_ms(), received: false }));
@@ -946,7 +1009,14 @@ async fn run_bench(deps: Arc<Deps>, job: BenchJob, preempt: Preempt, tx: mpsc::S
         let reason = if preempt.fired() { pb::DeclineReason::UserActive } else { pb::DeclineReason::Other };
         Some(NB::BenchmarkResponse(pb::BenchmarkResponse { benchmark_id: id.clone(), accept: false, reason: reason as i32 }))
     });
-    deps.status.update(|s| if let Some(b) = &mut s.benchmark { b.state = state.into() });
+    // M9: a stop says why: the governor pre-empted it (the user came back, heat, battery) or the runner failed
+    let stop_reason = (body_is_none).then(|| if preempt.fired() { "paused" } else { "runtime_failed" });
+    deps.status.update(|s| {
+        if let Some(b) = &mut s.benchmark {
+            b.state = state.into();
+            b.stop_reason = stop_reason.map(Into::into);
+        }
+    });
     let _ = tx.send(Event::BenchDone(body)).await;
 }
 

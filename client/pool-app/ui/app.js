@@ -220,6 +220,9 @@ function perfHtml(list, d, loading) {
 }
 // ---- performance (end)
 
+// The agent's `benchmark.stop_reason` codes (pool-core `status::BenchProgress`); an unknown one shows no reason line.
+const BENCH_STOP_REASONS = ["paused", "thermal", "on_battery", "model_not_downloaded", "runtime_failed", "other"];
+
 function benchHtml(b, now, benchNow) {
   const pct = b ? Math.max(0, Math.min(100, Math.round(((now - Number(b.started_ms)) / 1000 / Math.max(1, Number(b.duration_s) || 1)) * 100))) || 0 : 0;
   const rate = b ? measuredText(b.measured) : "";
@@ -229,7 +232,8 @@ function benchHtml(b, now, benchNow) {
       ${rate ? `<p class="small">${tx("perf.soFar", { value: rate })}</p>` : ""}`
     : b.state === "sent" || b.state === "received" ? `<div class="note note-ok">${icon("check")}<span>${tx("bench.finished")}</span></div>
       ${rate ? `<p class="perf-rate">${esc(rate)}</p><p class="muted small">${tx("perf.measuredHere")}</p>` : ""}`
-    : `<div class="note note-warn">${icon("alert")}<span>${tx("bench.stopped")}</span></div>`;
+    : `<div class="note note-warn">${icon("alert")}<span>${b.state === "declined" ? tx("bench.declined", { model: b.model_id || "—" }) : tx("bench.stopped")}${
+      BENCH_STOP_REASONS.includes(b.stop_reason) ? ` ${tx("bench.whyStopped", { reason: b.stop_reason })}` : ""}</span></div>`;
   return `${state}
     <p class="muted small">${tx("bench.about")}</p>
     <div class="row"><button type="button" class="btn ${benchNow ? "" : "btn-primary"}" id="bench-now" aria-pressed="${benchNow ? "true" : "false"}">${icon(benchNow ? "clock" : "play")}${benchNow ? tx("bench.runAtIdle") : tx("bench.runNow")}</button></div>`;
@@ -1351,7 +1355,7 @@ function demoInvoke(cmd, args) {
     return {
       state: p.get("state") || "earning", signin,
       consent: p.get("consent") || (["idle", "pending", "consent_required"].includes(signin) ? null : "accepted"),
-      pilot: p.get("pilot") === "1", bench: p.get("bench") || (step === "device" ? "running" : "sent"), autostart: true,
+      pilot: p.get("pilot") === "1", bench: p.get("bench") || (step === "device" ? "running" : "sent"), why: p.get("why"), autostart: true,
     };
   })());
   const settings = demoInvoke.settings || (demoInvoke.settings = { mode: "idle_only", idle_minutes: 10, temp_cap_c: 80, power_pct: 90, never_on_battery: true, pause_in_fullscreen: true,
@@ -1399,7 +1403,7 @@ function demoInvoke(cmd, args) {
         : { state: "blocked", code: "device_limit", message: "Your account has reached its device limit. Verify your identity on the web to add more." } }[conf.signin] || { state: conf.signin };
     const measured = { unit: "token", per_second: conf.bench === "running" ? 412.6 : 418.3, runs: conf.bench === "running" ? 180 : 470, backend: "onnxruntime-cpu" };
     const bench = conf.bench === "none" ? null : { benchmark_id: "b", state: conf.bench, started_ms: conf.bench === "running" ? now - 460000 : now - 1300000, duration_s: 1200,
-      segments: conf.bench === "running" ? 7 : 20, model_id: "bge-m3", measured };
+      segments: conf.bench === "running" ? 7 : 20, model_id: "bge-m3", measured, ...(conf.why ? { stop_reason: conf.why } : {}) };
     const performance = conf.bench === "sent" ? [{ model_id: "bge-m3", benchmark_id: "b", measured, finished_ms: now - 100000, received: true }] : [];
     const decision = conf.state === "paused" ? { state: "pause", reason: "paused_by_user" } : { state: "run" };
     return R({ version: "0.2.1", signed_in: signedIn, device_id: enrolled ? "7d0c3c9e-1b2a-4f5e-9c8d-0a1b2c3d4e5f" : null, trust_ceiling: "capped", key_storage: "tpm",

@@ -148,6 +148,8 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# Runde} other {# Runden}} abgeschlossen. Wenn Sie anfangen, den Computer zu benutzen, stoppt der Test, auch wenn Sie „Jetzt starten“ gewählt haben.",
     "finished": "Leistungstest abgeschlossen. Die Ergebnisse werden vom Server geprüft.",
     "stopped": "Der Leistungstest wurde vor dem Ende abgebrochen. Er startet später erneut.",
+    "declined": "Der Leistungstest für {model} konnte nicht starten.",
+    "whyStopped": "{reason, select, paused {Grund: Sie haben den Computer benutzt, er wurde zu heiß oder ist auf Akkubetrieb umgestiegen.} thermal {Grund: Der Computer wurde zu heiß.} on_battery {Grund: Der Computer ist auf Akkubetrieb umgestiegen.} model_not_downloaded {Grund: Das Modell wurde nicht rechtzeitig fertig heruntergeladen.} runtime_failed {Grund: Dieser Computer konnte nicht laden, was das Modell zum Ausführen braucht. Ein App-Update ist nötig.} other {Grund: Der vom Server gesendete Test konnte auf diesem Computer nicht verwendet werden.}}",
     "about": "Ein signierter Geschwindigkeitstest läuft etwa 20 Minuten lang mit voller Leistung. Er stoppt, wenn Sie den Computer benutzen, der Computer zu heiß wird oder auf Akkubetrieb wechselt. Ihre Einstellung „Leistungsaufnahme“ gilt für bezahlte Arbeit, nicht für diesen Test. Der Test wird nie bezahlt, und Sie können ihn jederzeit abbrechen.",
     "runNow": "Jetzt starten",
     "runAtIdle": "Bei erster Inaktivität starten"

@@ -37,6 +37,10 @@ pub struct BenchProgress {
     /// What this app has measured so far in the benchmark window (display only, see [`Measured`]).
     #[serde(default)]
     pub measured: Option<Measured>,
+    /// Why a `stopped` or `declined` benchmark did not finish, as a code the app puts in words (M9): `paused`,
+    /// `thermal`, `on_battery`, `model_not_downloaded`, `runtime_failed` or `other`. Never free text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop_reason: Option<String>,
 }
 
 /// Throughput the app measured on this computer during a benchmark, for the user to see. **Display only:** it is

@@ -148,6 +148,8 @@
     "progress": "{ratio, number, percent} · {rounds, plural, other {# putaran}} selesai. Jika Anda mulai memakai komputer, uji ini berhenti, meskipun Anda memilih “Jalankan sekarang”.",
     "finished": "Uji kinerja selesai. Hasilnya diperiksa oleh server.",
     "stopped": "Uji kinerja berhenti sebelum selesai. Uji ini akan dimulai lagi nanti.",
+    "declined": "Uji kinerja untuk {model} tidak dapat dimulai.",
+    "whyStopped": "{reason, select, paused {Alasan: Anda sedang memakai komputer, komputer terlalu panas, atau beralih ke baterai.} thermal {Alasan: komputer terlalu panas.} on_battery {Alasan: komputer beralih ke baterai.} model_not_downloaded {Alasan: model belum selesai diunduh tepat waktu.} runtime_failed {Alasan: komputer ini tidak dapat memuat apa yang dibutuhkan model untuk berjalan. Aplikasi perlu diperbarui.} other {Alasan: uji yang dikirim server tidak dapat digunakan di komputer ini.}}",
     "about": "Uji kecepatan bertanda tangan berjalan dengan kecepatan penuh selama sekitar 20 menit. Uji ini berhenti jika Anda memakai komputer, jika komputer terlalu panas, atau jika komputer beralih ke baterai. Pengaturan “Penggunaan daya” Anda berlaku untuk pekerjaan berbayar, bukan untuk uji ini. Uji ini tidak pernah dibayar, dan Anda bisa menghentikannya kapan saja.",
     "runNow": "Jalankan sekarang",
     "runAtIdle": "Jalankan saat pertama kali menganggur"

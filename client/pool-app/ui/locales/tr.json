@@ -148,6 +148,8 @@
     "progress": "{ratio, number, percent} · {rounds, plural, one {# tur} other {# tur}} tamamlandı. Bilgisayarı kullanmaya başlarsanız, “Şimdi çalıştır”ı seçmiş olsanız bile test durur.",
     "finished": "Performans testi tamamlandı. Sonuçlar sunucu tarafından kontrol edilir.",
     "stopped": "Performans testi bitmeden durdu. Daha sonra yeniden başlayacak.",
+    "declined": "{model} için performans testi başlatılamadı.",
+    "whyStopped": "{reason, select, paused {Neden: bilgisayarı kullanıyordunuz, bilgisayar çok ısındı veya pil gücüne geçti.} thermal {Neden: bilgisayar çok ısındı.} on_battery {Neden: bilgisayar pil gücüne geçti.} model_not_downloaded {Neden: modelin indirilmesi zamanında bitmedi.} runtime_failed {Neden: bu bilgisayar, modelin çalışması için gerekenleri yükleyemedi. Uygulamanın güncellenmesi gerekiyor.} other {Neden: sunucunun gönderdiği test bu bilgisayarda kullanılamadı.}}",
     "about": "İmzalı bir hız testi yaklaşık 20 dakika boyunca tam hızda çalışır. Bilgisayarı kullanırsanız, bilgisayar çok ısınırsa veya pil gücüne geçerse durur. “Güç kullanımı” ayarınız bu teste değil, ücretli işlere uygulanır. Bu test asla ödenmez ve istediğiniz zaman durdurabilirsiniz.",
     "runNow": "Şimdi çalıştır",
     "runAtIdle": "İlk boşta kalındığında çalıştır"
