@@ -50,8 +50,13 @@ protocol.
 - Does the benchmark rate need a new protocol version, since rates will jump about 60 times for large models?
   Old benchmarks would no longer compare with new ones.
 
-## Smaller step, independent of the above
+## Decisions (25 Nov)
 
-Hash the model once when it is downloaded, then use a cheaper check per run: the size and modification time of each
-file, recorded at download. A full re-hash would happen only after a change. This alone cuts bge-m3 from about 7.5 s
-to about 1 s per run (about 100 tokens/s). It needs vault's view, because it weakens "verify before every load".
+- **`sha2` 0.11: approved for the next round.** The workspace's `sha2` 0.10 is built without its `asm` feature, so on
+  Apple silicon it hashes in software at 0.50 GB/s (4.49 s for bge-m3's 2.27 GB). `sha2` 0.11 uses the CPU's SHA
+  instructions: 0.89 s (2.54 GB/s), measured on the same Mac. It does the same check, faster, for every model and pack
+  on every OS. This alone takes bge-m3 from about 7.5 s to about 3.9 s per run (about 21 tokens/s).
+- **"Hash once at download, cheap check per run": rejected.** The warm runner verifies the full bundle once at runner
+  start, which removes the per-run cost without weakening "verify before load".
+- Benchmark crediting (spec units vs. measured `units_device`, which is in milli-units) is server bug T-232, tracked
+  separately.
