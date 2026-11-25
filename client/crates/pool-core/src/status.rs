@@ -180,11 +180,10 @@ pub struct Status {
     pub benchmark: Option<BenchProgress>,
     pub sandbox: Option<String>,
     pub last_error: Option<String>,
-    /// Why the last attempt did not reach the job server, for the app to explain: `untrusted_keys` (the server's
-    /// signing keys did not verify against the keys built into this app) or `network` (could not reach it). `None`
-    /// once a session is up.
+    /// A connection problem the app explains on its own (beyond `last_error`). Set at each KeySet check, `None` once
+    /// the keys verify.
     #[serde(default)]
-    pub connect_problem: Option<String>,
+    pub connect_problem: Option<ConnectProblem>,
     pub reconnect_in_s: Option<u64>,
     /// Account notices from the server (node protocol 1.2.0 `AccountNotice`): banners only, no reason text.
     pub notices: Notices,
@@ -198,6 +197,15 @@ pub struct Status {
     /// The runtime that ran the last job (`onnxruntime-directml`, `candle-cuda`, `candle-cpu`,...).
     #[serde(default)]
     pub backend: Option<String>,
+}
+
+/// See [`Status::connect_problem`].
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ConnectProblem {
+    /// The server's KeySet is signed, but not by a root built into this app: no session is attempted, and only an app
+    /// update can fix it.
+    UntrustedKeys,
 }
 
 /// The banners `AccountNotice` drives. Reset at every new session: the server sends the ones that apply on connect.

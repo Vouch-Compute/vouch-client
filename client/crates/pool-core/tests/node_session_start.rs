@@ -9,33 +9,39 @@ use std::time::{Duration, Instant};
 
 use common::*;
 
-async fn wait_problem(agent: &pool_core::agent::Agent, want: &str) -> pool_core::status::Status {
+use pool_core::status::ConnectProblem;
+
+async fn wait_problem(agent: &pool_core::agent::Agent, want: Option<ConnectProblem>, err: &str) -> pool_core::status::Status {
     let deadline = Instant::now() + Duration::from_secs(20);
     loop {
         let s = agent.status.get();
-        if s.connect_problem.as_deref() == Some(want) {
+        if s.connect_problem == want && s.last_error.as_deref().is_some_and(|e| e.contains(err)) {
             return s;
         }
-        assert!(Instant::now() < deadline, "timeout waiting for {want}; status {s:?}");
+        assert!(Instant::now() < deadline, "timeout waiting for {want:?} / {err}; status {s:?}");
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
 }
 
-/// A KeySet that doesn't verify against the built-in roots: no session is attempted, and the status says why (the app
-/// shows it); a KeySet the server can't serve is a network problem instead.
+/// A KeySet signed by a root this app doesn't have: no session is attempted, and the status says why (the app asks for
+/// an update). An unreadable KeySet (a captive portal) or one the server can't serve is not that: no update prompt.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_keyset_this_app_cannot_verify_is_reported() {
     let data = tempfile::tempdir().unwrap();
     let (v, agent) = enrolled(data.path()).await;
-    *v.keyset.lock().unwrap() = Some(b"\xd2\x84not a keyset signed by a known root".to_vec());
+    // a well-formed KeySet from a server whose roots this build doesn't trust
+    *v.keyset.lock().unwrap() = Some(pool_proto::testkit::FakeVault::new().keyset_bytes(1));
     tokio::spawn(agent.clone().run());
-    let s = wait_problem(&agent, "untrusted_keys").await;
-    assert!(s.last_error.as_deref().is_some_and(|e| e.contains("signing keys")), "{s:?}");
+    let s = wait_problem(&agent, Some(ConnectProblem::UntrustedKeys), "signing keys").await;
     assert_ne!(s.connection, pool_core::status::Connection::Connected);
+
+    *v.keyset.lock().unwrap() = Some(b"<html>hotel wi-fi login</html>".to_vec());
+    agent.reconnect_now();
+    wait_problem(&agent, None, "KeySet was refused").await;
 
     *v.keyset.lock().unwrap() = None; // 404
     agent.reconnect_now();
-    wait_problem(&agent, "network").await;
+    wait_problem(&agent, None, "404").await;
 }
 
 /// Many account reads at once when the access token has expired: one refresh, never the same refresh token twice.

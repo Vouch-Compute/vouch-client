@@ -171,6 +171,11 @@ mod tests {
         }
         #[cfg(feature = "dev-trust")]
         assert_eq!(DEV_PLACEHOLDER_ROOTS_B64, DEV, "keep this test's copy in step with the dev roots");
+        // and the release marker check refuses packaged binaries that contain any of them
+        let marker = include_str!("../../../ci/release-marker-check.sh");
+        for r in DEV {
+            assert!(marker.contains(r), "ci/release-marker-check.sh must list every dev root in FORBIDDEN");
+        }
         #[cfg(not(feature = "dev-trust"))]
         {
             let embedded: Vec<_> = EMBEDDED_ROOTS_B64.iter().map(|s| keys::parse_spki(&keys::b64_decode(s).unwrap()).unwrap()).collect();

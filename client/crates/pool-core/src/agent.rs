@@ -29,7 +29,7 @@ use crate::platform::{self, Readings};
 use crate::registry::Registry;
 use crate::runner_client::RunnerClient;
 use crate::session::{self, SessionEnd};
-use crate::status::{Connection, Status, StatusHub};
+use crate::status::{ConnectProblem, Connection, Status, StatusHub};
 use crate::vault::{DeviceCode, TokenPoll, VaultClient, VaultError};
 
 /// An own device the user may be reinstalling ("Replace '<name>'").
@@ -99,6 +99,8 @@ pub struct Agent {
     enroll_lock: tokio::sync::Mutex<()>,
     /// One token refresh at a time (see [`Agent::access_token`]).
     refresh_lock: tokio::sync::Mutex<()>,
+    /// When the last refresh failed and why, for the reads that waited on it.
+    refresh_failure: Mutex<Option<(u64, String)>>,
 }
 
 /// The time limit of the enrollment steps before the registration request (refresh, device list, challenge,
@@ -260,6 +262,7 @@ impl Agent {
             enroll_gen: watch::channel(0u64).0,
             enroll_lock: tokio::sync::Mutex::new(()),
             refresh_lock: tokio::sync::Mutex::new(()),
+            refresh_failure: Mutex::new(None),
         }))
     }
 
@@ -363,7 +366,12 @@ impl Agent {
         let bytes = self.vault.keyset().await?;
         let roots = trust::trust_roots().map_err(|e| anyhow::anyhow!("{e}"))?;
         let min = self.state.lock().unwrap().keyset_max_version;
-        let ks = trust::verify_keyset(&bytes, &roots, min).map_err(UntrustedKeySet)?;
+        let ks = trust::verify_keyset(&bytes, &roots, min).map_err(|e| match e {
+            // signed, but by no root this app has: an update brings the right keys
+            pool_proto::Error::BadSignature => anyhow::Error::new(UntrustedKeySet(e)),
+            // unreadable (a captive portal, a proxy, a cut download) or a rollback: not fixed by an update
+            other => anyhow::anyhow!("the server's KeySet was refused: {other}"),
+        })?;
         if ks.keyset.version > min {
             self.state.lock().unwrap().keyset_max_version = ks.keyset.version;
             self.save();
@@ -382,25 +390,27 @@ impl Agent {
                 s.connection = Connection::Connecting;
                 s.reconnect_in_s = None;
             });
+            // this attempt's own failure, for the log line below (`last_error` may still hold an older one)
+            let mut failure: Option<String> = None;
             let end = match self.trusted_keyset().await {
                 Err(e) => {
-                    let problem = if e.downcast_ref::<UntrustedKeySet>().is_some() { "untrusted_keys" } else { "network" };
+                    let untrusted = e.downcast_ref::<UntrustedKeySet>().is_some();
                     tracing::warn!("job server not contacted: fetching or checking the signing keys failed: {e:#}");
+                    failure = Some(e.to_string());
                     self.status.update(|s| {
                         s.last_error = Some(e.to_string());
-                        s.connect_problem = Some(problem.into());
+                        s.connect_problem = untrusted.then_some(ConnectProblem::UntrustedKeys);
                     });
                     SessionEnd::Reconnect(None)
                 }
                 Ok(ks) => {
+                    self.status.update(|s| s.connect_problem = None);
                     self.registry.load_index(&ks);
                     match session::connect(&self.cfg).await {
                         Err(e) => {
                             tracing::warn!("could not connect to the job server at {}: {e:#}", self.cfg.engine_ws_url);
-                            self.status.update(|s| {
-                                s.last_error = Some(format!("connect: {e}"));
-                                s.connect_problem = Some("network".into());
-                            });
+                            failure = Some(format!("connect: {e}"));
+                            self.status.update(|s| s.last_error = Some(format!("connect: {e}")));
                             SessionEnd::Reconnect(None)
                         }
                         Ok((ws, edge)) => {
@@ -442,9 +452,9 @@ impl Agent {
                     }
                 }
             };
-            match self.status.get().last_error {
-                Some(err) if !matches!(end, SessionEnd::Stopped) => tracing::info!("session ended: {end:?}; last error: {err}"),
-                _ => tracing::info!("session ended: {end:?}"),
+            match failure {
+                Some(err) => tracing::info!("session ended: {end:?}; reason: {err}"),
+                None => tracing::info!("session ended: {end:?}"),
             }
             let wait = match end {
                 SessionEnd::Reconnect(Some(d)) => d,
@@ -522,17 +532,28 @@ impl Agent {
         if let Some(t) = self.cached_access_token() {
             return Ok(t);
         }
+        let waited_from = now_ms();
+        let signed_in_before = self.state.lock().unwrap().refresh_token_sealed.is_some();
         // One refresh at a time. vault rotates the refresh token on every use and treats a used one coming back as
         // theft (the whole sign-in is revoked), so two concurrent refreshes with the same token sign the user out.
         let _one = self.refresh_lock.lock().await;
         if let Some(t) = self.cached_access_token() {
             return Ok(t); // refreshed by the caller we waited for
         }
-        let sealed = self.state.lock().unwrap().refresh_token_sealed.clone().ok_or_else(|| anyhow::anyhow!("not signed in"))?;
-        // a token that can't be unsealed (another OS user, a damaged file) is as unusable as an expired one
+        // the caller we waited for failed: share its answer instead of trying again one after the other
+        if let Some((at, msg)) = self.refresh_failure.lock().unwrap().clone() {
+            if at >= waited_from {
+                return Err(anyhow::anyhow!(msg));
+            }
+        }
+        let Some(sealed) = self.state.lock().unwrap().refresh_token_sealed.clone() else {
+            // forgotten by the caller we waited for (refused): the same typed answer for every waiting read
+            return Err(if signed_in_before { SignInExpired.into() } else { anyhow::anyhow!("not signed in") });
+        };
+        // A token that can't be unsealed: kept (a passing failure, e.g. the Windows profile not loaded yet, must not
+        // delete a good sign-in); signing in again replaces it.
         let Some(rt) = unseal_b64(&sealed).ok().and_then(|b| String::from_utf8(b).ok()) else {
-            tracing::warn!("the saved sign-in can't be read on this computer: sign in again");
-            self.forget_sign_in();
+            tracing::warn!("the saved sign-in can't be read on this computer right now");
             return Err(SignInExpired.into());
         };
         let tokens = match self.vault.refresh(&rt).await {
@@ -540,16 +561,33 @@ impl Agent {
             // RFC 6749 section 5.2: an expired, revoked or unknown refresh token is `invalid_grant` (400, some servers
             // 401). Other refusals (`invalid_client`, `invalid_request`: a server or proxy problem) keep the sign-in.
             Err(e) if e.downcast_ref::<VaultError>().is_some_and(|v| (v.status == 400 || v.status == 401) && v.code == "invalid_grant") => {
-                tracing::warn!("the saved sign-in was refused ({e}): sign in again");
-                // forget it, so the app offers "Sign in" instead of failing every read; a registered device keeps its
-                // registration and its node session (those use the device key, never this token)
-                self.forget_sign_in();
+                let detail = e.downcast_ref::<VaultError>().map(|v| v.message.clone()).unwrap_or_default();
+                tracing::warn!("the saved sign-in was refused ({e}; {detail}): sign in again");
+                // Forget it, so the app offers "Sign in" instead of failing every read; a registered device keeps its
+                // registration and its node session (those use the device key, never this token). Only if it is still
+                // the saved one: a sign-in that finished meanwhile is never erased.
+                self.forget_sign_in_if(&sealed);
+                *self.refresh_failure.lock().unwrap() = Some((now_ms(), SignInExpired.to_string()));
                 return Err(SignInExpired.into());
             }
-            Err(e) => return Err(e),
+            Err(e) => {
+                *self.refresh_failure.lock().unwrap() = Some((now_ms(), e.to_string()));
+                return Err(e);
+            }
         };
+        // a sign-out or a new sign-in while this refresh ran wins: its result is not saved
+        if self.state.lock().unwrap().refresh_token_sealed.as_deref() != Some(sealed.as_str()) {
+            anyhow::bail!("the sign-in changed while it was being renewed");
+        }
         self.store_tokens(&tokens);
         Ok(tokens.access_token)
+    }
+
+    /// [`Self::forget_sign_in`], only while `sealed` is still the saved refresh token.
+    fn forget_sign_in_if(&self, sealed: &str) {
+        if self.state.lock().unwrap().refresh_token_sealed.as_deref() == Some(sealed) {
+            self.forget_sign_in();
+        }
     }
 
     fn cached_access_token(&self) -> Option<String> {
